@@ -1,6 +1,13 @@
-# Space Apps
+# Zorbital — combustão em microgravidade
 
-Dashboard interativo para analisar dados, comparar séries e pedir uma interpretação à IA.
+Dashboard para explorar três investigações da NASA sobre chamas em microgravidade (desafio
+*Flame in Freefall*, NASA Space Apps 2026), comparar condições e pedir uma interpretação à IA.
+
+| Investigação | Categoria | O que responde |
+|---|---|---|
+| PSI-69 FLEX | Gota de combustível líquido, ISS | Em que condições a chama visível se extinguiu |
+| PSI-25 BASS-II | Material sólido, ISS | Que materiais, O2 e ventilação foram testados e o que se mediu |
+| PSI-117 | Medição × modelo, solo | Onde o diâmetro de extinção do modelo difere do medido |
 
 ## Como rodar
 
@@ -8,61 +15,138 @@ Pré-requisito: [uv](https://docs.astral.sh/uv/) (ele instala o Python 3.12 e as
 
 ```bash
 uv sync                          # cria .venv e instala tudo do uv.lock
-cp .env.example .env             # depois preencha ANTHROPIC_API_KEY
+uv run spaceapps-build           # lê dados/ e gera data/zorbital.duckdb
+cp .env.example .env             # depois preencha ZYRIA_BASE_URL e ZYRIA_API_KEY
 uv run streamlit run app.py      # abre em http://localhost:8501
 ```
 
-Sem arquivo carregado, o app usa o conjunto de exemplo Gapminder. Sem a chave da API, tudo
-funciona menos o botão **Interpretar**.
+Rode `spaceapps-build` de novo sempre que algo mudar em `dados/`. Sem a chave da API, tudo
+funciona menos o assistente.
 
 Outros comandos:
 
 ```bash
-uv run pytest          # testes de fumaça (inclui subir o app sem navegador)
+uv run pytest          # testes da carga e de todas as páginas (com uma pasta dados/ sintética)
 uv run ruff check .    # lint
 uv run ruff format .   # formatação
-uv add <pacote>        # nova dependência
+```
+
+## Como os dados fluem
+
+```
+dados/  (arquivos originais, nunca alterados, fora do git)
+   │  uv run spaceapps-build
+   ▼
+data/zorbital.duckdb  (derivado: pode ser apagado e refeito)
+   │
+   ▼
+dashboard (só leitura)
+```
+
+Os **arquivos continuam sendo a fonte**. O banco é um derivado deles e existe por quatro motivos:
+
+- **Duplicatas.** Cada arquivo é identificado pelo hash; cópias exatas e cópias derivadas não são
+  carregadas duas vezes. Quando há original e amostra da mesma investigação, o original vence.
+- **Tipos.** Datas viram datas, números viram números. Células com texto em coluna numérica
+  (`OR`, `>500`, `none`) ficam vazias, e o texto original vai para a tabela `alertas`.
+- **Categorias.** A coluna de material do BASS-II, texto livre, vira categoria, geometria,
+  espessura, largura, diâmetro e cor — sem completar o que não está escrito.
+- **Separação.** Cada investigação tem sua tabela; medição e modelo do PSI-117 nunca se misturam.
+
+### Tabelas
+
+| Tabela | Conteúdo |
+|---|---|
+| `investigacoes` | Uma linha por investigação: pergunta, cautelas, links NASA e fonte carregada |
+| `flex_ensaios` | Um ensaio FLEX por linha |
+| `bass_ensaios` | Um teste BASS-II por linha, com o texto original e as categorias extraídas |
+| `psi117_extincao` | Um ponto por linha: pressão, diâmetro, tipo de chama, série e natureza (medido, simulado, incerteza) |
+| `alertas` | Achados de qualidade: valor original, tipo e explicação |
+| `fontes` | Todos os arquivos de `dados/`, com hash, status (carregado, duplicata, derivado) e motivo |
+| `v_psi117_comparacao` | Medido e modelo lado a lado por pressão, com a faixa de incerteza |
+| `v_bass_por_material`, `v_flex_por_desfecho`, `v_alertas_resumo` | Resumos prontos |
+
+### Adicionar um arquivo novo
+
+1. Coloque o arquivo em `dados/` e rode `uv run spaceapps-build`.
+2. Se ele aparecer como **Não reconhecido** na Visão geral, registre o nome em
+   [catalog.py](src/spaceapps/ingest/catalog.py) e, se for um formato novo, escreva o leitor em
+   `src/spaceapps/ingest/`.
+
+As tabelas completas do FLEX (cerca de 274 ensaios; aqui há uma amostra de 34) e os modelos do
+PSI-117 saem do gerador que veio no pacote:
+
+```bash
+cd dados && python Zorbital/scripts/gerar_dados_zorbital.py Zorbital_dados_completos
+cd .. && uv run spaceapps-build
 ```
 
 ## Estrutura
 
 | Caminho | O que é |
 |---|---|
-| `app.py` | A página: fonte de dados, recorte, gráfico, tabela e a leitura da IA |
-| `src/spaceapps/data.py` | Carga (CSV, Parquet) e agregação com Polars |
-| `src/spaceapps/charts.py` | Gráficos Plotly e o sistema de cores (paleta fixa, claro e escuro) |
-| `src/spaceapps/ai.py` | Chamada ao Claude: o que é enviado e como a resposta chega |
-| `tests/` | Testes de fumaça |
-| `data/` | Seus conjuntos de dados locais — o git ignora o conteúdo |
-| `.streamlit/config.toml` | Configuração do servidor (sem telemetria, recarrega ao salvar) |
+| `app.py` | Navegação entre as páginas |
+| `views/` | Uma página por investigação, a Visão geral e o explorador livre |
+| `src/spaceapps/ingest/` | Leitura de cada fonte, catálogo de arquivos e montagem do banco |
+| `src/spaceapps/db.py` | Leitura do banco (só leitura) |
+| `src/spaceapps/charts.py` | Gráficos Plotly e as cores fixas por categoria (claro e escuro) |
+| `src/spaceapps/assistant/` | Assistente: estado da tela, ferramentas por grupo, cliente Zyria e o laço |
+| `src/spaceapps/ui.py` | Peças de tela repetidas: cabeçalho, alertas, chat |
+| `tests/` | Pasta `dados/` sintética, testes da carga e de cada página |
+
+## Assistente
+
+Um botão no canto inferior direito abre o assistente, que explica o que está na tela. O painel fica
+fixo por cima da página e não fecha ao clicar fora, para dar para mexer nos filtros enquanto se
+conversa; ele continua aberto ao trocar de página, com uma conversa separada para cada uma.
+O botão de expandir no cabeçalho do painel o fixa na lateral direita, com a altura toda da tela: a
+página encolhe para não ficar coberta e os gráficos lado a lado passam a ser empilhados. O provedor é a **Zyria** (API compatível
+com a da OpenAI, documentação em `dados/zyria/`); configure `ZYRIA_BASE_URL` e `ZYRIA_API_KEY` no
+`.env`. O consumo aparece nos relatórios da Zyria com a etiqueta `zorbital-dashboard`.
+
+O modelo padrão é `anthropic/claude-sonnet-5.5` (troque em `ZYRIA_MODEL`). Ele precisa aceitar
+ferramentas: na primeira pergunta o app confere o catálogo da credencial (`GET /models`) e, se o
+modelo não servir, diz quais servem antes de gastar ZYT.
+
+O escopo é limitado de duas formas: o prompt manda recusar assuntos fora do painel, e — o que vale
+mais — **cada página só entrega ao modelo os grupos de ferramentas dela**. As regras de escopo
+estão no código das ferramentas, não só no prompt.
+
+| Grupo | Ferramentas | Para quê |
+|---|---|---|
+| `tela` | `tela_resumo`, `tela_linhas`, `tela_estatisticas` | Filtros, gráficos e as linhas filtradas na tela |
+| `flex` | `flex_ensaio`, `flex_agrupar` | Um ensaio FLEX com seus alertas; contagens e medidas por grupo |
+| `bass` | `bass_teste`, `bass_agrupar` | Idem para o BASS-II |
+| `psi117` | `psi117_comparar`, `psi117_pontos` | Medido × modelo por pressão, com a faixa de incerteza; pontos da fonte |
+| `qualidade` | `alertas`, `fonte_dos_dados`, `cautelas` | Alertas, origem do dado (amostra ou completo) e o que não concluir |
+| `catalogo` | `listar_investigacoes`, `inventario_arquivos` | As três investigações e os arquivos de `dados/` |
+| `dicionario` | `dicionario` | Significado, unidade e cabeçalho original de colunas e categorias |
+
+| Página | Grupos ligados |
+|---|---|
+| Visão geral | catalogo, qualidade, dicionario |
+| FLEX | tela, flex, qualidade, dicionario |
+| BASS-II | tela, bass, qualidade, dicionario |
+| PSI-117 | tela, psi117, qualidade, dicionario |
+| Explorar | tela, dicionario |
+
+O que fica de fora de propósito: SQL livre, acesso à web, leitura direta de `dados/` e qualquer
+ferramenta que junte investigações diferentes. Nas páginas de investigação, `alertas`,
+`fonte_dos_dados` e `cautelas` só respondem sobre aquela investigação.
+
+Para mudar o escopo, edite `GROUPS`, `PAGE_GROUPS` e a lista de ferramentas em
+[tools.py](src/spaceapps/assistant/tools.py); o prompt de sistema está em
+[agent.py](src/spaceapps/assistant/agent.py).
 
 ## Por que Python, e não Go
 
 O gargalo de um dashboard de análise não é concorrência de servidor: é ler, agregar e desenhar
 dados, e depois esperar a resposta de um modelo.
 
-- **Parte visual.** Nenhuma das duas linguagens desenha o gráfico — quem desenha é o navegador.
-  Em Python, Streamlit e Plotly geram essa interface a partir do próprio código de análise. Em Go
-  não há equivalente: seria preciso escrever um front-end separado em JavaScript e uma API para
-  alimentá-lo, ou seja, dois projetos.
-- **Análise.** Polars, DuckDB, pandas, scikit-learn e statsmodels não têm par em Go.
-- **Desempenho.** O trabalho pesado não roda em Python: o Polars é escrito em Rust e usa todos os
-  núcleos da máquina. A vantagem de concorrência do Go não chega a ser exercida aqui.
-- **IA.** As duas têm SDK oficial da Anthropic; em Python a resposta em streaming vai direto para
-  a tela (`st.write_stream`).
+- **Parte visual.** Quem desenha o gráfico é o navegador. Em Python, Streamlit e Plotly geram a
+  interface a partir do próprio código de análise; em Go seria preciso um front-end separado.
+- **Análise.** Polars, DuckDB e o ecossistema científico não têm par em Go.
+- **Desempenho.** O trabalho pesado roda no Polars e no DuckDB, ambos nativos e multinúcleo.
 
-**Quando rever:** se o projeto virar um serviço com muitos usuários simultâneos, ingestão contínua
-de dados em tempo real ou um binário único para distribuir, um serviço em Go passa a fazer sentido
-— como peça de ingestão ao lado deste dashboard, não no lugar dele. Outro limite é do Streamlit,
-não do Python: ele reexecuta o script a cada interação, e telas com interação muito customizada
-pedem Dash ou um front-end próprio sobre FastAPI.
-
-## O que a IA recebe
-
-Apenas o recorte que está no gráfico: o esquema das colunas, um resumo por série e a tabela
-agregada. Se a tabela passar de 400 linhas, vai só o resumo, e a página avisa. As linhas brutas do
-arquivo não são enviadas.
-
-O modelo padrão é `claude-opus-5-5`; troque por `ANTHROPIC_MODEL` no `.env`. A chamada liga o
-*fallback* do lado do servidor: se o modelo recusar um pedido por política, a API o refaz em um
-modelo de reserva.
+**Quando rever:** se o projeto virar ingestão contínua em tempo real ou um serviço com muitos
+usuários simultâneos, um serviço em Go faz sentido como peça de ingestão ao lado do dashboard.

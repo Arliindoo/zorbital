@@ -8,12 +8,17 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=2.8.0",
+    "duckdb>=2.0.0",
+    "openai>=3.51.0",
+    "openpyxl>=3.1.5",
     "plotly>=7.1.0",
     "polars>=2.1.0",
     "python-dotenv>=1.2.4",
     "streamlit>=1.67.0",
 ]
+
+[project.scripts]
+spaceapps-build = "spaceapps.ingest.build:main"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
@@ -30,6 +35,12 @@ line-length = 110
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120  # o formatador quebra código em 110; a folga é para frases de prompt e descrições
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]  # linhas de fixture copiadas do formato das fontes
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

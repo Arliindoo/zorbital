@@ -6,5 +6,10 @@ runOnSave = true         # recarrega a página ao salvar o código
 [browser]
 gatherUsageStats = false # sem telemetria para a Streamlit
 
-[theme]
-primaryColor = "#2a78d6" # azul da série 1; o vermelho padrão do Streamlit lê como alerta
+# Azul da série 1 no lugar do vermelho padrão, que lê como alerta. Fica nas seções light/dark, e não
+# em [theme], para o app continuar seguindo o tema claro ou escuro do sistema.
+[theme.light]
+primaryColor = "#2a78d6"
+
+[theme.dark]
+primaryColor = "#3987e5"
