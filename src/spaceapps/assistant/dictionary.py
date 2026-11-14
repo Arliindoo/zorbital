@@ -160,6 +160,101 @@ COLUMNS: dict[str, dict[str, tuple[str, str | None, str | None]]] = {
             None,
         ),
     },
+    "cfi_ensaios": {
+        "teste_id": (
+            "Flex Number: numeração do ensaio no aparelho do FLEX (não é um ensaio do PSI-69).",
+            None,
+            "Flex Number",
+        ),
+        "pressao_atm": ("Pressão da câmara.", "atm", "Pressure (atm)"),
+        "oxigenio_fracao": ("Fração molar de O2.", "fração 0–1", "Oxygen"),
+        "nitrogenio_fracao": ("Fração molar de N2.", "fração 0–1", "Nitrogen"),
+        "helio_fracao": ("Fração molar de hélio (diluente).", "fração 0–1", "Helium"),
+        "diluente": ("Hélio quando há hélio na mistura; senão Nitrogênio.", None, None),
+        "fibra": ("Gota presa numa fibra (Yes) ou livre (No).", None, "Fiber"),
+        "combustivel": (
+            "Combustível traduzido: n-dodecano, misturas com iso-dodecano ou farnesano.",
+            None,
+            "Fuel",
+        ),
+        "d0_mm": ("Diâmetro inicial da gota.", "mm", "D0 ( mm )"),
+        "dext_quente_mm": ("Diâmetro da gota quando a chama quente se apagou.", "mm", "Dext, hot ( mm )"),
+        "dext_fria_mm": (
+            "Diâmetro na extinção da chama fria. Vazio quando a fonte diz 0 (sem extinção visível).",
+            "mm",
+            "Dext,cool ( mm )",
+        ),
+        "dext_fria_zero_na_fonte": (
+            "A fonte registra 0: a chama fria consumiu a gota sem extinção visível.",
+            None,
+            "Dext,cool = 0",
+        ),
+        "dext_fria_extrapolado": (
+            "O diâmetro de extinção da chama fria foi extrapolado, não medido.",
+            None,
+            "Extrap CF?",
+        ),
+        "k_quente_mm2_s": ("Taxa de queima na fase de chama quente.", "mm²/s", "khot ( mm^2/s )"),
+        "k_fria_mm2_s": ("Taxa de queima na fase de chama fria.", "mm²/s", "kcool ( mm^2/s )"),
+        "reignicoes": ("Quantas vezes a chama reacendeu.", None, "Reignitions"),
+        "tempo_chama_quente": (
+            "Duração da chama quente. A planilha não informa a unidade (provavelmente s).",
+            "não informada",
+            "HF Burn Time",
+        ),
+        "analise_completa": (
+            "A equipe marcou a análise do ensaio como concluída.",
+            None,
+            "Completed Analysis?",
+        ),
+        "comentario": ("Comentário do operador sobre o ensaio.", None, "Comments"),
+    },
+    "psi117_extincao_1atm": {
+        "combustivel": ("n-heptano (C7), n-decano (C10) ou n-dodecano (C12).", None, "C7 / C10 / C12"),
+        "serie": ("Medição (Expt) ou Modelo (Sim).", None, "Expt / Sim"),
+        "d0_mm": ("Diâmetro inicial da gota.", "mm", "Do"),
+        "dext_quente_mm": (
+            "Diâmetro de extinção da chama quente. 0 = sem extinção ou sem chama.",
+            "mm",
+            "Dext_HF",
+        ),
+        "dext_fria_mm": (
+            "Diâmetro de extinção da chama fria. 0 = sem extinção visível ou sem chama fria.",
+            "mm",
+            "Dext_CF",
+        ),
+    },
+    "psi117_series_modelo": {
+        "cenario": ("Chama fria estável ou oscilatória (n-heptano, D0 0,5 mm, 1 atm).", None, None),
+        "t_s": ("Tempo da simulação.", "s", "Time(sec)"),
+        "diametro_mm": ("Diâmetro da gota.", "mm", "Diameter(mm)"),
+        "k_mm2_s": ("Taxa de queima instantânea.", "mm²/s", "K(mm^2/sec)"),
+        "t_max_k": ("Temperatura máxima no campo.", "K", "T_max(K)"),
+        "d_d0_quadrado": ("(D/D0)²: fração da área inicial que resta.", None, "(D/Do)2"),
+    },
+    "psi142_pontos": {
+        "conjunto_id": ("Número do conjunto (aba data ID N da planilha).", None, "data ID"),
+        "serie": ("Curva dentro da figura: combustível (nC7…nC14), teor de ozônio ou condição.", None, None),
+        "x": ("Valor no eixo x, na unidade de x_nome.", None, None),
+        "y": ("Valor no eixo y, na unidade de y_nome.", None, None),
+        "x_nome": ("Nome do eixo x como na fonte (ex.: Yf = fração mássica de combustível).", None, None),
+        "y_nome": (
+            "Nome do eixo y como na fonte (ex.: aCFE = taxa de estiramento na extinção da chama fria, 1/s).",
+            None,
+            None,
+        ),
+    },
+    "v_extincao_c12_comparacao": {
+        "cfi_mediana_mm": ("Mediana do diâmetro de extinção nos ensaios do CFI daquela pressão.", "mm", None),
+        "cfi_com_valor": ("Ensaios do CFI com diâmetro de extinção registrado.", None, None),
+        "cfi_sem_extincao_visivel": ("Ensaios do CFI em que a chama fria consumiu a gota.", None, None),
+        "modelo_menos_cfi_mm": ("Modelo do PSI-117 menos a mediana do CFI.", "mm", None),
+        "cfi_na_faixa_psi117": (
+            "A mediana do CFI cai dentro da faixa de incerteza informada pelo PSI-117.",
+            None,
+            None,
+        ),
+    },
 }
 
 TERMS = {
@@ -175,6 +270,11 @@ TERMS = {
     "SIMULADO": "PSI-117: valor do modelo numérico.",
     "INCERTEZA": "PSI-117: limite da barra de erro informada na fonte.",
     "amostra": "Recorte de linhas da investigação, não a tabela completa. A Visão geral diz o que é amostra.",
+    "Flex Number": "Numeração dos ensaios no aparelho de gotas da ISS usado pelo FLEX e pelo CFI.",
+    "contrafluxo": "PSI-142: dois jatos opostos (combustível e oxidante) formam uma chama plana entre eles.",
+    "aCFE": "PSI-142: taxa de estiramento (1/s) em que a chama fria se extingue. aHFE: o mesmo para a chama quente.",
+    "Yf": "PSI-142: fração mássica de combustível no jato de combustível.",
+    "chama fria": "Regime de combustão de baixa temperatura (centenas de K), quase sem luz visível.",
 }
 
 ALERTS = {
@@ -186,6 +286,14 @@ ALERTS = {
     "data_x_gmt": "A data não bate com o dia do ano em GMT.",
     "medicao_repetida": "Mais de uma medição na mesma pressão.",
     "valor_zero": "Diâmetro zero; pode indicar ausência de chama fria naquela pressão.",
+    "espacos_no_id": "Identificador com espaço extra na fonte; o espaço foi removido.",
+    "sem_resultados": "Ensaio com condições, mas sem linha de resultados.",
+    "pressao_divergente": "Abas da mesma planilha dão pressões diferentes para o ensaio.",
+    "metadado_conflitante": "Duas fontes descrevem o mesmo conjunto de forma contraditória (ex.: com × sem ozônio).",
+    "metadado_divergente": "Duas fontes descrevem o mesmo conjunto de formas diferentes.",
+    "eixo_suspeito": "Série cujos valores de x parecem estar na coluna de y: colunas provavelmente trocadas.",
+    "fracao_suspeita": "Valor fora de 0–1 numa coluna de fração molar.",
+    "divergencia_entre_fontes": "O mesmo ensaio tem valores diferentes em duas investigações.",
 }
 
 

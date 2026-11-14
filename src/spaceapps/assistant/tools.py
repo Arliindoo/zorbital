@@ -3,7 +3,8 @@
 Regras de escopo, garantidas aqui e não só no prompt:
 - Só existem consultas prontas, com colunas de uma lista fechada. Não há SQL livre nem web.
 - Nas páginas de investigação, as ferramentas de qualidade só respondem sobre aquela investigação.
-- Nenhuma ferramenta junta investigações diferentes: elas medem coisas que não se comparam.
+- Só o grupo `comparacao`, na página de comparação, cruza investigações (PSI-117 × CFI), e ele
+  devolve junto a correspondência entre as duas fontes e as cautelas.
 """
 
 from __future__ import annotations
@@ -47,9 +48,12 @@ GROUPS = {
     "tela": "O que está na tela agora: filtros, gráficos e as linhas filtradas.",
     "flex": "Consultas na tabela do FLEX (gotas de combustível líquido).",
     "bass": "Consultas na tabela do BASS-II (materiais sólidos).",
-    "psi117": "Comparação entre medição e modelo do PSI-117.",
+    "psi117": "Tabelas do PSI-117: medição × modelo por pressão, extinção a 1 atm e catálogo das tabelas.",
+    "cfi": "Consultas na tabela do CFI (chamas frias de gotas de n-dodecano e misturas, ISS).",
+    "psi142": "Conjuntos e pontos digitalizados do PSI-142 (chamas em contrafluxo, Princeton).",
+    "comparacao": "Comparação PSI-117 × CFI do diâmetro de extinção, com a correspondência entre as fontes.",
     "qualidade": "Alertas de qualidade, origem dos dados e o que não concluir.",
-    "catalogo": "As três investigações e os arquivos de dados/.",
+    "catalogo": "As investigações e os arquivos de dados/.",
     "dicionario": "Significado de colunas, unidades, categorias e tipos de alerta.",
 }
 
@@ -58,10 +62,13 @@ PAGE_GROUPS = {
     "flex": ["tela", "flex", "qualidade", "dicionario"],
     "bass": ["tela", "bass", "qualidade", "dicionario"],
     "psi117": ["tela", "psi117", "qualidade", "dicionario"],
+    "cfi": ["tela", "cfi", "qualidade", "dicionario"],
+    "psi142": ["tela", "psi142", "qualidade", "dicionario"],
+    "comparacao": ["tela", "comparacao", "qualidade", "dicionario"],
     "explore": ["tela", "dicionario"],
 }
 
-INVESTIGATIONS = ["PSI-69", "PSI-25", "PSI-117"]
+INVESTIGATIONS = ["PSI-69", "PSI-25", "PSI-117", "PSI-39", "PSI-142"]
 
 
 def tools_for(page: str) -> list[Tool]:
@@ -112,17 +119,24 @@ def _column(frame: pl.DataFrame, column: str) -> str:
     return column
 
 
-def _scoped_investigation(screen: Screen, requested: str | None) -> str | None:
-    """Na página de uma investigação, só ela. Na visão geral, qualquer uma (ou todas, com None)."""
-    if screen.investigacao:
-        if requested and requested != screen.investigacao:
-            raise ToolError(
-                f"Esta página é da investigação {screen.investigacao}; para {requested}, abra a página dela."
-            )
-        return screen.investigacao
+def _scoped_investigation(screen: Screen, requested: str | None) -> list[str] | None:
+    """Investigações a consultar. Na página de uma investigação, só ela; na comparação, as duas dela;
+    na visão geral, qualquer uma (None = todas)."""
+    allowed = screen.allowed()
     if requested and requested not in INVESTIGATIONS:
         raise ToolError(f"Investigação desconhecida: {requested}. Opções: {INVESTIGATIONS}.")
-    return requested
+    if allowed and requested and requested not in allowed:
+        raise ToolError(f"Esta página é de {', '.join(allowed)}; para {requested}, abra a página dela.")
+    if requested:
+        return [requested]
+    return allowed
+
+
+def _in(column: str, values: list[str] | None) -> tuple[str, list]:
+    """Filtro SQL `column IN (...)`, ou nenhum filtro quando a lista é None."""
+    if not values:
+        return "true", []
+    return f"{column} IN ({', '.join('?' for _ in values)})", list(values)
 
 
 def _stats(series: pl.Series) -> dict:
@@ -297,15 +311,16 @@ def psi117_pontos(screen: Screen, tipo_chama: str | None = None, serie: str | No
 def alertas(
     screen: Screen, investigacao: str | None = None, teste_id: str | None = None, tipo: str | None = None
 ) -> dict:
-    inv = _scoped_investigation(screen, investigacao)
-    sql, params = "SELECT * FROM alertas WHERE true", []
-    for column, value in (("investigacao", inv), ("teste_id", teste_id), ("tipo", tipo)):
+    where, params = _in("investigacao", _scoped_investigation(screen, investigacao))
+    for column, value in (("teste_id", teste_id), ("tipo", tipo)):
         if value:
-            sql, params = sql + f" AND {column} = ?", [*params, str(value)]
-    rows = db.query(sql + " ORDER BY investigacao, tipo, teste_id", params)
+            where, params = where + f" AND {column} = ?", [*params, str(value)]
+    rows = db.query(f"SELECT * FROM alertas WHERE {where} ORDER BY investigacao, tipo, teste_id", params)
     return {
         "total": rows.height,
-        "por_tipo": _rows(rows.group_by("tipo").len("ocorrencias").sort("ocorrencias", descending=True)),
+        "por_tipo": _rows(
+            rows.group_by("investigacao", "tipo").len("ocorrencias").sort("ocorrencias", descending=True)
+        ),
         "alertas": _rows(rows.head(MAX_ROWS)),
         "significado_dos_tipos": {
             t: dictionary.ALERTS[t] for t in set(rows["tipo"]) if t in dictionary.ALERTS
@@ -314,28 +329,35 @@ def alertas(
 
 
 def fonte_dos_dados(screen: Screen, investigacao: str | None = None) -> dict:
-    inv = _scoped_investigation(screen, investigacao)
-    where, params = ("WHERE investigacao = ?", [inv]) if inv else ("", [])
+    invs = _scoped_investigation(screen, investigacao)
+    where, params = _in("investigacao", invs)
     files = db.query(
-        f"SELECT caminho, papel, status, motivo, linhas_carregadas, git_blob_sha1 FROM fontes {where} ORDER BY status",
+        "SELECT caminho, investigacao, papel, status, motivo, linhas_carregadas, git_blob_sha1 "
+        f"FROM fontes WHERE {where} ORDER BY investigacao, status",
         params,
     )
+    where_inv, params_inv = _in("id", invs)
     loaded = db.query(
-        "SELECT id, fonte_carregada FROM investigacoes" + (" WHERE id = ?" if inv else ""), params
+        f"SELECT id, fonte_carregada, fontes_carregadas FROM investigacoes WHERE {where_inv}", params_inv
     )
-    return {
+    result = {
         "fonte_carregada": _rows(loaded),
         "arquivos": _rows(files),
-        "proveniencia": "Cópias públicas de terceiros (GitHub) das tabelas do NASA PSI; conferir com o PSI.",
+        "proveniencia": "Tabelas do portal NASA PSI (algumas por cópia pública no GitHub); conferir com o PSI.",
     }
+    if (invs is None or "PSI-117" in invs) and "psi117_tabelas" in set(db.tables()):
+        result["tabelas_do_psi117_segundo_o_readme"] = _rows(
+            db.query("SELECT arquivo, presente_em_dados, combustivel, d0_mm_texto, pressao_atm_texto, doi, figura "
+                     "FROM psi117_tabelas")
+        )  # fmt: skip
+    return result
 
 
 def cautelas(screen: Screen, investigacao: str | None = None) -> dict:
-    inv = _scoped_investigation(screen, investigacao)
+    where, params = _in("id", _scoped_investigation(screen, investigacao))
     rows = db.query(
-        "SELECT id, nome, pergunta, cautelas, url_nasa, relatorio, doi FROM investigacoes"
-        + (" WHERE id = ?" if inv else ""),
-        [inv] if inv else [],
+        f"SELECT id, nome, pergunta, cautelas, url_nasa, relatorio, doi FROM investigacoes WHERE {where}",
+        params,
     )
     return {"investigacoes": _rows(rows), "cautela_geral": db.meta()["geral"]}
 
@@ -351,17 +373,24 @@ INV_PARAM = {
 
 def listar_investigacoes(screen: Screen) -> dict:
     rows = db.query(
-        """SELECT i.id, i.nome, i.categoria, i.ambiente, i.tipo_evidencia, i.pergunta, i.fonte_carregada,
-                  coalesce(a.n, 0) AS alertas
+        """SELECT i.id, i.nome, i.categoria, i.ambiente, i.tipo_evidencia, i.pergunta, i.tabela,
+                  i.fonte_carregada, coalesce(a.n, 0) AS alertas
            FROM investigacoes i LEFT JOIN (SELECT investigacao, count(*) n FROM alertas GROUP BY 1) a
            ON a.investigacao = i.id"""
     )
-    counts = {
-        "PSI-69": db.query("SELECT count(*) FROM flex_ensaios").item(),
-        "PSI-25": db.query("SELECT count(*) FROM bass_ensaios").item(),
-        "PSI-117": db.query("SELECT count(*) FROM psi117_extincao").item(),
-    }
-    return {"investigacoes": [r | {"registros": counts[r["id"]]} for r in _rows(rows)]}
+    existing = set(db.tables())
+    out = []
+    for r in _rows(rows):
+        r["registros"] = (
+            db.query(f'SELECT count(*) FROM "{r["tabela"]}"').item() if r["tabela"] in existing else 0
+        )
+        r["amostra"] = "amostra" in (r["fonte_carregada"] or "").lower()
+        out.append(r)
+    missing = (
+        _rows(db.query("SELECT arquivo FROM psi117_tabelas WHERE NOT presente_em_dados"))
+        if "psi117_tabelas" in existing else []
+    )  # fmt: skip
+    return {"investigacoes": out, "tabelas_psi117_faltando": [m["arquivo"] for m in missing]}
 
 
 def inventario_arquivos(screen: Screen, status: str | None = None) -> dict:
@@ -386,6 +415,72 @@ def dicionario(screen: Screen, termo: str, tabela: str | None = None) -> dict:
 
 # --- Registro -----------------------------------------------------------------------------------
 
+# --- Grupos psi117 (tabelas extras), psi142 e comparacao --------------------------------------------
+
+
+def psi117_extincao_1atm(screen: Screen, combustivel: str | None = None) -> dict:
+    sql, params = "SELECT * EXCLUDE (fonte_arquivo) FROM psi117_extincao_1atm", []
+    if combustivel:
+        sql, params = sql + " WHERE combustivel = ?", [combustivel]
+    rows = db.query(sql + " ORDER BY combustivel, serie, d0_mm", params)
+    return {
+        "nota": "Medição = ensaios de voo; Modelo = simulação. Zeros: sem extinção ou sem chama.",
+        "linhas": _rows(rows),
+    }
+
+
+def psi142_conjuntos(screen: Screen) -> dict:
+    rows = db.query("SELECT * EXCLUDE (fonte_arquivo) FROM psi142_conjuntos ORDER BY conjunto_id")
+    series = db.query(
+        "SELECT conjunto_id, serie, x_nome, y_nome, count(*) AS pontos FROM psi142_pontos GROUP BY ALL ORDER BY ALL"
+    )
+    return {"conjuntos": _rows(rows), "series": _rows(series)}
+
+
+def psi142_serie(screen: Screen, conjunto_id: int, serie: str | None = None) -> dict:
+    sql, params = (
+        "SELECT serie, x_nome, x, y_nome, y, linha_fonte FROM psi142_pontos WHERE conjunto_id = ?",
+        [int(conjunto_id)],
+    )
+    if serie:
+        sql, params = sql + " AND serie = ?", [*params, serie]
+    rows = db.query(sql + " ORDER BY serie, linha_fonte", params)
+    if rows.is_empty():
+        raise ToolError("Nenhum ponto. Use psi142_conjuntos para ver os conjuntos e séries existentes.")
+    summary = rows.group_by("serie", "x_nome", "y_nome", maintain_order=True).agg(
+        pl.len().alias("pontos"), pl.col("x").min().alias("x_min"), pl.col("x").max().alias("x_max"),
+        pl.col("y").min().alias("y_min"), pl.col("y").max().alias("y_max"),
+    )  # fmt: skip
+    return {
+        "resumo_por_serie": _rows(summary),
+        "pontos": _rows(rows.head(MAX_ROWS)),
+        "total_pontos": rows.height,
+    }
+
+
+def comparacao_c12(screen: Screen, tipo_chama: str | None = None, pressao_atm: float | None = None) -> dict:
+    """A comparação da tela (com os filtros dela) ou, sem tela, a visão padrão do banco."""
+    frame = screen.dados if screen.dados is not None and screen.pagina == "comparacao" else db.query(
+        "SELECT * FROM v_extincao_c12_comparacao"
+    )  # fmt: skip
+    if tipo_chama:
+        frame = frame.filter(pl.col("tipo_chama") == tipo_chama)
+    if pressao_atm is not None:
+        frame = frame.filter(pl.col("pressao_atm") == float(pressao_atm))
+    return {
+        "base": "filtros da tela" if screen.dados is not None else "padrão: n-dodecano sem hélio",
+        "linhas": _rows(frame),
+        "cautela": "As medições do PSI-117 vêm de ensaios no aparelho do FLEX, o mesmo do CFI: a comparação "
+        "não é validação independente. Use comparacao_correspondencia para ver ponto a ponto.",
+    }
+
+
+def comparacao_correspondencia(screen: Screen) -> dict:
+    rows = db.query("SELECT * FROM psi117_cfi_correspondencia")
+    summary = rows.group_by("tabela_psi117", "situacao").len("pontos").sort("tabela_psi117")
+    return {"resumo": _rows(summary), "pontos": _rows(rows)}
+
+
 FLEX_GROUPS = ["desfecho", "oxigenio_fracao", "pressao_mmhg", "combustivel", "helio_fracao"]
 FLEX_MEASURES = [
     "diametro_inicial_mm",
@@ -395,6 +490,10 @@ FLEX_MEASURES = [
     "oxigenio_fracao",
     "pressao_mmhg",
 ]
+CFI_GROUPS = ["combustivel", "diluente", "pressao_atm", "fibra", "analise_completa", "dext_fria_zero_na_fonte",
+              "dext_fria_extrapolado", "reignicoes"]  # fmt: skip
+CFI_MEASURES = ["d0_mm", "dext_quente_mm", "dext_fria_mm", "k_quente_mm2_s", "k_fria_mm2_s", "tempo_chama_quente",
+                "oxigenio_fracao", "helio_fracao", "reignicoes"]  # fmt: skip
 BASS_GROUPS = [
     "material_categoria",
     "geometria",
@@ -528,7 +627,8 @@ _ALL = [
     Tool(
         "fonte_dos_dados",
         "qualidade",
-        "De que arquivo vieram os dados, se é amostra ou completo, e por que outros arquivos não foram usados.",
+        "De que arquivo vieram os dados, se é amostra ou completo, por que outros arquivos não foram usados "
+        "e, no PSI-117, quais tabelas do ReadMe ainda faltam.",
         {"type": "object", "properties": {"investigacao": INV_PARAM}},
         fonte_dos_dados,
     ),
@@ -567,6 +667,73 @@ _ALL = [
             "required": ["termo"],
         },
         dicionario,
+    ),
+    Tool(
+        "cfi_ensaio",
+        "cfi",
+        "Um ensaio do CFI completo (condições, resultados, comentário) e seus alertas.",
+        ID_PARAM,
+        _record_tool("cfi_ensaios", "PSI-39"),
+    ),
+    Tool(
+        "cfi_agrupar",
+        "cfi",
+        "Conta ensaios do CFI por uma coluna e, se pedido, resume uma medida (diâmetros, taxas de queima).",
+        _group_params(CFI_GROUPS, CFI_MEASURES, "diâmetros de extinção, taxas de queima"),
+        _group_tool("cfi_ensaios"),
+    ),
+    Tool(
+        "psi117_extincao_1atm",
+        "psi117",
+        "Extinção a 1 atm de n-heptano, n-decano e n-dodecano por diâmetro inicial, medida e simulada.",
+        {
+            "type": "object",
+            "properties": {
+                "combustivel": {"type": "string", "enum": ["n-heptano", "n-decano", "n-dodecano"]}
+            },
+        },
+        psi117_extincao_1atm,
+    ),
+    Tool(
+        "psi142_conjuntos",
+        "psi142",
+        "Os 8 conjuntos do PSI-142: artigo, figura, descrições (planilha e CSV), DOI e as séries de cada um.",
+        {"type": "object", "properties": {}},
+        psi142_conjuntos,
+    ),
+    Tool(
+        "psi142_serie",
+        "psi142",
+        f"Pontos de um conjunto do PSI-142 (até {MAX_ROWS}) e o resumo de cada série.",
+        {
+            "type": "object",
+            "properties": {
+                "conjunto_id": {"type": "integer", "minimum": 1, "maximum": 8},
+                "serie": {"type": "string"},
+            },
+            "required": ["conjunto_id"],
+        },
+        psi142_serie,
+    ),
+    Tool(
+        "comparacao_c12",
+        "comparacao",
+        "Diâmetro de extinção por pressão lado a lado: PSI-117 (medido, modelo, faixa) e CFI (mediana, mín., máx.).",
+        {
+            "type": "object",
+            "properties": {
+                "tipo_chama": {"type": "string", "enum": FLAMES},
+                "pressao_atm": {"type": "number"},
+            },
+        },
+        comparacao_c12,
+    ),
+    Tool(
+        "comparacao_correspondencia",
+        "comparacao",
+        "Quais medições do PSI-117 são ensaios do CFI, ponto a ponto, e onde os valores divergem.",
+        {"type": "object", "properties": {}},
+        comparacao_correspondencia,
     ),
 ]
 TOOLS = {t.name: t for t in _ALL}

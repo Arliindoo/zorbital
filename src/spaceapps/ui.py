@@ -39,7 +39,11 @@ def investigation_header(inv: dict, rows: int) -> None:
             icon=":material/warning:",
         )
     else:
-        st.caption(f"Fonte: `{source}` · {rows} linhas")
+        others = [f for f in (inv.get("fontes_carregadas") or "").split("; ") if f and f != source]
+        st.caption(
+            f"Fonte: `{source}` · {rows} linhas"
+            + (f" · mais {len(others)} tabela(s) desta investigação" if others else "")
+        )
     with st.expander("O que não concluir destes dados", icon=":material/info:"):
         st.markdown(inv["cautelas"].replace(". ", ".\n\n"))
         links = [f"[Página NASA PSI]({inv['url_nasa']})"]
@@ -66,6 +70,12 @@ SUGGESTIONS = {
     ],
     "bass": ["Quais materiais foram mais testados?", "Quais testes têm alertas e por quê?"],
     "psi117": ["Em que pressões o modelo sai da faixa de incerteza?", "O que é uma chama fria?"],
+    "cfi": ["Como a extinção da chama fria muda com a pressão?", "O que quer dizer Dext fria = 0 na fonte?"],
+    "psi142": ["O que este conjunto mostra?", "Por que há alertas neste conjunto?"],
+    "comparacao": [
+        "O modelo do PSI-117 acompanha os voos do CFI?",
+        "Por que isso não é validação independente?",
+    ],
     "explore": ["O que este gráfico mostra?", "Qual série tem o maior valor?"],
 }
 

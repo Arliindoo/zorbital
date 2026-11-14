@@ -1,4 +1,4 @@
-"""Visão geral: as três investigações, de onde veio cada dado e o que está incompleto."""
+"""Visão geral: as investigações, de onde veio cada dado e o que ainda falta."""
 
 import polars as pl
 import streamlit as st
@@ -11,52 +11,78 @@ meta = db.meta()
 investigations = db.query("SELECT * FROM investigacoes")
 sources = db.query("SELECT * FROM fontes ORDER BY status, caminho")
 alerts = db.query("SELECT * FROM v_alertas_resumo")
-counts = {
-    "PSI-69": db.query("SELECT count(*) n FROM flex_ensaios").item(),
-    "PSI-25": db.query("SELECT count(*) n FROM bass_ensaios").item(),
-    "PSI-117": db.query("SELECT count(*) n FROM psi117_extincao").item(),
+tables = set(db.tables())
+
+# gotas primeiro (voo e solo), depois sólidos e contrafluxo
+ORDER = ["PSI-69", "PSI-39", "PSI-117", "PSI-25", "PSI-142"]
+PAGES = {"PSI-69": "views/flex.py", "PSI-25": "views/bass.py", "PSI-39": "views/cfi.py",
+         "PSI-117": "views/psi117.py", "PSI-142": "views/psi142.py"}  # fmt: skip
+UNITS = {
+    "PSI-69": "Ensaios",
+    "PSI-25": "Testes",
+    "PSI-39": "Ensaios",
+    "PSI-117": "Pontos",
+    "PSI-142": "Pontos",
 }
+rows = sorted(
+    investigations.iter_rows(named=True), key=lambda r: ORDER.index(r["id"]) if r["id"] in ORDER else 99
+)
 
 st.title("Combustão em microgravidade")
 st.caption(f"Banco gerado em {meta['gerado_em'].replace('T', ' ')} a partir de `dados/`")
 st.markdown(
-    "Três investigações da NASA, cada uma respondendo a uma pergunta diferente. "
-    "Elas ficam **separadas por tipo de evidência** e não devem ser misturadas num mesmo gráfico."
+    f"{len(rows)} investigações da NASA, cada uma respondendo a uma pergunta diferente. "
+    "Elas ficam **separadas por tipo de evidência**; a única comparação numérica entre elas tem página própria."
 )
 
-pages = {"PSI-69": "views/flex.py", "PSI-25": "views/bass.py", "PSI-117": "views/psi117.py"}
-units = {"PSI-69": "ensaios", "PSI-25": "testes", "PSI-117": "pontos"}
-for column, inv in zip(st.columns(3), investigations.iter_rows(named=True), strict=True):
-    with column.container(border=True):
-        st.markdown(f"**{inv['categoria']}**")
-        st.caption(f"{inv['id']} · {inv['ambiente']} · {inv['tipo_evidencia']}")
-        st.metric(units[inv["id"]].capitalize(), counts[inv["id"]])
-        n_alerts = alerts.filter(pl.col("investigacao") == inv["id"])["ocorrencias"].sum()
-        sample = "amostra" in (inv["fonte_carregada"] or "").lower()
-        st.markdown(
-            (
-                ":orange-badge[:material/warning: Amostra]"
-                if sample
-                else ":green-badge[:material/check: Completo]"
+for start in range(0, len(rows), 3):
+    for column, inv in zip(st.columns(3), rows[start : start + 3], strict=False):
+        with column.container(border=True):
+            st.markdown(f"**{inv['categoria']}**")
+            st.caption(f"{inv['id']} · {inv['ambiente']} · {inv['tipo_evidencia']}")
+            count = (
+                db.query(f'SELECT count(*) FROM "{inv["tabela"]}"').item() if inv["tabela"] in tables else 0
             )
-            + f" :gray-badge[{n_alerts} alertas]"
-        )
-        st.caption(inv["pergunta"])
-        st.page_link(pages[inv["id"]], label="Abrir", icon=":material/arrow_forward:")
+            st.metric(UNITS.get(inv["id"], "Linhas"), count)
+            n_alerts = alerts.filter(pl.col("investigacao") == inv["id"])["ocorrencias"].sum()
+            sample = "amostra" in (inv["fonte_carregada"] or "").lower()
+            st.markdown(
+                (
+                    ":orange-badge[:material/warning: Amostra]"
+                    if sample
+                    else ":green-badge[:material/check: Completo]"
+                )
+                + f" :gray-badge[{n_alerts} alertas]"
+            )
+            st.caption(inv["pergunta"])
+            if inv["id"] in PAGES:
+                st.page_link(PAGES[inv["id"]], label="Abrir", icon=":material/arrow_forward:")
 
-if investigations.filter(pl.col("fonte_carregada").str.contains("(?i)amostra")).height:
+if "v_extincao_c12_comparacao" in tables:
     with st.container(border=True):
-        st.markdown(":material/download: **Como obter as tabelas completas**")
-        st.markdown(
-            "O FLEX aqui é uma amostra de 34 ensaios (o original tem cerca de 274). O gerador do pacote "
-            "baixa as tabelas completas de uma cópia pública no GitHub e confere o hash de cada arquivo. "
-            "Ao terminar, rode a carga de novo: o original completo passa a ter prioridade sobre a amostra."
+        st.markdown(":material/compare_arrows: **Comparação disponível: PSI-117 × CFI**")
+        st.caption(
+            "Diâmetro de extinção de gotas de n-dodecano por pressão: o modelo e as medições do PSI-117 (solo) "
+            "ao lado dos ensaios de voo do CFI. Atenção: parte das medições do PSI-117 são ensaios do próprio CFI."
         )
-        st.code(
-            "cd dados && python Zorbital/scripts/gerar_dados_zorbital.py Zorbital_dados_completos\n"
-            "cd .. && uv run spaceapps-build",
-            language="bash",
-        )
+        st.page_link("views/comparacao.py", label="Abrir comparação", icon=":material/arrow_forward:")
+
+# o que falta para ter todas as tabelas
+missing = []
+if investigations.filter(pl.col("fonte_carregada").str.contains("(?i)amostra")).height:
+    missing.append("**PSI-69 FLEX:** só a amostra de 34 ensaios; falta `FLEX.csv` (cerca de 274).")
+if "psi117_tabelas" in tables:
+    absent = db.query("SELECT arquivo FROM psi117_tabelas WHERE NOT presente_em_dados ORDER BY arquivo")[
+        "arquivo"
+    ]
+    if absent.len():
+        missing.append("**PSI-117:** o ReadMe da investigação lista tabelas que não estão em `dados/`: "
+                       + ", ".join(f"`{a}.csv`" for a in absent) + ".")  # fmt: skip
+if missing:
+    with st.container(border=True):
+        st.markdown(":material/playlist_add: **Para ter todas as tabelas**")
+        st.markdown("\n".join(f"- {m}" for m in missing))
+        st.caption("Baixe do portal NASA PSI, coloque em `dados/` e rode `uv run spaceapps-build`.")
 
 st.info(meta["geral"], icon=":material/balance:")
 

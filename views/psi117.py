@@ -1,5 +1,6 @@
 """PSI-117: diâmetro de extinção medido × modelado, por pressão."""
 
+import polars as pl
 import streamlit as st
 
 from spaceapps import charts, db, ui
@@ -43,6 +44,73 @@ st.dataframe(
 
 with st.expander("Pontos como estão na fonte"):
     st.dataframe(points.drop("fonte_arquivo"), hide_index=True, width="stretch")
+st.page_link(
+    "views/comparacao.py", label="Comparar com os ensaios de voo do CFI", icon=":material/compare_arrows:"
+)
+
+tables = set(db.tables())
+extra_charts = []
+if "psi117_extincao_1atm" in tables:
+    st.subheader("Extinção a 1 atm por tamanho inicial da gota")
+    st.caption(
+        "n-heptano, n-decano e n-dodecano em ar. Medição em pontos (cada um é uma gota), modelo em linha tracejada; "
+        "um painel por tipo de chama. Zeros da fonte (sem extinção ou sem chama) ficam de fora."
+    )
+    one_atm = db.query("SELECT * FROM psi117_extincao_1atm")
+    panels = ui.side_by_side(2)
+    for panel, (col, flame) in zip(panels, (("dext_quente_mm", "Chama quente"), ("dext_fria_mm", "Chama fria")),
+                                   strict=True):  # fmt: skip
+        part = one_atm.filter(pl.col(col) > 0)
+        with panel:
+            st.markdown(f"**{flame}**")
+            st.plotly_chart(
+                charts.measured_model_by_fuel(
+                    part,
+                    x="d0_mm",
+                    y=col,
+                    x_title="D0 (mm)",
+                    y_title=f"Extinção da {flame.lower()} (mm)",
+                    mode=mode,
+                ),
+                theme=None,
+                width="stretch",
+            )
+    extra_charts.append(
+        "Extinção a 1 atm: D0 (x) × diâmetro de extinção (y), por combustível e medição/modelo."
+    )
+
+if "psi117_series_modelo" in tables:
+    st.subheader("Modelo numérico: evolução de uma gota de n-heptano")
+    series = db.query("SELECT * FROM psi117_series_modelo")
+    variables = {"Diâmetro da gota (mm)": "diametro_mm", "Temperatura máxima (K)": "t_max_k",
+                 "(D/D0)²": "d_d0_quadrado", "Taxa de queima K (mm²/s)": "k_mm2_s"}  # fmt: skip
+    chosen = st.segmented_control("Variável", list(variables), default="Temperatura máxima (K)")
+    st.plotly_chart(
+        charts.xy_lines(
+            series,
+            x="t_s",
+            y=variables[chosen or "Temperatura máxima (K)"],
+            series="cenario",
+            x_title="Tempo (s)",
+            y_title=chosen or "Temperatura máxima (K)",
+            mode=mode,
+            markers=False,
+        ),  # fmt: skip
+        theme=None,
+        width="stretch",
+    )
+    st.caption(
+        "Resultado de simulação (SIMULADO), não medição. Cenários: "
+        + ", ".join(sorted(set(series["cenario"])))
+    )
+    extra_charts.append(f"Série temporal do modelo: tempo (x) × {chosen} (y), uma linha por cenário.")
+
+if "psi117_tabelas" in tables:
+    with st.expander("Tabelas desta investigação (segundo o ReadMe)", icon=":material/table_view:"):
+        listed = db.query("SELECT * EXCLUDE (fonte_arquivo) FROM psi117_tabelas")
+        st.caption(f"{listed['presente_em_dados'].sum()} de {listed.height} estão em `dados/`.")
+        st.dataframe(listed, hide_index=True, width="stretch",
+                     column_config={"presente_em_dados": st.column_config.CheckboxColumn("Em dados/")})  # fmt: skip
 ui.alerts_table("PSI-117")
 
 ui.chat_widget(
@@ -55,6 +123,7 @@ ui.chat_widget(
             "com linha tracejada, faixa de incerteza da chama fria como barra vertical clara. "
             "Cor laranja = chama quente, azul = chama fria.",
             "Tabela medido × modelo por pressão, com diferença e se o modelo cai dentro da faixa.",
+            *extra_charts,
         ],
         dados=comparison,
         tabela_banco="v_psi117_comparacao",

@@ -8,6 +8,12 @@ Dashboard para explorar três investigações da NASA sobre chamas em microgravi
 | PSI-69 FLEX | Gota de combustível líquido, ISS | Em que condições a chama visível se extinguiu |
 | PSI-25 BASS-II | Material sólido, ISS | Que materiais, O2 e ventilação foram testados e o que se mediu |
 | PSI-117 | Medição × modelo, solo | Onde o diâmetro de extinção do modelo difere do medido |
+| PSI-39 CFI | Gota de n-dodecano · chama fria, ISS | Como pressão, hélio e combustível mudam a extinção das chamas quente e fria |
+| PSI-142 | Chama em contrafluxo, solo | Em que estiramento as chamas frias e quentes de n-alcanos se extinguem |
+
+A página **PSI-117 × CFI** é a única que compara investigações: diâmetro de extinção de gotas de
+n-dodecano por pressão. Ela mostra também que parte das "medições" do PSI-117 são ensaios do próprio
+CFI (identificados pelo D0 e pelo diâmetro da chama quente), então não é uma validação independente.
 
 ## Como rodar
 
@@ -61,14 +67,22 @@ Os **arquivos continuam sendo a fonte**. O banco é um derivado deles e existe p
 | `flex_ensaios` | Um ensaio FLEX por linha |
 | `bass_ensaios` | Um teste BASS-II por linha, com o texto original e as categorias extraídas |
 | `psi117_extincao` | Um ponto por linha: pressão, diâmetro, tipo de chama, série e natureza (medido, simulado, incerteza) |
+| `psi117_extincao_1atm` | Extinção a 1 atm de n-heptano, n-decano e n-dodecano por D0, medida e simulada |
+| `psi117_series_modelo` | Séries temporais do modelo numérico (chamas frias estável e oscilatória) |
+| `psi117_tabelas` | O ReadMe do PSI-117: cada tabela, suas condições e se está em `dados/` |
+| `cfi_ensaios`, `cfi_cameras` | Um ensaio do CFI por linha: condições, resultados, ignição, comentário; e as câmeras |
+| `psi142_conjuntos`, `psi142_pontos` | Os 8 conjuntos digitalizados do PSI-142 (artigo, figura, DOI) e seus pontos (x, y) |
+| `psi117_cfi_correspondencia` | Quais medições do PSI-117 são ensaios do CFI, e onde os valores divergem |
 | `alertas` | Achados de qualidade: valor original, tipo e explicação |
 | `fontes` | Todos os arquivos de `dados/`, com hash, status (carregado, duplicata, derivado) e motivo |
 | `v_psi117_comparacao` | Medido e modelo lado a lado por pressão, com a faixa de incerteza |
-| `v_bass_por_material`, `v_flex_por_desfecho`, `v_alertas_resumo` | Resumos prontos |
+| `v_extincao_c12_comparacao` | PSI-117 e CFI lado a lado por pressão e tipo de chama |
+| `v_bass_por_material`, `v_flex_por_desfecho`, `v_cfi_por_pressao`, `v_alertas_resumo` | Resumos prontos |
 
 ### Adicionar um arquivo novo
 
-1. Coloque o arquivo em `dados/` e rode `uv run spaceapps-build`.
+1. Coloque o arquivo em `dados/` e rode `uv run spaceapps-build`. Os nomes do portal NASA PSI, com
+   prefixo (`PSI-117_Analyzed Data_…`, `PSI-39_Experimental table_…`), são reconhecidos sem renomear.
 2. Se ele aparecer como **Não reconhecido** na Visão geral, registre o nome em
    [catalog.py](src/spaceapps/ingest/catalog.py) e, se for um formato novo, escreva o leitor em
    `src/spaceapps/ingest/`.
@@ -117,9 +131,12 @@ estão no código das ferramentas, não só no prompt.
 | `tela` | `tela_resumo`, `tela_linhas`, `tela_estatisticas` | Filtros, gráficos e as linhas filtradas na tela |
 | `flex` | `flex_ensaio`, `flex_agrupar` | Um ensaio FLEX com seus alertas; contagens e medidas por grupo |
 | `bass` | `bass_teste`, `bass_agrupar` | Idem para o BASS-II |
-| `psi117` | `psi117_comparar`, `psi117_pontos` | Medido × modelo por pressão, com a faixa de incerteza; pontos da fonte |
+| `psi117` | `psi117_comparar`, `psi117_pontos`, `psi117_extincao_1atm` | Medido × modelo por pressão, pontos da fonte, extinção a 1 atm |
+| `cfi` | `cfi_ensaio`, `cfi_agrupar` | Um ensaio do CFI com seus alertas; contagens e medidas por grupo |
+| `psi142` | `psi142_conjuntos`, `psi142_serie` | Os conjuntos digitalizados e os pontos de cada série |
+| `comparacao` | `comparacao_c12`, `comparacao_correspondencia` | PSI-117 × CFI lado a lado e a correspondência ponto a ponto |
 | `qualidade` | `alertas`, `fonte_dos_dados`, `cautelas` | Alertas, origem do dado (amostra ou completo) e o que não concluir |
-| `catalogo` | `listar_investigacoes`, `inventario_arquivos` | As três investigações e os arquivos de `dados/` |
+| `catalogo` | `listar_investigacoes`, `inventario_arquivos` | As investigações, o que falta e os arquivos de `dados/` |
 | `dicionario` | `dicionario` | Significado, unidade e cabeçalho original de colunas e categorias |
 
 | Página | Grupos ligados |
@@ -128,10 +145,13 @@ estão no código das ferramentas, não só no prompt.
 | FLEX | tela, flex, qualidade, dicionario |
 | BASS-II | tela, bass, qualidade, dicionario |
 | PSI-117 | tela, psi117, qualidade, dicionario |
+| CFI | tela, cfi, qualidade, dicionario |
+| PSI-142 | tela, psi142, qualidade, dicionario |
+| PSI-117 × CFI | tela, comparacao, qualidade (só PSI-117 e PSI-39), dicionario |
 | Explorar | tela, dicionario |
 
 O que fica de fora de propósito: SQL livre, acesso à web, leitura direta de `dados/` e qualquer
-ferramenta que junte investigações diferentes. Nas páginas de investigação, `alertas`,
+ferramenta que junte investigações fora da página de comparação. Nas páginas de investigação, `alertas`,
 `fonte_dos_dados` e `cautelas` só respondem sobre aquela investigação.
 
 Para mudar o escopo, edite `GROUPS`, `PAGE_GROUPS` e a lista de ferramentas em

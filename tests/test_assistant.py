@@ -239,3 +239,46 @@ def test_unusable_model_is_refused_before_spending(fake_zyria, flex_screen, mode
     with pytest.raises(provider.ProviderError, match="ZYRIA_MODEL"):
         list(agent.answer(flex_screen, [], "oi", config=config))
     assert fake_zyria["requests"] == []  # nenhuma chamada de chat (cobrada) foi feita
+
+
+# --- Páginas novas: escopo de duas investigações na comparação -----------------------------------
+
+
+def test_comparison_page_sees_both_studies_and_nothing_else(use_db):
+    screen = Screen(pagina="comparacao", titulo="PSI-117 × CFI", escopo=["PSI-117", "PSI-39"])
+    found = run(screen, "alertas")
+    assert {a["investigacao"] for a in found["alertas"]} == {"PSI-117", "PSI-39"}
+    assert "PSI-25" in run(screen, "alertas", investigacao="PSI-25")["erro"]
+    assert {c["id"] for c in run(screen, "cautelas")["investigacoes"]} == {"PSI-117", "PSI-39"}
+
+
+def test_comparison_tools_bring_the_shared_provenance(use_db):
+    screen = Screen(pagina="comparacao", titulo="PSI-117 × CFI", escopo=["PSI-117", "PSI-39"])
+    side = run(screen, "comparacao_c12", tipo_chama="Chama quente", pressao_atm=1)
+    assert side["linhas"][0]["psi117_medido_mm"] == 3.56
+    assert "não é validação independente" in side["cautela"]
+    links = run(screen, "comparacao_correspondencia")
+    assert any(r["situacao"] == "mesmo ensaio, valor diferente" for r in links["resumo"])
+
+
+def test_cross_study_tools_are_only_on_the_comparison_page(use_db):
+    assert "comparacao_c12" not in {t.name for t in tools.tools_for("psi117")}
+    assert "comparacao_c12" not in {t.name for t in tools.tools_for("cfi")}
+    screen = Screen(pagina="cfi", titulo="CFI", investigacao="PSI-39")
+    assert "não está disponível" in run(screen, "comparacao_c12")["erro"]
+
+
+def test_psi117_sources_list_the_missing_tables(use_db):
+    screen = Screen(pagina="psi117", titulo="PSI-117", investigacao="PSI-117")
+    listed = {
+        t["arquivo"]: t["presente_em_dados"]
+        for t in run(screen, "fonte_dos_dados")["tabelas_do_psi117_segundo_o_readme"]
+    }
+    assert listed["MST_2024_Dext"] is False
+
+
+def test_psi142_series_tool_summarizes_each_curve(use_db):
+    screen = Screen(pagina="psi142", titulo="PSI-142", investigacao="PSI-142")
+    result = run(screen, "psi142_serie", conjunto_id=1)
+    assert {s["serie"] for s in result["resumo_por_serie"]} == {"nC12", "nC7"}
+    assert run(screen, "psi142_conjuntos")["conjuntos"][0]["conjunto_id"] == 1
