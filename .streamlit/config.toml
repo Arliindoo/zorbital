@@ -1,0 +1,10 @@
+[server]
+address = "localhost"    # só esta máquina acessa; troque por "0.0.0.0" para abrir na rede
+headless = true          # não abre o navegador sozinho nem pede e-mail no primeiro uso
+runOnSave = true         # recarrega a página ao salvar o código
+
+[browser]
+gatherUsageStats = false # sem telemetria para a Streamlit
+
+[theme]
+primaryColor = "#2a78d6" # azul da série 1; o vermelho padrão do Streamlit lê como alerta

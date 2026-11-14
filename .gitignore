@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Segredos
+.env
+.streamlit/secrets.toml
+
+# Conjuntos de dados locais: ficam fora do git (só a pasta é versionada)
+data/*
+!data/.gitkeep
+
+# Caches de ferramentas
+.pytest_cache/
+.ruff_cache/

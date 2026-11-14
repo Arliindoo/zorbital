@@ -1,0 +1,35 @@
+[project]
+name = "spaceapps"
+version = "0.1.0"
+description = "Dashboard interativo de análise e comparação de dados, com interpretação por IA"
+readme = "README.md"
+authors = [
+    { name = "MendanhaPuh", email = "ernesto_tteeu@hotmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=2.8.0",
+    "plotly>=7.1.0",
+    "polars>=2.1.0",
+    "python-dotenv>=1.2.4",
+    "streamlit>=1.67.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
