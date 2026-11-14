@@ -20,3 +20,5 @@ data/*
 # Caches de ferramentas
 .pytest_cache/
 .ruff_cache/
+
+/dados/
