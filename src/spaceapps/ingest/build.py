@@ -269,14 +269,32 @@ def _tables_in(sql: str) -> list[str]:
 
 
 def main() -> None:
+    from . import seed  # importado aqui: seed depende deste módulo
+
+    if not DADOS.is_dir():
+        if not seed.exists():
+            sys.exit(f"Nem {DADOS} nem a seed ({seed.SEED_DIR}) foram encontradas.")
+        print(f"{DADOS} não existe: montando o banco a partir da seed.")
+        return seed.main()
+
     counts = build()
     print(f"Banco gravado em {DB_PATH}")
     for name, n in counts.items():
-        print(f"  {name:18} {n:5} linhas")
-    con = duckdb.connect(str(DB_PATH), read_only=True)
-    for row in con.execute("SELECT status, count(*) FROM fontes GROUP BY 1 ORDER BY 2 DESC").fetchall():
-        print(f"  arquivos {row[0].lower():16} {row[1]:3}")
-    con.close()
+        print(f"  {name:28} {n:6} linhas")
+    with duckdb.connect(str(DB_PATH), read_only=True) as con:
+        for status, n in con.execute(
+            "SELECT status, count(*) FROM fontes GROUP BY 1 ORDER BY 2 DESC"
+        ).fetchall():
+            print(f"  arquivos {status.lower():16} {n:3}")
+
+    changed = seed.export()
+    where = seed.SEED_DIR.relative_to(ROOT) if seed.SEED_DIR.is_relative_to(ROOT) else seed.SEED_DIR
+    if changed:
+        print(
+            f"Seed atualizada em {where}/: {', '.join(changed)}. Faça commit para quem clonar ter estes dados."
+        )
+    else:
+        print(f"Seed em {where}/ já estava em dia.")
 
 
 if __name__ == "__main__":

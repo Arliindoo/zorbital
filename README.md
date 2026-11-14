@@ -21,13 +21,21 @@ Pré-requisito: [uv](https://docs.astral.sh/uv/) (ele instala o Python 3.12 e as
 
 ```bash
 uv sync                          # cria .venv e instala tudo do uv.lock
-uv run spaceapps-build           # lê dados/ e gera data/zorbital.duckdb
 cp .env.example .env             # depois preencha ZYRIA_BASE_URL e ZYRIA_API_KEY
 uv run streamlit run app.py      # abre em http://localhost:8501
 ```
 
-Rode `spaceapps-build` de novo sempre que algo mudar em `dados/`. Sem a chave da API, tudo
-funciona menos o assistente.
+Quem clona o repositório não precisa baixar tabela nenhuma: na primeira abertura, o app monta o
+banco a partir da **seed** versionada em `seed/`. Sem a chave da API, tudo funciona menos o
+assistente.
+
+Quem tem os arquivos originais em `dados/` e muda algo neles roda a carga, que refaz o banco e a
+seed, e depois faz commit de `seed/`:
+
+```bash
+uv run spaceapps-build           # lê dados/, gera data/zorbital.duckdb e regrava seed/
+uv run spaceapps-seed            # (opcional) refaz o banco só a partir da seed
+```
 
 Outros comandos:
 
@@ -40,14 +48,20 @@ uv run ruff format .   # formatação
 ## Como os dados fluem
 
 ```
-dados/  (arquivos originais, nunca alterados, fora do git)
+dados/  (arquivos originais do portal NASA PSI, nunca alterados, fora do git)
    │  uv run spaceapps-build
-   ▼
-data/zorbital.duckdb  (derivado: pode ser apagado e refeito)
+   ├──────────────► seed/  (tabelas normalizadas em Parquet, ~210 KB, no git)
+   ▼                  │  primeira abertura sem banco, ou uv run spaceapps-seed
+data/zorbital.duckdb ◄┘  (derivado: pode ser apagado e refeito, fora do git)
    │
    ▼
 dashboard (só leitura)
 ```
+
+A seed guarda as tabelas do banco já normalizadas, com os tipos preservados. As visões (`v_*`) não
+vão nela: são recriadas pelo código, para nunca divergirem da versão em uso. A exportação é
+determinística e só regrava os arquivos que mudaram, então o git só registra mudança quando os
+dados mudam. O banco montado da seed é idêntico ao montado de `dados/`.
 
 Os **arquivos continuam sendo a fonte**. O banco é um derivado deles e existe por quatro motivos:
 

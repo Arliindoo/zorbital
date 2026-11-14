@@ -19,10 +19,18 @@ def theme() -> str:
 
 
 def require_db() -> None:
-    if not db.exists():
-        st.error("O banco ainda não foi gerado.")
-        st.code("uv run spaceapps-build")
-        st.stop()
+    """Sem banco, monta a partir da seed versionada (primeira abertura de quem clonou o repositório)."""
+    if db.exists():
+        return
+    from .ingest import seed
+
+    if seed.exists():
+        with st.spinner("Montando o banco a partir da seed…"):
+            seed.load(db_path=db.DB_PATH)
+        return
+    st.error("O banco ainda não foi gerado e não há seed no repositório.")
+    st.code("uv run spaceapps-build")
+    st.stop()
 
 
 def investigation_header(inv: dict, rows: int) -> None:
