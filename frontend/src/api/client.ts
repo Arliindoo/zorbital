@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
+import { td, translateResponse } from '@/lib/i18n-data'
 import type {
   BassPage,
   CfiPage,
@@ -31,7 +32,7 @@ async function failure(response: Response): Promise<ApiError> {
   let message = `${response.status} ${response.statusText}`
   try {
     const body = (await response.json()) as { detail?: unknown }
-    if (typeof body.detail === 'string') message = body.detail
+    if (typeof body.detail === 'string') message = td(body.detail)
   } catch {
     // corpo não é JSON: fica o status
   }
@@ -41,7 +42,8 @@ async function failure(response: Response): Promise<ApiError> {
 export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, { signal, headers: { Accept: 'application/json' } })
   if (!response.ok) throw await failure(response)
-  return (await response.json()) as T
+  // o banco está em português: com a interface em inglês, o texto conhecido é trocado já aqui
+  return translateResponse((await response.json()) as T)
 }
 
 export async function postFile<T>(path: string, file: File): Promise<T> {

@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 import type { Cell, Column, Row } from '@/api/types'
 import { compareCells } from '@/lib/data'
 import { fixed, g } from '@/lib/format'
+import { locale, t } from '@/lib/i18n'
+import { tc, td } from '@/lib/i18n-data'
 
 export interface ColumnConfig {
   label?: string
@@ -29,9 +31,9 @@ interface DataTableProps {
 function render(value: Cell | undefined, conf: ColumnConfig) {
   if (value === null || value === undefined) return <span className="cell--null">—</span>
   if (typeof value === 'boolean')
-    return value ? <IconCheck size={15} aria-label="sim" aria-hidden={false} style={{ color: 'var(--signal)' }} /> : <IconMinus size={15} className="cell--null" aria-label="não" aria-hidden={false} />
+    return value ? <IconCheck size={15} aria-label={t('yes', 'sim')} aria-hidden={false} style={{ color: 'var(--signal)' }} /> : <IconMinus size={15} className="cell--null" aria-label={t('no', 'não')} aria-hidden={false} />
   if (typeof value === 'number') return conf.digits === undefined ? g(value) : fixed(value, conf.digits, conf.signed)
-  return value
+  return td(value)
 }
 
 function toCsv(columns: string[], rows: readonly Row[]): string {
@@ -49,7 +51,7 @@ export function DataTable({
   columns,
   config = {},
   hide = [],
-  filename = 'tabela',
+  filename = t('table', 'tabela'),
   pageSize = 100,
   maxHeight = 440,
 }: DataTableProps) {
@@ -93,7 +95,7 @@ export function DataTable({
     URL.revokeObjectURL(url)
   }
 
-  if (!names.length) return <p className="caption">Tabela vazia.</p>
+  if (!names.length) return <p className="caption">{t('Empty table.', 'Tabela vazia.')}</p>
 
   return (
     <div className="table">
@@ -112,7 +114,7 @@ export function DataTable({
                     className={conf(c).wide ? 'th--wide' : undefined}
                   >
                     <button type="button" onClick={() => toggleSort(c)}>
-                      {label ?? c}
+                      {label ?? tc(c)}
                       {active && (sort.desc ? <IconArrowDown size={13} /> : <IconArrowUp size={13} />)}
                     </button>
                   </th>
@@ -138,20 +140,20 @@ export function DataTable({
       </div>
       <div className="table__footer">
         <span>
-          {sorted.length.toLocaleString('pt-BR')} {sorted.length === 1 ? 'linha' : 'linhas'}
+          {sorted.length.toLocaleString(locale)} {sorted.length === 1 ? t('row', 'linha') : t('rows', 'linhas')}
         </span>
         {pages > 1 && (
           <span className="table__pager">
             <button type="button" className="button button--ghost" disabled={current === 0} onClick={() => setPage(current - 1)}>
-              Anterior
+              {t('Previous', 'Anterior')}
             </button>
-            {current + 1} de {pages}
+            {current + 1} {t('of', 'de')} {pages}
             <button type="button" className="button button--ghost" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>
-              Próxima
+              {t('Next', 'Próxima')}
             </button>
           </span>
         )}
-        <button type="button" className="button button--ghost" onClick={download} title="Baixar como CSV">
+        <button type="button" className="button button--ghost" onClick={download} title={t('Download as CSV', 'Baixar como CSV')}>
           <IconDownload size={14} /> CSV
         </button>
       </div>

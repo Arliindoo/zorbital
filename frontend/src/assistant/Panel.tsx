@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Markdown } from '@/components/Markdown'
 import { IconArrowRightUp, IconDocument } from '@/icons'
+import { t } from '@/lib/i18n'
 import {
   IconCheck,
   IconChevronDown,
@@ -77,7 +78,7 @@ function StageRow({
 }) {
   const stage = STAGES[index]!
   return (
-    <section className="ag-stage" data-state={state} aria-label={`Etapa ${index + 1} de ${STAGE_COUNT}: ${stage.label}`}>
+    <section className="ag-stage" data-state={state} aria-label={t(`Step ${index + 1} of ${STAGE_COUNT}: ${stage.label}`, `Etapa ${index + 1} de ${STAGE_COUNT}: ${stage.label}`)}>
       <header className="ag-stage__head">
         <i className="ag-stage__node" aria-hidden />
         <span className="ag-stage__n">{stage.n}</span>
@@ -94,25 +95,26 @@ function StageRow({
 
 function stageNote(turn: Turn, i: number): string | undefined {
   const state = turn.steps[i]
-  if (state === 'pending') return 'aguardando'
-  if (state === 'skipped') return 'não foi preciso'
-  if (state === 'error') return 'falhou'
-  if (state === 'stopped') return 'interrompida'
-  if (state === 'active') return 'em andamento'
+  if (state === 'pending') return t('waiting', 'aguardando')
+  if (state === 'skipped') return t('not needed', 'não foi preciso')
+  if (state === 'error') return t('failed', 'falhou')
+  if (state === 'stopped') return t('stopped', 'interrompida')
+  if (state === 'active') return t('in progress', 'em andamento')
   const at = turn.stageAt
-  if (!at) return 'feito'
+  const done = t('done', 'feito')
+  if (!at) return done
   const from = at[STAGES[i]!.id]
-  if (from === undefined) return 'feito'
+  if (from === undefined) return done
   const next = STAGES.slice(i + 1).map((s) => at[s.id]).find((v) => v !== undefined) ?? turn.ms
-  return next === null || next === undefined ? 'feito' : seconds(Math.max(0, next - from))
+  return next === null || next === undefined ? done : seconds(Math.max(0, next - from))
 }
 
 function Receipt({ turn }: { turn: Turn }) {
   const cells: { label: string; value: string; unit?: string }[] = [
-    { label: 'Custo', value: turn.cost === null ? '—' : zyt(turn.cost), unit: turn.cost === null ? undefined : 'ZYT' },
-    { label: 'Estudos', value: String(turn.studies.length) },
-    { label: 'Consultas', value: String(turn.tools.length) },
-    { label: 'Tempo', value: turn.ms === null ? '—' : seconds(turn.ms).replace(' s', ''), unit: turn.ms === null ? undefined : 's' },
+    { label: t('Cost', 'Custo'), value: turn.cost === null ? '—' : zyt(turn.cost), unit: turn.cost === null ? undefined : 'ZYT' },
+    { label: t('Studies', 'Estudos'), value: String(turn.studies.length) },
+    { label: t('Queries', 'Consultas'), value: String(turn.tools.length) },
+    { label: t('Time', 'Tempo'), value: turn.ms === null ? '—' : seconds(turn.ms).replace(' s', ''), unit: turn.ms === null ? undefined : 's' },
   ]
   return (
     <dl className="ag-receipt">
@@ -148,7 +150,7 @@ function CopyButton({ text }: { text: string }) {
       }}
     >
       {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-      {copied ? 'Copiado' : 'Copiar resposta'}
+      {copied ? t('Copied', 'Copiado') : t('Copy answer', 'Copiar resposta')}
     </button>
   )
 }
@@ -160,6 +162,9 @@ const cautionList = (text: string): string[] =>
     .map((part) => part.trim())
     .filter(Boolean)
 
+const cautionCount = (n: number) =>
+  t(`${n} caution${n === 1 ? '' : 's'} in the agent's context`, `${n} cautela${n === 1 ? '' : 's'} no contexto do agente`)
+
 function studyParts(study: Study) {
   const [short, ...rest] = study.nome.split(' — ')
   return {
@@ -169,7 +174,7 @@ function studyParts(study: Study) {
     sample: (study.fonte_carregada ?? '').toLowerCase().includes('amostra'),
     links: [
       study.url_nasa && { label: 'NASA PSI', href: study.url_nasa },
-      study.relatorio && { label: 'Relatório', href: study.relatorio },
+      study.relatorio && { label: t('Report', 'Relatório'), href: study.relatorio },
       study.doi && { label: `DOI ${study.doi}`, href: study.doi.startsWith('http') ? study.doi : `https://doi.org/${study.doi}` },
     ].filter((link): link is { label: string; href: string } => Boolean(link)),
   }
@@ -206,17 +211,17 @@ function StudyCard({ study, live, index }: { study: Study; live: boolean; index:
           {study.id}
         </span>
         <strong>{short}</strong>
-        {sample && <em>amostra</em>}
+        {sample && <em>{t('sample', 'amostra')}</em>}
       </header>
       {long && <p className="ag-study__long">{long}</p>}
       <p className="ag-mono-line">
-        {study.ambiente} · evidência {study.tipo_evidencia.toLowerCase()}
+        {t(`${study.ambiente} · ${study.tipo_evidencia.toLowerCase()} evidence`, `${study.ambiente} · evidência ${study.tipo_evidencia.toLowerCase()}`)}
       </p>
       <p className="ag-study__q">{study.pergunta}</p>
       <details className="ag-study__more">
         <summary>
           <IconChevronDown size={12} />
-          {cautions.length} cautela{cautions.length === 1 ? '' : 's'} no contexto do agente
+          {cautionCount(cautions.length)}
         </summary>
         <ul>
           {cautions.map((c) => (
@@ -286,11 +291,11 @@ function BlockLinks({ turn, title, onLocate }: { turn: Turn; title: string | nul
   )
   return (
     <>
-      <ul className="ag-links" aria-label="Blocos lidos na tela">
+      <ul className="ag-links" aria-label={t('Blocks read on screen', 'Blocos lidos na tela')}>
         {turn.sources.length > 0 ? (
           turn.sources.map((s, i) => (
             <Branch key={s.id} live={turn.live} index={i} delay={0.2 + i * 0.09}>
-              <button type="button" className="ag-node" title="Mostrar na página" onClick={() => onLocate(s.id)}>
+              <button type="button" className="ag-node" title={t('Show on page', 'Mostrar na página')} onClick={() => onLocate(s.id)}>
                 {body(s, i)}
               </button>
             </Branch>
@@ -298,13 +303,13 @@ function BlockLinks({ turn, title, onLocate }: { turn: Turn; title: string | nul
         ) : (
           // página sem blocos marcados: a tela inteira é a fonte
           <Branch live={turn.live} delay={0.2}>
-            <div className="ag-node">{body({ id: '__tela', kind: 'screen', label: title ?? 'Tela' }, 0)}</div>
+            <div className="ag-node">{body({ id: '__tela', kind: 'screen', label: title ?? t('Screen', 'Tela') }, 0)}</div>
           </Branch>
         )}
       </ul>
       {turn.sources.length > 0 && more > 0 && (
         <p className="ag-mono-line ag-links__more">
-          + {more} {more === 1 ? 'bloco' : 'blocos'} da página
+          {t(`+ ${more} ${more === 1 ? 'block' : 'blocks'} from the page`, `+ ${more} ${more === 1 ? 'bloco' : 'blocos'} da página`)}
         </p>
       )}
     </>
@@ -324,11 +329,11 @@ function StudyLink({ study, live, index }: { study: Study; live: boolean; index:
               {study.id}
             </span>
             <strong>{short}</strong>
-            {sample && <em>amostra</em>}
+            {sample && <em>{t('sample', 'amostra')}</em>}
             <IconChevronDown size={13} className="ag-studyrow__chev" />
           </span>
           <span className="ag-mono-line">
-            {study.ambiente} · evidência {study.tipo_evidencia.toLowerCase()}
+            {t(`${study.ambiente} · ${study.tipo_evidencia.toLowerCase()} evidence`, `${study.ambiente} · evidência ${study.tipo_evidencia.toLowerCase()}`)}
           </span>
         </summary>
         <div className="ag-studyrow__more">
@@ -337,7 +342,7 @@ function StudyLink({ study, live, index }: { study: Study; live: boolean; index:
           {cautions.length > 0 && (
             <>
               <span className="ag-eyebrow">
-                {cautions.length} cautela{cautions.length === 1 ? '' : 's'} no contexto do agente
+                {cautionCount(cautions.length)}
               </span>
               <ul>
                 {cautions.map((c) => (
@@ -366,7 +371,7 @@ function Queries({ turn, study, label, linked }: { turn: Turn; study: boolean; l
           <b>{tool.name}</b>
           {tool.args && <span>({tool.args})</span>}
         </code>
-        {tool.failed && <em>erro</em>}
+        {tool.failed && <em>{t('error', 'erro')}</em>}
       </div>
     )
   }
@@ -431,10 +436,10 @@ function TurnView({
     turn.status === 'error' || turn.status === 'stopped' ? (
       <div className="ag-trouble" data-status={turn.status} role={turn.status === 'error' ? 'alert' : undefined}>
         {turn.status === 'error' ? <IconWarning size={15} /> : <IconClose size={14} />}
-        <p>{turn.status === 'error' ? (turn.error ?? 'A execução falhou.') : 'Você interrompeu a execução. O que chegou até aqui não entra no histórico.'}</p>
+        <p>{turn.status === 'error' ? (turn.error ?? t('The run failed.', 'A execução falhou.')) : t('You stopped the run. What arrived so far is not saved to the history.', 'Você interrompeu a execução. O que chegou até aqui não entra no histórico.')}</p>
         <button type="button" className="ag-ghost" onClick={onRetry}>
           <IconRetry size={13} />
-          {turn.status === 'error' ? 'Tentar de novo' : 'Refazer'}
+          {turn.status === 'error' ? t('Try again', 'Tentar de novo') : t('Redo', 'Refazer')}
         </button>
       </div>
     ) : null
@@ -446,7 +451,8 @@ function TurnView({
         {latest ? (
           <div className="ag-turn__qtext">
             <span className="ag-eyebrow">
-              Pergunta{turn.at ? ` · ${clock(turn.at)}` : ''}
+              {t('Question', 'Pergunta')}
+              {turn.at ? ` · ${clock(turn.at)}` : ''}
             </span>
             <p>{turn.question}</p>
           </div>
@@ -454,7 +460,7 @@ function TurnView({
           <button type="button" className="ag-turn__toggle" aria-expanded={open} onClick={onToggle}>
             <span className="ag-turn__qline">{turn.question}</span>
             <span className="ag-turn__meta">
-              {turn.tools.length > 0 && `${turn.tools.length} consulta${turn.tools.length > 1 ? 's' : ''}`}
+              {turn.tools.length > 0 && t(`${turn.tools.length} ${turn.tools.length > 1 ? 'queries' : 'query'}`, `${turn.tools.length} consulta${turn.tools.length > 1 ? 's' : ''}`)}
               {turn.cost !== null && ` · ${zyt(turn.cost)} ZYT`}
             </span>
             <IconChevronDown size={14} className="ag-turn__chev" />
@@ -469,7 +475,7 @@ function TurnView({
               {turn.digest && <p className="ag-mono-line">{digestText(turn.digest)}</p>}
               {linked && <BlockLinks turn={turn} title={title} onLocate={onLocate} />}
               {!linked && turn.sources.length > 0 && (
-                <ul className="ag-sources" aria-label="Blocos lidos na tela">
+                <ul className="ag-sources" aria-label={t('Blocks read on screen', 'Blocos lidos na tela')}>
                   {turn.sources.map((s, i) => (
                     <motion.li
                       key={s.id}
@@ -480,7 +486,7 @@ function TurnView({
                       <button
                         type="button"
                         className="ag-source"
-                        title="Mostrar na página"
+                        title={t('Show on page', 'Mostrar na página')}
                         onMouseEnter={() => onPeek(s.id)}
                         onMouseLeave={() => onPeek(null)}
                         onFocus={() => onPeek(s.id)}
@@ -501,17 +507,19 @@ function TurnView({
               {turn.studies.length > 0 && (
                 <>
                   <p className="ag-mono-line">
-                    {turn.studies.length === 1 ? 'ficha do estudo desta página' : `fichas dos ${turn.studies.length} estudos envolvidos`} · pergunta, evidência e
-                    cautelas
+                    {t(
+                      `${turn.studies.length === 1 ? "this page's study sheet" : `study sheets of the ${turn.studies.length} studies involved`} · question, evidence and cautions`,
+                      `${turn.studies.length === 1 ? 'ficha do estudo desta página' : `fichas dos ${turn.studies.length} estudos envolvidos`} · pergunta, evidência e cautelas`,
+                    )}
                   </p>
                   {linked ? (
-                    <ul className="ag-links" aria-label="Estudos consultados">
+                    <ul className="ag-links" aria-label={t('Studies consulted', 'Estudos consultados')}>
                       {turn.studies.map((study, i) => (
                         <StudyLink key={study.id} study={study} live={turn.live} index={i} />
                       ))}
                     </ul>
                   ) : (
-                    <ul className="ag-studies" aria-label="Estudos consultados">
+                    <ul className="ag-studies" aria-label={t('Studies consulted', 'Estudos consultados')}>
                       {turn.studies.map((study, i) => (
                         <StudyCard key={study.id} study={study} live={turn.live} index={i} />
                       ))}
@@ -519,15 +527,15 @@ function TurnView({
                   )}
                 </>
               )}
-              <Queries turn={turn} study label="Consultas à ficha dos estudos" linked={linked} />
-              {sStudies === 'active' && turn.thinking && <p className="ag-mono-line">fichas lidas: o modelo planeja as consultas</p>}
-              {sStudies === 'skipped' && <p className="ag-mono-line">esta página não tem estudo associado</p>}
+              <Queries turn={turn} study label={t('Study sheet queries', 'Consultas à ficha dos estudos')} linked={linked} />
+              {sStudies === 'active' && turn.thinking && <p className="ag-mono-line">{t('study sheets read: the model is planning the queries', 'fichas lidas: o modelo planeja as consultas')}</p>}
+              {sStudies === 'skipped' && <p className="ag-mono-line">{t('this page has no associated study', 'esta página não tem estudo associado')}</p>}
               {failedAt === 1 && trouble}
             </StageRow>
 
             <StageRow index={2} state={s2} note={stageNote(turn, 2)}>
-              <Queries turn={turn} study={false} label="Consultas ao banco" linked={linked} />
-              {s2 === 'skipped' && <p className="ag-mono-line">sem consultas aos dados: bastaram a tela, os estudos e a conversa</p>}
+              <Queries turn={turn} study={false} label={t('Database queries', 'Consultas ao banco')} linked={linked} />
+              {s2 === 'skipped' && <p className="ag-mono-line">{t('no data queries: the screen, the studies and the conversation were enough', 'sem consultas aos dados: bastaram a tela, os estudos e a conversa')}</p>}
               {failedAt === 2 && trouble}
             </StageRow>
 
@@ -553,7 +561,7 @@ function TurnView({
                   </div>
                   {latest && followUps.length > 0 && (
                     <div className="ag-follow">
-                      <span className="ag-eyebrow">Continuar</span>
+                      <span className="ag-eyebrow">{t('Continue', 'Continuar')}</span>
                       <ul>
                         {followUps.map((f, i) => (
                           <motion.li
@@ -582,32 +590,32 @@ function TurnView({
 }
 
 function coreCopy(run: Run | null): { mood: OrbMood; eyebrow: string; title: string } {
-  if (!run) return { mood: 'ready', eyebrow: 'Pronto', title: 'Agente' }
+  if (!run) return { mood: 'ready', eyebrow: t('Ready', 'Pronto'), title: t('Agent', 'Agente') }
   const i = STAGES.findIndex((s) => s.id === run.stage)
   if (run.status === 'running') {
-    const title = !run.thinking ? STAGES[i]!.doing : run.stage === 'consultar' ? 'Analisando os resultados' : run.stage === 'estudos' ? 'Planejando as consultas' : STAGES[i]!.doing
-    return { mood: 'working', eyebrow: `Etapa ${STAGES[i]!.n} / ${LAST_N}`, title }
+    const title = !run.thinking ? STAGES[i]!.doing : run.stage === 'consultar' ? t('Analyzing the results', 'Analisando os resultados') : run.stage === 'estudos' ? t('Planning the queries', 'Planejando as consultas') : STAGES[i]!.doing
+    return { mood: 'working', eyebrow: t(`Step ${STAGES[i]!.n} / ${LAST_N}`, `Etapa ${STAGES[i]!.n} / ${LAST_N}`), title }
   }
-  if (run.status === 'error') return { mood: 'error', eyebrow: `Falhou na etapa ${STAGES[i]!.n}`, title: 'A execução falhou' }
-  if (run.status === 'stopped') return { mood: 'stopped', eyebrow: `Parou na etapa ${STAGES[i]!.n}`, title: 'Interrompido' }
-  return { mood: 'done', eyebrow: `Etapa ${LAST_N} / ${LAST_N}`, title: 'Concluído' }
+  if (run.status === 'error') return { mood: 'error', eyebrow: t(`Failed at step ${STAGES[i]!.n}`, `Falhou na etapa ${STAGES[i]!.n}`), title: t('The run failed', 'A execução falhou') }
+  if (run.status === 'stopped') return { mood: 'stopped', eyebrow: t(`Stopped at step ${STAGES[i]!.n}`, `Parou na etapa ${STAGES[i]!.n}`), title: t('Stopped', 'Interrompido') }
+  return { mood: 'done', eyebrow: t(`Step ${LAST_N} / ${LAST_N}`, `Etapa ${LAST_N} / ${LAST_N}`), title: t('Done', 'Concluído') }
 }
 
 function coreLine(run: Run | null, title: string | null): string {
   if (!run || run.status === 'done') return title ?? ''
   if (run.status !== 'running') return title ?? ''
-  if (run.stage === 'ler') return 'filtros, gráficos e linhas seguem com a pergunta'
+  if (run.stage === 'ler') return t('filters, charts and rows go along with the question', 'filtros, gráficos e linhas seguem com a pergunta')
   if (run.stage === 'estudos') {
-    if (run.thinking) return 'com as fichas no contexto, o modelo decide o que consultar'
+    if (run.thinking) return t('with the study sheets in context, the model decides what to query', 'com as fichas no contexto, o modelo decide o que consultar')
     const last = run.tools.length - 1
     if (last >= 0 && run.studyTools[last]) return run.tools[last] ?? ''
-    return 'pergunta, evidência e cautelas de cada estudo entram no contexto'
+    return t('the question, evidence and cautions of each study enter the context', 'pergunta, evidência e cautelas de cada estudo entram no contexto')
   }
   if (run.stage === 'consultar') {
-    if (run.thinking) return 'o modelo lê o que as consultas devolveram'
+    if (run.thinking) return t('the model reads what the queries returned', 'o modelo lê o que as consultas devolveram')
     return run.tools[run.tools.length - 1] ?? ''
   }
-  return 'escrevendo com base na tela e nas consultas'
+  return t('writing based on the screen and the queries', 'escrevendo com base na tela e nas consultas')
 }
 
 /** `side` fica ao lado da página, `sheet` sobe do rodapé e `full` (celular) cobre a tela inteira. */
@@ -656,7 +664,14 @@ export function Panel({ layout, wide, title, suggestions, run, turns, steps, fol
   const count = useCountUp(
     run ? (run.stage === 'ler' ? run.digest.blocos || run.sources.length : run.stage === 'estudos' ? run.studies.length : dataQueries(run) || run.tools.length) : 0,
   )
-  const caption = run?.stage === 'ler' ? 'blocos' : run?.stage === 'estudos' ? (run.studies.length === 1 ? 'estudo' : 'estudos') : 'consultas'
+  const caption =
+    run?.stage === 'ler'
+      ? t('blocks', 'blocos')
+      : run?.stage === 'estudos'
+        ? run.studies.length === 1
+          ? t('study', 'estudo')
+          : t('studies', 'estudos')
+        : t('queries', 'consultas')
   const lastKey = turns[turns.length - 1]?.key
   const runId = run?.id
 
@@ -730,7 +745,7 @@ export function Panel({ layout, wide, title, suggestions, run, turns, steps, fol
       data-layout={layout}
       data-wide={wide || undefined}
       data-size={tall ? 'tall' : 'compact'}
-      aria-label="Agente: execução e respostas"
+      aria-label={t('Agent: run and answers', 'Agente: execução e respostas')}
       initial={MOTION[layout].from}
       animate={MOTION[layout].to}
       exit={MOTION[layout].from}
@@ -766,16 +781,16 @@ export function Panel({ layout, wide, title, suggestions, run, turns, steps, fol
         </div>
         <div className="ag-core__actions">
           {canClear && (
-            <button type="button" className="ag-icon" title="Limpar conversa desta página" aria-label="Limpar conversa desta página" onClick={onClear}>
+            <button type="button" className="ag-icon" title={t("Clear this page's conversation", 'Limpar conversa desta página')} aria-label={t("Clear this page's conversation", 'Limpar conversa desta página')} onClick={onClear}>
               <IconEraser size={16} />
             </button>
           )}
           {onWide && (
-            <button type="button" className="ag-icon ag-icon--wide" title={wide ? 'Painel estreito' : 'Painel largo'} aria-label={wide ? 'Painel estreito' : 'Painel largo'} aria-pressed={wide} onClick={onWide}>
+            <button type="button" className="ag-icon ag-icon--wide" title={wide ? t('Narrow panel', 'Painel estreito') : t('Wide panel', 'Painel largo')} aria-label={wide ? t('Narrow panel', 'Painel estreito') : t('Wide panel', 'Painel largo')} aria-pressed={wide} onClick={onWide}>
               {wide ? <IconShrink size={16} /> : <IconExpand size={16} />}
             </button>
           )}
-          <button type="button" className="ag-icon" title="Fechar (Esc)" aria-label="Fechar o agente" onClick={onClose}>
+          <button type="button" className="ag-icon" title={t('Close (Esc)', 'Fechar (Esc)')} aria-label={t('Close the agent', 'Fechar o agente')} onClick={onClose}>
             <IconClose size={16} />
           </button>
         </div>
@@ -806,16 +821,16 @@ export function Panel({ layout, wide, title, suggestions, run, turns, steps, fol
         }}
       >
         {turns.length === 0 && (
-          <section className="ag-turn ag-intro" data-linked="" data-live="" aria-label="Comece uma conversa">
+          <section className="ag-turn ag-intro" data-linked="" data-live="" aria-label={t('Start a conversation', 'Comece uma conversa')}>
             <header className="ag-turn__q">
               <i className="ag-turn__node" aria-hidden />
               <div className="ag-turn__qtext">
-                <span className="ag-eyebrow">Nova conversa</span>
-                <p>Pergunte sobre o que está nesta página.</p>
+                <span className="ag-eyebrow">{t('New conversation', 'Nova conversa')}</span>
+                <p>{t('Ask about what is on this page.', 'Pergunte sobre o que está nesta página.')}</p>
               </div>
             </header>
             {suggestions.length > 0 && (
-              <ul className="ag-links ag-intro__list" aria-label="Sugestões de pergunta">
+              <ul className="ag-links ag-intro__list" aria-label={t('Suggested questions', 'Sugestões de pergunta')}>
                 {suggestions.map((s, i) => (
                   <Branch key={s} live index={i} delay={0.24 + i * 0.1}>
                     <button type="button" className="ag-chip" onClick={() => onAsk(s)}>
@@ -855,7 +870,7 @@ export function Panel({ layout, wide, title, suggestions, run, turns, steps, fol
         })}
         <div className="ag-thread__end" aria-hidden>
           <IconTarget size={12} />
-          <span>o agente lê esta tela, a ficha dos estudos e o banco do Zorbital</span>
+          <span>{t('the agent reads this screen, the study sheets and the Zorbital database', 'o agente lê esta tela, a ficha dos estudos e o banco do Zorbital')}</span>
         </div>
       </div>
     </motion.aside>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { int } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import { Frame } from './kit'
 import { delay, type TipData } from './scale'
 
@@ -50,7 +51,7 @@ export function Heatmap({
                       className="a-pop"
                       style={delay((ri + ci) * 45)}
                       onPointerEnter={() =>
-                        setHot({ key, tip: { x: x + cw / 2, y: y + ch / 2, title: r, rows: [['Coluna', c], [unit || 'Valor', v === null ? 'sem dados' : int(v)]] } })
+                        setHot({ key, tip: { x: x + cw / 2, y: y + ch / 2, title: r, rows: [[tr('Column', 'Coluna'), c], [unit || tr('Value', 'Valor'), v === null ? tr('no data', 'sem dados') : int(v)]] } })
                       }
                     >
                       <rect x={x} y={y} width={cw - 3} height={ch - 3} rx={5} fill={v === null ? 'transparent' : color} fillOpacity={v === null ? 0 : 0.1 + t * 0.9} stroke={hot?.key === key ? 'var(--ink)' : v === null ? 'var(--line)' : 'transparent'} strokeDasharray={v === null ? '2 3' : undefined} />

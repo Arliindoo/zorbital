@@ -25,9 +25,11 @@ import {
   IconFilter,
   IconUpload,
 } from '@/icons'
+import { locale, t } from '@/lib/i18n'
 import { BrandOrbit, Wordmark } from './Brand'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Loading } from './Loading'
+import { Settings } from './Settings'
 import { ThemeToggle } from './ThemeToggle'
 
 interface NavItem {
@@ -39,43 +41,43 @@ interface NavItem {
 
 const NAV: { section: string; items: NavItem[] }[] = [
   {
-    section: 'Centro de comando',
+    section: t('Command center', 'Centro de comando'),
     items: [
-      { to: '/', label: 'Visão geral', sub: 'Investigações e fontes', icon: IconOrbit },
-      { to: '/estudos', label: 'Estudos', sub: 'Todos, com busca', icon: IconLibrary },
+      { to: '/', label: t('Overview', 'Visão geral'), sub: t('Investigations and sources', 'Investigações e fontes'), icon: IconOrbit },
+      { to: '/estudos', label: t('Studies', 'Estudos'), sub: t('All of them, with search', 'Todos, com busca'), icon: IconLibrary },
     ],
   },
   {
-    section: 'Gotas de combustível',
+    section: t('Fuel droplets', 'Gotas de combustível'),
     items: [
-      { to: '/flex', label: 'FLEX', sub: 'Extinção de gotas · ISS', icon: IconDrop },
-      { to: '/cfi', label: 'CFI', sub: 'Chamas frias · ISS', icon: IconSnowflake },
-      { to: '/psi117', label: 'PSI-117', sub: 'Medido × modelo · solo', icon: IconGraph },
+      { to: '/flex', label: 'FLEX', sub: t('Droplet extinction · ISS', 'Extinção de gotas · ISS'), icon: IconDrop },
+      { to: '/cfi', label: 'CFI', sub: t('Cool flames · ISS', 'Chamas frias · ISS'), icon: IconSnowflake },
+      { to: '/psi117', label: 'PSI-117', sub: t('Measured × model · ground', 'Medido × modelo · solo'), icon: IconGraph },
     ],
   },
   {
-    section: 'Outras chamas',
+    section: t('Other flames', 'Outras chamas'),
     items: [
-      { to: '/bass', label: 'BASS-II', sub: 'Materiais sólidos · ISS', icon: IconLayers },
-      { to: '/psi142', label: 'PSI-142', sub: 'Contrafluxo · solo', icon: IconCounterflow },
+      { to: '/bass', label: 'BASS-II', sub: t('Solid materials · ISS', 'Materiais sólidos · ISS'), icon: IconLayers },
+      { to: '/psi142', label: 'PSI-142', sub: t('Counterflow · ground', 'Contrafluxo · solo'), icon: IconCounterflow },
     ],
   },
   {
-    section: 'Comparações',
+    section: t('Comparisons', 'Comparações'),
     items: [
-      { to: '/fichas', label: 'Fichas lado a lado', sub: 'O que dá para comparar', icon: IconClipboard },
-      { to: '/comparacao', label: 'PSI-117 × CFI', sub: 'n-dodecano por pressão', icon: IconCompare },
+      { to: '/fichas', label: t('Study sheets side by side', 'Fichas lado a lado'), sub: t('What can be compared', 'O que dá para comparar'), icon: IconClipboard },
+      { to: '/comparacao', label: 'PSI-117 × CFI', sub: t('n-dodecane by pressure', 'n-dodecano por pressão'), icon: IconCompare },
     ],
   },
   {
-    section: 'Dados',
+    section: t('Data', 'Dados'),
     items: [
-      { to: '/enviar', label: 'Enviar estudo', sub: 'Tabelas e documento', icon: IconUpload },
-      { to: '/documentos', label: 'Adicionar documentos', sub: 'Ficha de um estudo', icon: IconDocumentAdd },
-      { to: '/explorar', label: 'Explorar', sub: 'Compare qualquer tabela', icon: IconExplore },
+      { to: '/enviar', label: t('Upload study', 'Enviar estudo'), sub: t('Tables and document', 'Tabelas e documento'), icon: IconUpload },
+      { to: '/documentos', label: t('Add documents', 'Adicionar documentos'), sub: t('A study’s sheet', 'Ficha de um estudo'), icon: IconDocumentAdd },
+      { to: '/explorar', label: t('Explore', 'Explorar'), sub: t('Compare any table', 'Compare qualquer tabela'), icon: IconExplore },
     ],
   },
-  { section: 'Ferramentas', items: [{ to: '/galeria', label: 'Galeria', sub: 'Todos os gráficos', icon: IconGallery }] },
+  { section: t('Tools', 'Ferramentas'), items: [{ to: '/galeria', label: t('Gallery', 'Galeria'), sub: t('Every chart', 'Todos os gráficos'), icon: IconGallery }] },
 ]
 const FLAT = NAV.flatMap(({ section, items }) => items.map((item) => ({ ...item, section })))
 /** A página atual na trilha; um estudo enviado (/estudos/PSI-26) fica sob Estudos. */
@@ -124,10 +126,10 @@ function Status() {
   const date = new Date(stamp)
   const text = Number.isNaN(date.getTime())
     ? stamp.replace('T', ' ')
-    : date.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace('.', '')
+    : date.toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace('.', '')
   return (
-    <span className="status label" title="Quando o banco foi gerado a partir de dados/">
-      <i /> Banco · {text}
+    <span className="status label" title={t('When the database was built from dados/', 'Quando o banco foi gerado a partir de dados/')}>
+      <i /> {t('Database', 'Banco')} · {text}
     </span>
   )
 }
@@ -151,7 +153,7 @@ export function Layout() {
   return (
     <div className="app" data-deck={deckOpen ? 'open' : 'closed'} data-menu={menuOpen}>
       <Backdrop />
-      <aside className="rail" data-open={menuOpen} aria-label="Navegação">
+      <aside className="rail" data-open={menuOpen} aria-label={t('Navigation', 'Navegação')}>
         <Link to="/" className="brand" aria-label="Zorbital" onClick={() => setMenuOpen(false)}>
           <BrandOrbit className="brand__orbit" />
           <Wordmark className="brand__name" />
@@ -177,38 +179,39 @@ export function Layout() {
       </aside>
 
       <header className="topbar">
-        <button type="button" className="icon-button topbar__menu" aria-label="Abrir menu" onClick={() => setMenuOpen(true)}>
+        <button type="button" className="icon-button topbar__menu" aria-label={t('Open menu', 'Abrir menu')} onClick={() => setMenuOpen(true)}>
           <IconMenu />
         </button>
-        <p className="crumbs label" aria-label="Você está em">
+        <p className="crumbs label" aria-label={t('You are in', 'Você está em')}>
           {/* a visão geral é a página inicial: a seção dela não entra na trilha */}
           {current && current.to !== '/' && <span>{current.section}</span>}
-          <span>{current?.label ?? 'Página'}</span>
+          <span>{current?.label ?? t('Page', 'Página')}</span>
           {child && <span>{child}</span>}
-          {simulating && <span>Simulação</span>}
+          {simulating && <span>{t('Simulation', 'Simulação')}</span>}
         </p>
         <span className="topbar__spacer" />
         <Status />
         <button
           type="button"
           className="icon-button deck__toggle"
-          aria-label={deckOpen ? 'Recolher filtros' : 'Mostrar filtros'}
+          aria-label={deckOpen ? t('Hide filters', 'Recolher filtros') : t('Show filters', 'Mostrar filtros')}
           aria-pressed={deckOpen}
-          title="Filtros"
+          title={t('Filters', 'Filtros')}
           onClick={() => setDeckOpen((open) => !open)}
         >
           <IconFilter />
         </button>
         <ThemeToggle />
+        <Settings />
         <button type="button" className="ask" onClick={() => setOpen(true)}>
           <IconStars size={16} />
-          <span>Perguntar ao agente</span>
+          <span>{t('Ask the agent', 'Perguntar ao agente')}</span>
         </button>
         {/* um feixe cruza a barra a cada troca de página */}
         <i className="topbar__beam" key={pathname} aria-hidden />
       </header>
 
-      <aside ref={setSlot} className="deck" aria-label="Filtros" />
+      <aside ref={setSlot} className="deck" aria-label={t('Filters', 'Filtros')} />
       <div
         className="scrim"
         aria-hidden

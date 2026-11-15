@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { int } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import { Frame } from './kit'
 import { delay, type TipData, useSvgId } from './scale'
 
@@ -123,7 +124,7 @@ export function Sankey({
                   onPointerEnter={() =>
                     setHot({
                       key: r.key,
-                      tip: { x: r.mid[0], y: r.mid[1], title: `${r.s.node.label} → ${r.t.node.label}`, rows: [[unit || 'Valor', int(r.l.value)]] },
+                      tip: { x: r.mid[0], y: r.mid[1], title: `${r.s.node.label} → ${r.t.node.label}`, rows: [[unit || tr('Value', 'Valor'), int(r.l.value)]] },
                     })
                   }
                 />
@@ -137,7 +138,7 @@ export function Sankey({
                   className="mark"
                   data-hot={hot?.key === node.id || hot?.key.split('→').includes(node.id) || undefined}
                   onPointerEnter={() =>
-                    setHot({ key: node.id, tip: { x: x + barW, y: y + h / 2, title: node.label, color: node.color, rows: [[unit || 'Valor', int(value.get(node.id) ?? 0)]] } })
+                    setHot({ key: node.id, tip: { x: x + barW, y: y + h / 2, title: node.label, color: node.color, rows: [[unit || tr('Value', 'Valor'), int(value.get(node.id) ?? 0)]] } })
                   }
                 >
                   <rect className="a-grow-y" style={delay(i * 50)} x={x} y={y} width={barW} height={h} rx={2.5} fill={node.color} />

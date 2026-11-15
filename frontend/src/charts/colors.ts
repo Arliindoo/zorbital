@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n'
+
 /**
  * Cores dos gráficos. São referências aos tokens de styles/tokens.css (não valores fixos),
  * para que cada gráfico acompanhe a troca de tema sem redesenhar.
@@ -44,7 +46,7 @@ export function domainColors(column: DomainColumn): Record<string, string> {
  * Assim, tirar uma série do filtro não repinta as que ficaram.
  */
 export function assignSlots(entities: readonly string[], slots: Readonly<Record<string, number>>): Record<string, number> {
-  if (entities.length > MAX_SERIES) throw new RangeError(`No máximo ${MAX_SERIES} séries por gráfico.`)
+  if (entities.length > MAX_SERIES) throw new RangeError(t(`At most ${MAX_SERIES} series per chart.`, `No máximo ${MAX_SERIES} séries por gráfico.`))
   const kept: Record<string, number> = {}
   for (const [entity, slot] of Object.entries(slots)) if (entities.includes(entity)) kept[entity] = slot
   const used = new Set(Object.values(kept))

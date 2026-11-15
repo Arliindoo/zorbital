@@ -5,9 +5,11 @@
 
 import { type PointerEvent, useMemo, useState } from 'react'
 import { g } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { legendItems } from './legend'
 import { Frame, Legend } from './kit'
 import { delay, linePath, nice, scale, smoothPath, tick, useSvgId } from './scale'
+import { td } from '@/lib/i18n-data'
 
 export interface XYPoint {
   x: number | string
@@ -135,14 +137,14 @@ export function XYChart({
         hit && {
           x: hit.px,
           y: hit.py,
-          title: hit.series.name,
+          title: td(hit.series.name),
           color: hit.series.color,
           rows: [
             ...(xLabel ? [[xLabel, fx(hit.point.x)] as const] : []),
             ...(hit.series.type === 'band'
-              ? [['Faixa', `${yFormat(hit.point.lo ?? 0)} – ${yFormat(hit.point.hi ?? 0)}`] as const]
+              ? [[t('Range', 'Faixa'), `${yFormat(hit.point.lo ?? 0)} – ${yFormat(hit.point.hi ?? 0)}`] as const]
               : hit.point.y !== null
-                ? [[yLabel ?? 'Valor', yFormat(hit.point.y)] as const]
+                ? [[yLabel ?? t('Value', 'Valor'), yFormat(hit.point.y)] as const]
                 : []),
             ...(hit.point.tip ?? []),
           ],

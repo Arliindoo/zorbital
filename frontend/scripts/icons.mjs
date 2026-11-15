@@ -79,6 +79,8 @@ const ICONS = {
   ArrowLeft: 'arrow-left',
   Verified: 'verified-check',
   Magic: 'magic-stick-3',
+  // configurações
+  Settings: 'settings',
 }
 
 const camel = (s) => s.replace(/([a-z])-([a-z])/g, (_, a, b) => a + b.toUpperCase())

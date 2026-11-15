@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { fixed, g } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { Frame, Legend } from './kit'
 import { delay, nice, scale, type TipData } from './scale'
 
@@ -88,8 +89,8 @@ export function Dumbbell({
                         rows: [
                           [aLabel, r.a === null ? '—' : `${fixed(r.a, 2)} mm`],
                           [bLabel, r.b === null ? '—' : `${fixed(r.b, 2)} mm`],
-                          ...(r.a !== null && r.b !== null ? [['Diferença', `${fixed(r.b - r.a, 2, true)} mm`] as const] : []),
-                          ...(r.ok === null || r.ok === undefined ? [] : [['Modelo na faixa', r.ok ? 'sim' : 'não'] as const]),
+                          ...(r.a !== null && r.b !== null ? [[t('Difference', 'Diferença'), `${fixed(r.b - r.a, 2, true)} mm`] as const] : []),
+                          ...(r.ok === null || r.ok === undefined ? [] : [[t('Model within range', 'Modelo na faixa'), r.ok ? t('yes', 'sim') : t('no', 'não')] as const]),
                         ],
                       },
                     })

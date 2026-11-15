@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { FormEvent, RefObject } from 'react'
+import { t } from '@/lib/i18n'
 import { IconArrowUp, IconCheck, IconClose, IconStop, IconWarning } from './icons'
 import { Orb, type OrbMood } from './Orb'
 import { dataQueries, type Run, STAGES, type StepState, stepStates } from './run'
@@ -10,28 +11,33 @@ export type DockMode = 'idle' | 'open' | 'run'
 
 
 function ticker(run: Run): string {
-  if (run.status === 'error') return run.error ?? 'A execução falhou.'
-  if (run.status === 'stopped') return 'Interrompido por você.'
+  if (run.status === 'error') return run.error ?? t('The run failed.', 'A execução falhou.')
+  if (run.status === 'stopped') return t('Stopped by you.', 'Interrompido por você.')
   if (run.status === 'done') {
-    const parts = [run.tools.length ? `${run.tools.length} consulta${run.tools.length > 1 ? 's' : ''}` : 'sem consultas']
+    const parts = [
+      run.tools.length
+        ? t(`${run.tools.length} ${run.tools.length > 1 ? 'queries' : 'query'}`, `${run.tools.length} consulta${run.tools.length > 1 ? 's' : ''}`)
+        : t('no queries', 'sem consultas'),
+    ]
     if (run.cost !== null) parts.push(`${zyt(run.cost)} ZYT`)
     if (run.ms !== null) parts.push(seconds(run.ms))
     return parts.join(' · ')
   }
-  if (run.stage === 'ler') return `enviando a tela · ${digestText(run.digest)}`
+  if (run.stage === 'ler') return t(`sending the screen · ${digestText(run.digest)}`, `enviando a tela · ${digestText(run.digest)}`)
   if (run.stage === 'estudos') {
-    if (run.thinking) return 'fichas lidas · planejando as consultas'
+    if (run.thinking) return t('study sheets read · planning the queries', 'fichas lidas · planejando as consultas')
     const ids = run.studies.map((s) => s.id)
     const last = run.tools[run.tools.length - 1]
-    return last && run.studyTools[run.tools.length - 1] ? last : `ficha de ${ids.slice(0, 3).join(', ')}${ids.length > 3 ? ` +${ids.length - 3}` : ''} · pergunta e cautelas`
+    const list = `${ids.slice(0, 3).join(', ')}${ids.length > 3 ? ` +${ids.length - 3}` : ''}`
+    return last && run.studyTools[run.tools.length - 1] ? last : t(`study sheet for ${list} · question and cautions`, `ficha de ${list} · pergunta e cautelas`)
   }
   if (run.stage === 'consultar') {
     const n = dataQueries(run)
-    if (run.thinking) return `${n} consulta${n === 1 ? ' respondida' : 's respondidas'} · analisando os resultados`
-    return run.tools[run.tools.length - 1] ?? 'consultando o banco'
+    if (run.thinking) return t(`${n} ${n === 1 ? 'query' : 'queries'} answered · analyzing the results`, `${n} consulta${n === 1 ? ' respondida' : 's respondidas'} · analisando os resultados`)
+    return run.tools[run.tools.length - 1] ?? t('querying the database', 'consultando o banco')
   }
   const words = run.text.trim().split(/\s+/).filter(Boolean).length
-  return `${words} palavra${words === 1 ? '' : 's'} na resposta`
+  return t(`${words} word${words === 1 ? '' : 's'} in the answer`, `${words} palavra${words === 1 ? '' : 's'} na resposta`)
 }
 
 function StepMark({ state, n }: { state: StepState; n: string }) {
@@ -57,7 +63,7 @@ function Tracker({ run, onStop, stopRef }: { run: Run; onStop: () => void; stopR
   const running = run.status === 'running'
   return (
     <div className="ag-tracker" data-status={run.status}>
-      <ol className="ag-steps" aria-label="Etapas da execução">
+      <ol className="ag-steps" aria-label={t('Run steps', 'Etapas da execução')}>
         {STAGES.map((stage, i) => (
           <li key={stage.id} className="ag-step" data-state={states[i]} aria-current={states[i] === 'active' ? 'step' : undefined}>
             <StepMark state={states[i]!} n={stage.n} />
@@ -79,7 +85,7 @@ function Tracker({ run, onStop, stopRef }: { run: Run; onStop: () => void; stopR
       {running && (
         <button ref={stopRef} type="button" className="ag-stop" onClick={onStop}>
           <IconStop size={13} />
-          <span>Parar</span>
+          <span>{t('Stop', 'Parar')}</span>
         </button>
       )}
     </div>
@@ -117,13 +123,13 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
   const mood: OrbMood = busy && run ? (run.status === 'running' ? 'working' : run.status) : mode === 'open' ? 'ready' : 'idle'
   const placeholder = disabled
     ? compact
-      ? 'Abra uma página para perguntar'
-      : 'Abra uma página para perguntar sobre ela'
+      ? t('Open a page to ask', 'Abra uma página para perguntar')
+      : t('Open a page to ask about it', 'Abra uma página para perguntar sobre ela')
     : compact
-      ? 'Pergunte sobre esta tela'
+      ? t('Ask about this screen', 'Pergunte sobre esta tela')
       : mode === 'idle'
-        ? 'Pergunte ao agente sobre esta tela'
-        : 'O que você quer saber sobre o que está na tela?'
+        ? t('Ask the agent about this screen', 'Pergunte ao agente sobre esta tela')
+        : t('What do you want to know about what is on screen?', 'O que você quer saber sobre o que está na tela?')
 
   return (
     <div
@@ -139,7 +145,7 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
           <motion.ul
             key="chips"
             className="ag-chips"
-            aria-label="Sugestões de pergunta"
+            aria-label={t('Suggested questions', 'Sugestões de pergunta')}
             initial="hidden"
             animate="shown"
             exit="hidden"
@@ -165,7 +171,7 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
         className="ag-bar"
         data-agent-dock-bar=""
         onSubmit={submit}
-        aria-label="Barra de comando do agente"
+        aria-label={t('Agent command bar', 'Barra de comando do agente')}
         onPointerDown={() => {
           // com o resultado ainda no trilho, um toque na barra já devolve o campo de pergunta
           if (busy && !running) {
@@ -187,7 +193,7 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
               className="ag-input"
               type="text"
               placeholder={placeholder}
-              aria-label="Pergunta para o agente"
+              aria-label={t('Question for the agent', 'Pergunta para o agente')}
               enterKeyHint="send"
               autoComplete="off"
               spellCheck={false}
@@ -200,8 +206,8 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
             <div className="ag-bar__meta">
               <span className="ag-bar__seen">
                 <i aria-hidden />
-                <b>Na tela</b>
-                <span>{digest ? digestText(digest) : (title ?? 'nenhuma página aberta')}</span>
+                <b>{t('On screen', 'Na tela')}</b>
+                <span>{digest ? digestText(digest) : (title ?? t('no page open', 'nenhuma página aberta'))}</span>
               </span>
             </div>
           </div>
@@ -214,7 +220,7 @@ export function Dock({ mode, run, title, digest, compact, suggestions, input, on
 
         {!busy && (
           <div className="ag-bar__end">
-            <button type="submit" className="ag-send" aria-label="Enviar pergunta" disabled={disabled || !input.trim()}>
+            <button type="submit" className="ag-send" aria-label={t('Send question', 'Enviar pergunta')} disabled={disabled || !input.trim()}>
               <IconArrowUp size={16} />
             </button>
           </div>

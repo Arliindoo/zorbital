@@ -349,6 +349,77 @@
   transform: scale(0.82);
 }
 
+/* ---------- Configurações ------------------------------------------------------------------------ */
+/* Engrenagem discreta: sem contorno até o ponteiro chegar; o painel desce logo abaixo dela. */
+
+.settings {
+  position: relative;
+  flex: none;
+}
+.settings__toggle {
+  border-color: transparent;
+  color: var(--ink-3);
+}
+.settings__toggle svg {
+  transition: transform var(--dur-3) var(--ease-out);
+}
+.settings__toggle:hover svg,
+.settings__toggle[aria-expanded='true'] svg {
+  transform: rotate(60deg);
+}
+.settings__toggle[aria-expanded='true'] {
+  color: var(--ink);
+  border-color: var(--line-3);
+}
+.settings__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  min-width: 196px;
+  padding: 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  transform-origin: top right;
+  animation: settings-in var(--dur-2) var(--ease-out) both;
+}
+.settings__langs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+.settings__langs button {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  transition:
+    color var(--dur-1) linear,
+    background-color var(--dur-1) linear;
+}
+.settings__langs button:hover {
+  color: var(--ink);
+}
+.settings__langs button[aria-checked='true'] {
+  background: var(--panel-3);
+  color: var(--ink);
+}
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
 /* O tema novo se abre em círculo a partir do botão (View Transition). Vale só durante a troca,
    marcada por data-theme-switch em <html>. */
 :root[data-theme-switch]::view-transition-old(root),

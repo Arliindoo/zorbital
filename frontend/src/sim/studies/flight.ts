@@ -1,5 +1,6 @@
 /** O que os três estudos de voo (FLEX, CFI, BASS-II) têm em comum: órbita e laboratório. */
 
+import { locale, t } from '@/lib/i18n'
 import type { Renderer } from '../engine/renderer'
 import { type Diagnostic, LAB_FACTS, labScene, type RackKind } from '../scenes/lab'
 import { orbitScene } from '../scenes/orbit'
@@ -7,15 +8,15 @@ import type { Readout, SimRun, StageDef } from '../types'
 
 const ORBIT_FACTS: readonly Readout[] = [
   { label: 'Altitude', value: '≈ 400', unit: 'km' },
-  { label: 'Velocidade', value: '≈ 7,66', unit: 'km/s' },
-  { label: 'Uma volta', value: '≈ 92', unit: 'min' },
-  { label: 'Inclinação', value: '51,6', unit: '°' },
+  { label: t('Speed', 'Velocidade'), value: t('≈ 7.66', '≈ 7,66'), unit: 'km/s' },
+  { label: t('One orbit', 'Uma volta'), value: '≈ 92', unit: 'min' },
+  { label: t('Inclination', 'Inclinação'), value: t('51.6', '51,6'), unit: '°' },
 ]
 
 const date = (iso: string | null | undefined): string => {
   if (!iso) return '—'
   const d = new Date(`${iso}T00:00:00Z`)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replaceAll('.', '')
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replaceAll('.', '')
 }
 
 export interface FlightOptions<S> {
@@ -37,25 +38,25 @@ export function flightStages<S>(o: FlightOptions<S>): StageDef<S>[] {
   return [
     {
       id: 'orbita',
-      label: 'Órbita',
+      label: t('Orbit', 'Órbita'),
       scale: 'ISS · ≈ 400 km',
-      title: 'Estação Espacial Internacional',
-      blurb: `O ${o.experiment} voou aqui. Em queda livre contínua não há empuxo: o gás quente não sobe, e a chama deixa de ter "para cima".`,
-      facts: (run) => [...ORBIT_FACTS, ...(run ? [{ label: `Data do ${o.noun}`, value: date(o.dateOf(run)) }] : [])],
+      title: t('International Space Station', 'Estação Espacial Internacional'),
+      blurb: t(`${o.experiment} flew here. In continuous free fall there is no buoyancy: hot gas does not rise, and the flame no longer has an "up".`, `O ${o.experiment} voou aqui. Em queda livre contínua não há empuxo: o gás quente não sobe, e a chama deixa de ter "para cima".`),
+      facts: (run) => [...ORBIT_FACTS, ...(run ? [{ label: t('Test date', `Data do ${o.noun}`), value: date(o.dateOf(run)) }] : [])],
       experiment: false,
       sceneKey: 'orbita',
       view: 'main',
-      scene: (r: Renderer) => orbitScene<S>(r, { next: 'laboratorio', sub: `Laboratório dos EUA · onde fica o ${rackName}` }),
+      scene: (r: Renderer) => orbitScene<S>(r, { next: 'laboratorio', sub: t(`US laboratory · home of the ${rackName}`, `Laboratório dos EUA · onde fica o ${rackName}`) }),
     },
     {
       id: 'laboratorio',
       label: `Destiny · ${rackName}`,
-      scale: 'laboratório · 8,5 m',
+      scale: t('laboratory · 8.5 m', 'laboratório · 8,5 m'),
       title: o.rack === 'cir' ? 'Combustion Integrated Rack' : 'Microgravity Science Glovebox',
       blurb:
         o.rack === 'cir'
-          ? 'Um rack inteiro dedicado à combustão: câmara selada com janelas, bancada óptica com as câmeras e garrafas de gás para montar a atmosfera de cada ensaio.'
-          : 'Uma bancada selada com luvas: o astronauta troca as amostras à mão, e o que queima fica contido no volume de trabalho.',
+          ? t('A whole rack dedicated to combustion: a sealed chamber with windows, an optics bench with the cameras, and gas bottles to build the atmosphere of each test.', 'Um rack inteiro dedicado à combustão: câmara selada com janelas, bancada óptica com as câmeras e garrafas de gás para montar a atmosfera de cada ensaio.')
+          : t('A sealed bench with gloves: the astronaut swaps the samples by hand, and whatever burns stays contained in the work volume.', 'Uma bancada selada com luvas: o astronauta troca as amostras à mão, e o que queima fica contido no volume de trabalho.'),
       facts: () => [...LAB_FACTS, ...o.rackFacts],
       experiment: false,
       sceneKey: `laboratorio:${o.rack}`,

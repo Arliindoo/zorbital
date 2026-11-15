@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { median } from '@/lib/data'
 import { g } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { Frame } from './kit'
 import { delay, nice, scale, smoothPath, type TipData, useSvgId } from './scale'
 
@@ -77,9 +78,9 @@ export function Ridge({ groups, xLabel, height = 380, label }: { groups: readonl
                         title: group.name,
                         color,
                         rows: [
-                          ['Ensaios', String(group.values.length)],
-                          ['Mediana', g(median([...group.values]))],
-                          ['Faixa', `${g(Math.min(...group.values))} – ${g(Math.max(...group.values))}`],
+                          [t('Tests', 'Ensaios'), String(group.values.length)],
+                          [t('Median', 'Mediana'), g(median([...group.values]))],
+                          [t('Range', 'Faixa'), `${g(Math.min(...group.values))} – ${g(Math.max(...group.values))}`],
                         ],
                       },
                     })

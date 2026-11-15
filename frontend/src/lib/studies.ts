@@ -1,6 +1,7 @@
 /** Estudos: onde cada um abre, a busca sem acento e os textos de origem. Funções puras. */
 
 import type { Evidence, Portal, StudyCard } from '@/api/types'
+import { t } from '@/lib/i18n'
 import type { Range } from './data'
 
 /** Os estudos do catálogo têm página própria; os enviados abrem na página genérica. */
@@ -56,9 +57,9 @@ export function evidenceLabel(evidence: Evidence | null | undefined): string {
   if (kind === 'documento') {
     const where = [evidence?.arquivo ?? '', evidence?.pagina ? `p. ${evidence.pagina}` : ''].filter(Boolean).join(' ')
     const quote = evidence?.trecho ? ` · “${evidence.trecho}”` : ''
-    return `documento · ${where}${quote}`
+    return `${t('document', 'documento')} · ${where}${quote}`
   }
-  return { cabecalho: 'cabeçalho da tabela', inferido: 'inferido pela IA' }[kind] ?? kind
+  return { cabecalho: t('table header', 'cabeçalho da tabela'), inferido: t('inferred by the AI', 'inferido pela IA') }[kind] ?? kind
 }
 
 /** '08-01-2007' e '07-31-2016' (mês-dia-ano, como no portal) → '2007–2016'. */

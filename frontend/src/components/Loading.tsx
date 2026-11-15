@@ -1,4 +1,6 @@
-export function Loading({ label = 'Carregando…' }: { label?: string }) {
+import { t } from '@/lib/i18n'
+
+export function Loading({ label = t('Loading…', 'Carregando…') }: { label?: string }) {
   return (
     <div className="loading label" role="status" aria-live="polite">
       <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>

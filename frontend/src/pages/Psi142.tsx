@@ -14,6 +14,7 @@ import { SimFrame, ViewSwitch } from '@/components/StudyView'
 import { Badge, Callout, Caption, Code, Expander, Grid, Section } from '@/components/ui'
 import { IconCounterflow, IconDocument } from '@/icons'
 import { compareCells, omit, uniqueInOrder } from '@/lib/data'
+import { t } from '@/lib/i18n'
 import { usePageState } from '@/lib/usePageState'
 import { useStudyView } from '@/lib/useStudyView'
 
@@ -49,17 +50,31 @@ function Charts({ points, suspect }: { points: Psi142Point[]; suspect: string[] 
       {suspect.length > 0 && (
         <>
           <Toggle
-            label={`Incluir no gráfico as séries com eixo suspeito (${suspect.join(', ')})`}
+            label={t(`Include in the chart the series with a suspect axis (${suspect.join(', ')})`, `Incluir no gráfico as séries com eixo suspeito (${suspect.join(', ')})`)}
             checked={showSuspect}
             onChange={setShowSuspect}
           />
-          {!showSuspect && <Caption>Fora do gráfico: {suspect.join(', ')}. Os pontos continuam na tabela abaixo.</Caption>}
+          {!showSuspect && <Caption>{t(`Not in the chart: ${suspect.join(', ')}. The points remain in the table below.`, `Fora do gráfico: ${suspect.join(', ')}. Os pontos continuam na tabela abaixo.`)}</Caption>}
         </>
       )}
       <Grid>
         {figures.map(({ yName, xName, series, count }) => (
-          <Section key={yName} span={figures.length > 1 ? 6 : 12} kind="chart" icon={IconCounterflow} tag={`${count} pontos`} title={yName} caption={`Em função de ${xName}, uma linha por série.`}>
-            <XYChart series={series} xLabel={xName} yLabel={yName} height={420} label={`${yName} em função de ${xName}, uma linha por série`} />
+          <Section
+            key={yName}
+            span={figures.length > 1 ? 6 : 12}
+            kind="chart"
+            icon={IconCounterflow}
+            tag={t(`${count} points`, `${count} pontos`)}
+            title={yName}
+            caption={t(`As a function of ${xName}, one line per series.`, `Em função de ${xName}, uma linha por série.`)}
+          >
+            <XYChart
+              series={series}
+              xLabel={xName}
+              yLabel={yName}
+              height={420}
+              label={t(`${yName} as a function of ${xName}, one line per series`, `${yName} em função de ${xName}, uma linha por série`)}
+            />
           </Section>
         ))}
       </Grid>
@@ -99,27 +114,30 @@ export default function Psi142() {
     pagina: 'psi142',
     titulo: inv.nome,
     investigacao: 'PSI-142',
-    filtros: { conjunto: label(chosen) },
+    filtros: { [t('set', 'conjunto')]: label(chosen) },
     graficos:
       mode === 'simulacao'
         ? [simText]
-        : uniqueInOrder(view.map((p) => p.y_nome)).map((y) => `${y} em função de ${view.find((p) => p.y_nome === y)!.x_nome}, uma linha por série`),
+        : uniqueInOrder(view.map((p) => p.y_nome)).map((y) => {
+            const x = view.find((p) => p.y_nome === y)!.x_nome
+            return t(`${y} as a function of ${x}, one line per series`, `${y} em função de ${x}, uma linha por série`)
+          }),
     dados: points.data ? omit(view, ['fonte_arquivo']) : null,
     tabela_banco: 'psi142_pontos',
   })
 
   const dashboard = (
     <>
-      <Section title={label(chosen)} icon={IconDocument} tag={`conjunto ${chosen.conjunto_id} de ${ids.length}`} caption={chosen.publicacao || undefined}>
+      <Section title={label(chosen)} icon={IconDocument} tag={t(`set ${chosen.conjunto_id} of ${ids.length}`, `conjunto ${chosen.conjunto_id} de ${ids.length}`)} caption={chosen.publicacao || undefined}>
         <div className="meta-row">
-          {chosen.figura && <Badge>{/^\d/.test(chosen.figura) ? `Figura ${chosen.figura}` : chosen.figura}</Badge>}
+          {chosen.figura && <Badge>{/^\d/.test(chosen.figura) ? t(`Figure ${chosen.figura}`, `Figura ${chosen.figura}`) : chosen.figura}</Badge>}
           {chosen.doi && (
             <a href={chosen.doi} target="_blank" rel="noreferrer noopener" className="caption">
               DOI {chosen.doi.split('doi.org/').at(-1)}
             </a>
           )}
         </div>
-        {chosen.descricao_csv && chosen.descricao_csv !== chosen.descricao_planilha && <Caption>Descrição no CSV: {chosen.descricao_csv}</Caption>}
+        {chosen.descricao_csv && chosen.descricao_csv !== chosen.descricao_planilha && <Caption>{t(`Description in the CSV: ${chosen.descricao_csv}`, `Descrição no CSV: ${chosen.descricao_csv}`)}</Caption>}
         {found.map((a, i) => (
           <Callout key={i} tone="warning">
             {a.detalhe}
@@ -128,21 +146,23 @@ export default function Psi142() {
           </Callout>
         ))}
         <Caption>
-          Pontos digitalizados das figuras publicadas: a precisão é a da digitalização. Limites em contrafluxo são taxas de
-          estiramento (1/s), não diâmetros de gota.
+          {t(
+            'Points digitized from the published figures: the precision is that of the digitization. Limits in counterflow are strain rates (1/s), not droplet diameters.',
+            'Pontos digitalizados das figuras publicadas: a precisão é a da digitalização. Limites em contrafluxo são taxas de estiramento (1/s), não diâmetros de gota.',
+          )}
         </Caption>
       </Section>
       {points.isPending ? (
-        <Loading label="Carregando os pontos do conjunto…" />
+        <Loading label={t('Loading the points of the set…', 'Carregando os pontos do conjunto…')} />
       ) : points.isError ? (
-        <Callout tone="error">Não foi possível carregar os pontos: {points.error.message}</Callout>
+        <Callout tone="error">{t(`Could not load the points: ${points.error.message}`, `Não foi possível carregar os pontos: ${points.error.message}`)}</Callout>
       ) : (
         <Charts key={chosen.conjunto_id} points={view} suspect={suspect} />
       )}
-      <Expander title={`Pontos do conjunto (${view.length})`}>
+      <Expander title={t(`Points in the set (${view.length})`, `Pontos do conjunto (${view.length})`)}>
         <DataTable rows={view} columns={points.data?.columns} hide={['fonte_arquivo']} filename={`psi142_conjunto_${chosen.conjunto_id}`} />
       </Expander>
-      <Expander title="Todos os conjuntos">
+      <Expander title={t('All sets', 'Todos os conjuntos')}>
         <DataTable rows={conjuntos.rows} columns={conjuntos.columns} hide={['fonte_arquivo']} filename="psi142_conjuntos" />
       </Expander>
       <AlertsTable alerts={alertas} />
@@ -154,9 +174,9 @@ export default function Psi142() {
       <InvestigationHeader inv={inv} rows={total_pontos} compact={mode === 'simulacao'}>
         <ViewSwitch view={mode} onChange={setMode} />
       </InvestigationHeader>
-      <SidebarFilters title="Conjunto">
+      <SidebarFilters title={t('Set', 'Conjunto')}>
         <RadioList
-          label="Conjunto de dados"
+          label={t('Dataset', 'Conjunto de dados')}
           options={ids}
           value={chosen.conjunto_id}
           onChange={setCid}
@@ -166,9 +186,9 @@ export default function Psi142() {
 
       {mode === 'simulacao' ? (
         points.isPending ? (
-          <Loading label="Carregando os pontos do conjunto…" />
+          <Loading label={t('Loading the points of the set…', 'Carregando os pontos do conjunto…')} />
         ) : points.isError ? (
-          <Callout tone="error">Não foi possível carregar os pontos: {points.error.message}</Callout>
+          <Callout tone="error">{t(`Could not load the points: ${points.error.message}`, `Não foi possível carregar os pontos: ${points.error.message}`)}</Callout>
         ) : (
           <SimFrame>
             <Psi142Sim set={chosen} points={view} alerts={alertas.rows} onReport={setSimText} />

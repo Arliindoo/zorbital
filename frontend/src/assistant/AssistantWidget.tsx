@@ -1,5 +1,6 @@
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { t } from '@/lib/i18n'
 import '@/styles/assistant.css'
 import { Dock, type DockMode } from './Dock'
 import { Overlay, type OverlayPhase } from './Overlay'
@@ -10,19 +11,36 @@ import { collectTargets, stageElement, type TargetEl } from './targets'
 import type { PageKey, ScreenDigest, ViewMessage } from './types'
 import { useMediaQuery } from './util'
 
-const SUGGESTIONS: Record<PageKey, string[]> = {
-  overview: ['Qual a diferença entre as três investigações?', 'Quais arquivos eram repetidos?'],
-  flex: ['Explique o gráfico de condições testadas', 'Por que alguns ensaios não aparecem no 2º gráfico?'],
-  bass: ['Quais materiais foram mais testados?', 'Quais testes têm alertas e por quê?'],
-  psi117: ['Em que pressões o modelo sai da faixa de incerteza?', 'O que é uma chama fria?'],
-  cfi: ['Como a extinção da chama fria muda com a pressão?', 'O que quer dizer Dext fria = 0 na fonte?'],
-  psi142: ['O que este conjunto mostra?', 'Por que há alertas neste conjunto?'],
-  comparacao: ['O modelo do PSI-117 acompanha os voos do CFI?', 'Por que isso não é validação independente?'],
-  estudos: ['O que este estudo mediu?', 'Quais interpretações vieram do documento e quais foram inferidas?'],
-  fichas: ['O que estes estudos têm em comum?', 'Dá para comparar o diâmetro de extinção entre eles?'],
-  explore: ['O que este gráfico mostra?', 'Qual série tem o maior valor?'],
-}
-const FOLLOW_UPS = ['Resuma em três pontos', 'Quais cautelas valem para estes dados?', 'Mostre os números por trás disso']
+const SUGGESTIONS: Record<PageKey, string[]> = t(
+  {
+    overview: ['What is the difference between the three investigations?', 'Which files were duplicates?'],
+    flex: ['Explain the chart of tested conditions', 'Why are some tests missing from the 2nd chart?'],
+    bass: ['Which materials were tested the most?', 'Which tests have alerts, and why?'],
+    psi117: ['At which pressures does the model leave the uncertainty band?', 'What is a cool flame?'],
+    cfi: ['How does cool flame extinction change with pressure?', 'What does cool Dext = 0 mean in the source?'],
+    psi142: ['What does this dataset show?', 'Why are there alerts in this dataset?'],
+    comparacao: ['Does the PSI-117 model follow the CFI flights?', 'Why is this not independent validation?'],
+    estudos: ['What did this study measure?', 'Which interpretations came from the document and which were inferred?'],
+    fichas: ['What do these studies have in common?', 'Can the extinction diameter be compared across them?'],
+    explore: ['What does this chart show?', 'Which series has the highest value?'],
+  },
+  {
+    overview: ['Qual a diferença entre as três investigações?', 'Quais arquivos eram repetidos?'],
+    flex: ['Explique o gráfico de condições testadas', 'Por que alguns ensaios não aparecem no 2º gráfico?'],
+    bass: ['Quais materiais foram mais testados?', 'Quais testes têm alertas e por quê?'],
+    psi117: ['Em que pressões o modelo sai da faixa de incerteza?', 'O que é uma chama fria?'],
+    cfi: ['Como a extinção da chama fria muda com a pressão?', 'O que quer dizer Dext fria = 0 na fonte?'],
+    psi142: ['O que este conjunto mostra?', 'Por que há alertas neste conjunto?'],
+    comparacao: ['O modelo do PSI-117 acompanha os voos do CFI?', 'Por que isso não é validação independente?'],
+    estudos: ['O que este estudo mediu?', 'Quais interpretações vieram do documento e quais foram inferidas?'],
+    fichas: ['O que estes estudos têm em comum?', 'Dá para comparar o diâmetro de extinção entre eles?'],
+    explore: ['O que este gráfico mostra?', 'Qual série tem o maior valor?'],
+  },
+)
+const FOLLOW_UPS = t(
+  ['Summarize in three points', 'Which cautions apply to this data?', 'Show the numbers behind this'],
+  ['Resuma em três pontos', 'Quais cautelas valem para estes dados?', 'Mostre os números por trás disso'],
+)
 
 const PANEL_W = 468
 const PANEL_W_WIDE = 620
@@ -305,12 +323,12 @@ export function AssistantWidget() {
   const status = !run
     ? ''
     : run.status === 'running'
-      ? `Etapa ${stageIndex + 1} de ${STAGE_COUNT}: ${STAGES[stageIndex]!.doing}.`
+      ? t(`Step ${stageIndex + 1} of ${STAGE_COUNT}: ${STAGES[stageIndex]!.doing}.`, `Etapa ${stageIndex + 1} de ${STAGE_COUNT}: ${STAGES[stageIndex]!.doing}.`)
       : run.status === 'done'
-        ? 'Resposta concluída.'
+        ? t('Answer complete.', 'Resposta concluída.')
         : run.status === 'error'
-          ? `A execução falhou: ${run.error ?? ''}`
-          : 'Execução interrompida.'
+          ? t(`The run failed: ${run.error ?? ''}`, `A execução falhou: ${run.error ?? ''}`)
+          : t('Run stopped.', 'Execução interrompida.')
 
   return (
     <MotionConfig reducedMotion="user">
@@ -334,7 +352,7 @@ export function AssistantWidget() {
               exit={{ opacity: 0 }}
               transition={{ duration: phase === 'peek' ? 0.24 : 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Overlay phase={phase} targets={overlayTargets} fallbackLabel={current?.titulo ?? 'Tela'} />
+              <Overlay phase={phase} targets={overlayTargets} fallbackLabel={current?.titulo ?? t('Screen', 'Tela')} />
             </motion.div>
           )}
         </AnimatePresence>

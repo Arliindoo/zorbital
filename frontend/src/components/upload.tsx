@@ -4,6 +4,7 @@ import { type CSSProperties, type DragEvent, type ReactNode, useRef, useState } 
 import type { AnalysisEstimate, StoredFile } from '@/api/types'
 import { IconAdd, IconCheck, IconClose, IconDocument, IconMagic, IconTrash, IconUpload } from '@/icons'
 import { int } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import type { DraftStage } from '@/lib/useUpload'
 import { DataTable } from './DataTable'
 import { Loading } from './Loading'
@@ -13,7 +14,7 @@ import { Callout, Caption, Expander, Panel } from './ui'
 
 export function Steps({ steps, current }: { steps: readonly string[]; current: number }) {
   return (
-    <ol className="steps" aria-label="Etapas do envio">
+    <ol className="steps" aria-label={t('Upload steps', 'Etapas do envio')}>
       {steps.map((step, i) => {
         const state = i < current ? 'done' : i === current ? 'current' : 'todo'
         return (
@@ -60,9 +61,9 @@ export function Dropzone({ files, onChange, accept, hint }: { files: readonly Fi
         <span className="hud-corners" aria-hidden />
         <IconUpload size={26} />
         <p>
-          Solte os arquivos aqui ou{' '}
+          {t('Drop the files here or', 'Solte os arquivos aqui ou')}{' '}
           <button type="button" className="link-button" onClick={() => input.current?.click()}>
-            escolha no computador
+            {t('choose from your computer', 'escolha no computador')}
           </button>
         </p>
         <span className="caption">{hint}</span>
@@ -72,7 +73,7 @@ export function Dropzone({ files, onChange, accept, hint }: { files: readonly Fi
           multiple
           className="sr-only"
           accept={accept.map((suffix) => `.${suffix}`).join(',')}
-          aria-label="Arquivos do envio"
+          aria-label={t('Upload files', 'Arquivos do envio')}
           onChange={(e) => {
             add(e.target.files)
             e.target.value = ''
@@ -86,7 +87,7 @@ export function Dropzone({ files, onChange, accept, hint }: { files: readonly Fi
               <IconDocument size={13} />
               {file.name}
               <small>{size(file.size)}</small>
-              <button type="button" aria-label={`Tirar ${file.name}`} onClick={() => onChange(files.filter((f) => f !== file))}>
+              <button type="button" aria-label={t(`Remove ${file.name}`, `Tirar ${file.name}`)} onClick={() => onChange(files.filter((f) => f !== file))}>
                 <IconClose size={13} />
               </button>
             </span>
@@ -98,7 +99,12 @@ export function Dropzone({ files, onChange, accept, hint }: { files: readonly Fi
 }
 
 export function SaveState({ stage, failure }: { stage: DraftStage; failure: string | null }) {
-  const text = { saved: 'Revisão salva no envio', dirty: 'Salvando…', saving: 'Salvando…', error: `Não foi possível salvar: ${failure ?? ''}` }[stage]
+  const text = {
+    saved: t('Review saved to the upload', 'Revisão salva no envio'),
+    dirty: t('Saving…', 'Salvando…'),
+    saving: t('Saving…', 'Salvando…'),
+    error: t(`Could not save: ${failure ?? ''}`, `Não foi possível salvar: ${failure ?? ''}`),
+  }[stage]
   return (
     <span className="save-state label" data-stage={stage} role="status">
       <i /> {text}
@@ -123,24 +129,29 @@ export function UploadBar({ title, children, action }: { title: ReactNode; child
 export function DiscardButton({ approved, pending, onDiscard, onNew }: { approved: boolean; pending: boolean; onDiscard: () => void; onNew: () => void }) {
   return approved ? (
     <button type="button" className="button button--ghost" onClick={onNew}>
-      <IconAdd size={14} /> Novo envio
+      <IconAdd size={14} /> {t('New upload', 'Novo envio')}
     </button>
   ) : (
     <button type="button" className="button button--ghost" disabled={pending} onClick={onDiscard}>
-      <IconTrash size={14} /> Descartar envio
+      <IconTrash size={14} /> {t('Discard upload', 'Descartar envio')}
     </button>
   )
 }
 
-const KIND: Record<string, string> = { tabela: 'Tabela', documento: 'Documento', tabela_nao_suportada: 'Tabela não suportada', outro: 'Outro' }
+const KIND: Record<string, string> = {
+  tabela: t('Table', 'Tabela'),
+  documento: t('Document', 'Documento'),
+  tabela_nao_suportada: t('Unsupported table', 'Tabela não suportada'),
+  outro: t('Other', 'Outro'),
+}
 
 export function ReceivedFiles({ files, title, defaultOpen }: { files: readonly StoredFile[]; title: string; defaultOpen?: boolean }) {
   return (
     <Expander title={`${title} (${files.length})`} icon={IconDocument} defaultOpen={defaultOpen}>
       <DataTable
         rows={files.map((f) => ({ caminho: f.caminho, tipo: KIND[f.tipo] ?? f.tipo, tamanho: f.tamanho, origem: f.origem }))}
-        filename="arquivos_do_envio"
-        config={{ caminho: 'Arquivo', tipo: 'Tipo', tamanho: 'Bytes', origem: { label: 'Enviado como', wide: true } }}
+        filename={t('upload_files', 'arquivos_do_envio')}
+        config={{ caminho: t('File', 'Arquivo'), tipo: t('Type', 'Tipo'), tamanho: 'Bytes', origem: { label: t('Uploaded as', 'Enviado como'), wide: true } }}
         maxHeight={260}
       />
     </Expander>
@@ -186,14 +197,14 @@ export function AnalysisCard({
       title={title}
       tag={estimate.modelo}
       foot={[
-        ...(estimate.abas === undefined ? [] : [{ label: 'Abas de tabela', value: estimate.abas }]),
-        { label: 'Documentos', value: estimate.documentos },
-        { label: 'Tokens de entrada', value: `≈ ${int(estimate.tokens_entrada_aprox)}` },
-        { label: 'Custo estimado', value: `≈ ${estimate.custo_zyt_aprox}`, unit: 'ZYT' },
+        ...(estimate.abas === undefined ? [] : [{ label: t('Table sheets', 'Abas de tabela'), value: estimate.abas }]),
+        { label: t('Documents', 'Documentos'), value: estimate.documentos },
+        { label: t('Input tokens', 'Tokens de entrada'), value: `≈ ${int(estimate.tokens_entrada_aprox)}` },
+        { label: t('Estimated cost', 'Custo estimado'), value: `≈ ${estimate.custo_zyt_aprox}`, unit: 'ZYT' },
       ]}
     >
       <Caption>{children}</Caption>
-      {estimate.documentos_cortados && <Callout tone="warning">Os documentos passam do limite de leitura e foram cortados: mande menos ou menores.</Callout>}
+      {estimate.documentos_cortados && <Callout tone="warning">{t('The documents exceed the reading limit and were cut: send fewer or smaller ones.', 'Os documentos passam do limite de leitura e foram cortados: mande menos ou menores.')}</Callout>}
       {error && <Callout tone="error">{error.message}</Callout>}
       {pending ? (
         <Loading label={waiting} />
@@ -209,7 +220,7 @@ export function AnalysisCard({
 export function Problems({ list, ok }: { list: readonly string[]; ok: ReactNode }) {
   return list.length ? (
     <Callout tone="error">
-      <strong>{list.length} ponto(s) impedem aprovar:</strong>
+      <strong>{t(`${list.length} issue(s) block approval:`, `${list.length} ponto(s) impedem aprovar:`)}</strong>
       <ul className="problems">
         {list.map((problem) => (
           <li key={problem}>{problem}</li>

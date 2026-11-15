@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { int } from '@/lib/format'
+import { locale, t } from '@/lib/i18n'
 import type { ScreenDigest } from './types'
 
 const plural = (n: number, one: string, many: string) => `${int(n)} ${n === 1 ? one : many}`
@@ -7,26 +8,26 @@ const plural = (n: number, one: string, many: string) => `${int(n)} ${n === 1 ? 
 /** "7 blocos · 2 gráficos · 312 linhas · 4 filtros": o que segue junto com a pergunta. */
 export function digestText(d: ScreenDigest): string {
   const parts: string[] = []
-  if (d.blocos) parts.push(plural(d.blocos, 'bloco', 'blocos'))
-  if (d.graficos) parts.push(plural(d.graficos, 'gráfico', 'gráficos'))
-  if (d.linhas !== null) parts.push(plural(d.linhas, 'linha', 'linhas'))
-  parts.push(d.filtros ? plural(d.filtros, 'filtro', 'filtros') : 'sem filtros')
+  if (d.blocos) parts.push(plural(d.blocos, t('block', 'bloco'), t('blocks', 'blocos')))
+  if (d.graficos) parts.push(plural(d.graficos, t('chart', 'gráfico'), t('charts', 'gráficos')))
+  if (d.linhas !== null) parts.push(plural(d.linhas, t('row', 'linha'), t('rows', 'linhas')))
+  parts.push(d.filtros ? plural(d.filtros, t('filter', 'filtro'), t('filters', 'filtros')) : t('no filters', 'sem filtros'))
   return parts.join(' · ')
 }
 
-const oneDecimal = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const oneDecimal = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 export function seconds(ms: number): string {
   return `${oneDecimal.format(ms / 1000)} s`
 }
 
-const cost = new Intl.NumberFormat('pt-BR', { maximumSignificantDigits: 3 })
+const cost = new Intl.NumberFormat(locale, { maximumSignificantDigits: 3 })
 /** Custo em ZYT com três algarismos significativos (o recibo não precisa de mais). */
 export function zyt(value: number): string {
   return cost.format(value)
 }
 
 export function clock(at: number): string {
-  return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return new Date(at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 /** `flex_agrupar(por=desfecho)` → nome e argumentos separados; o sufixo " · erro" vira um aviso. */

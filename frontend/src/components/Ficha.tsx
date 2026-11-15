@@ -3,8 +3,10 @@
 import { type CSSProperties, useState } from 'react'
 import type { FichaItem, FichaLink, Investigation, Portal, Publication } from '@/api/types'
 import { IconClipboard, IconLink, IconTarget } from '@/icons'
+import { t } from '@/lib/i18n'
 import { period } from '@/lib/studies'
 import { Badge, type BadgeTone, Caption, Expander } from './ui'
+import { td } from '@/lib/i18n-data'
 
 const MAX_LINKS_SHOWN = 3
 const MAX_PUBLICATIONS = 10
@@ -20,9 +22,9 @@ const SITUATION_TONE: Record<string, BadgeTone> = {
   'sem dados': 'red',
 }
 const COLUMNS: { title: string; sections: string[] }[] = [
-  { title: 'Combustíveis e amostras', sections: ['combustivel', 'amostra'] },
-  { title: 'Condições de teste', sections: ['condicao'] },
-  { title: 'Medições e sensores', sections: ['medicao', 'sensor'] },
+  { title: t('Fuels and samples', 'Combustíveis e amostras'), sections: ['combustivel', 'amostra'] },
+  { title: t('Test conditions', 'Condições de teste'), sections: ['condicao'] },
+  { title: t('Measurements and sensors', 'Medições e sensores'), sections: ['medicao', 'sensor'] },
 ]
 const NOT_A_UNIT = ['não informada', 'a conferir']
 const WRITTEN = ['documento', 'divergente']
@@ -32,7 +34,7 @@ function value(item: FichaItem): string {
   if (!item.valores) return '—'
   if (!item.unidade || item.minimo === null) return item.valores
   // "não informada", "a conferir": não é unidade
-  return NOT_A_UNIT.includes(item.unidade) ? `${item.valores} (unidade ${item.unidade})` : `${item.valores} ${item.unidade}`
+  return NOT_A_UNIT.includes(item.unidade) ? t(`${item.valores} (unit ${td(item.unidade)})`, `${item.valores} (unidade ${item.unidade})`) : `${item.valores} ${td(item.unidade)}`
 }
 
 function Item({ item, i }: { item: FichaItem; i: number }) {
@@ -40,12 +42,12 @@ function Item({ item, i }: { item: FichaItem; i: number }) {
   return (
     <li className="ficha__item" style={{ '--i': i } as CSSProperties}>
       <span className="ficha__name">
-        {item.rotulo}
-        <Badge tone={SITUATION_TONE[item.situacao] ?? 'gray'}>{item.situacao}</Badge>
+        {td(item.rotulo)}
+        <Badge tone={SITUATION_TONE[item.situacao] ?? 'gray'}>{td(item.situacao)}</Badge>
       </span>
       <span className="ficha__value mono">{value(item)}</span>
       <span className="ficha__origin">
-        {origin}
+        {td(origin)}
         {item.nota && ` · ${item.nota}`}
       </span>
     </li>
@@ -60,7 +62,7 @@ function Summary({ label, names, tone }: { label: string; names: string[]; tone:
       <span className="meta-row">
         {names.map((name) => (
           <Badge key={name} tone={tone}>
-            {name}
+            {td(name)}
           </Badge>
         ))}
       </span>
@@ -74,22 +76,31 @@ function Links({ links }: { links: FichaLink[] }) {
   const rest = links.slice(MAX_LINKS_SHOWN)
   return (
     <div className="ficha__links">
-      <span className="label">Condições que não variaram de forma independente</span>
-      <Caption>Algum nível de uma só aparece com um nível da outra: uma diferença nesses testes não pode ser atribuída a uma delas sozinha.</Caption>
+      <span className="label">{t('Conditions that did not vary independently', 'Condições que não variaram de forma independente')}</span>
+      <Caption>
+        {t(
+          'Some level of one only appears with one level of the other: a difference in these tests cannot be attributed to either of them alone.',
+          'Algum nível de uma só aparece com um nível da outra: uma diferença nesses testes não pode ser atribuída a uma delas sozinha.',
+        )}
+      </Caption>
       <ul>
         {shown.map((link) => (
           <li key={`${link.variavel_a}×${link.variavel_b}`}>
             <IconLink size={15} />
             <span>
               <strong>
-                {link.variavel_a} × {link.variavel_b}
+                {td(link.variavel_a)} × {td(link.variavel_b)}
               </strong>
               : {link.exemplos.split('; ')[0]}
             </span>
           </li>
         ))}
       </ul>
-      {rest.length > 0 && <Caption>Também: {rest.map((l) => `${l.variavel_a} × ${l.variavel_b}`).join('; ')}. O assistente detalha qualquer um deles.</Caption>}
+      {rest.length > 0 && (
+        <Caption>
+          {t('Also', 'Também')}: {rest.map((l) => `${l.variavel_a} × ${l.variavel_b}`).join('; ')}. {t('The assistant can detail any of them.', 'O assistente detalha qualquer um deles.')}
+        </Caption>
+      )}
     </div>
   )
 }
@@ -102,34 +113,41 @@ export function FichaPanel({ inv }: { inv: Investigation }) {
   const written = sheet.filter((item) => WRITTEN.includes(item.situacao) && TESTED.includes(item.secao))
   const goals = sheet.filter((item) => item.secao === 'objetivo')
   return (
-    <div className="ficha" data-agent-target data-agent-kind="card" data-agent-label="Ficha do estudo">
+    <div className="ficha" data-agent-target data-agent-kind="card" data-agent-label={t('Study sheet', 'Ficha do estudo')}>
       <div className="ficha-strip">
-        <Summary label="Variou entre os testes" names={names('variou')} tone="orange" />
-        <Summary label="Igual em todos" names={names('fixo')} tone="gray" />
+        <Summary label={t('Varied across tests', 'Variou entre os testes')} names={names('variou')} tone="orange" />
+        <Summary label={t('Same in all', 'Igual em todos')} names={names('fixo')} tone="gray" />
         {written.length > 0 && (
           // o que o documento diz vem por extenso: são frases, não etiquetas
           <div className="ficha-strip__row">
-            <span className="label">Segundo os documentos</span>
+            <span className="label">{t('According to the documents', 'Segundo os documentos')}</span>
             <ul className="ficha-strip__written">
               {written.map((item, i) => (
                 <li key={`${item.rotulo}${i}`}>
-                  <strong>{item.rotulo}</strong> {item.valores}
+                  <strong>{td(item.rotulo)}</strong> {item.valores}
                 </li>
               ))}
             </ul>
           </div>
         )}
       </div>
-      <Expander title={`Ficha do estudo (${sheet.length} itens)`} icon={IconClipboard}>
+      <Expander title={t(`Study sheet (${sheet.length} items)`, `Ficha do estudo (${sheet.length} itens)`)} icon={IconClipboard}>
         {goals.map((goal) => (
           <div key={goal.valores} className="ficha__goal">
-            <span className="label">Objetivo (documento)</span>
+            <span className="label">{t('Objective (document)', 'Objetivo (documento)')}</span>
             <p>{goal.valores}</p>
             <span className="ficha__origin">{goal.evidencia}</span>
           </div>
         ))}
         <Caption>
-          Calculada dos dados carregados, sem IA; os itens marcados <em>documento</em> foram lidos dos documentos e aprovados na revisão. Abaixo de cada item, de onde ele saiu.
+          {t(
+            <>
+              Computed from the loaded data, without AI; the items marked <em>document</em> were read from the documents and approved in review. Below each item, where it came from.
+            </>,
+            <>
+              Calculada dos dados carregados, sem IA; os itens marcados <em>documento</em> foram lidos dos documentos e aprovados na revisão. Abaixo de cada item, de onde ele saiu.
+            </>,
+          )}
         </Caption>
         <div className="ficha__columns">
           {COLUMNS.map(({ title, sections }) => {
@@ -144,7 +162,7 @@ export function FichaPanel({ inv }: { inv: Investigation }) {
                     ))}
                   </ul>
                 ) : (
-                  <Caption>Nada registrado nos dados.</Caption>
+                  <Caption>{t('Nothing recorded in the data.', 'Nada registrado nos dados.')}</Caption>
                 )}
               </section>
             )
@@ -162,7 +180,7 @@ function Publications({ list }: { list: Publication[] }) {
   const shown = all ? list : list.slice(0, MAX_PUBLICATIONS)
   return (
     <div className="about__block">
-      <span className="label">Publicações ({list.length})</span>
+      <span className="label">{t(`Publications (${list.length})`, `Publicações (${list.length})`)}</span>
       <ul className="about__list">
         {shown.map((pub, i) => (
           <li key={`${pub.titulo}${i}`}>
@@ -178,7 +196,7 @@ function Publications({ list }: { list: Publication[] }) {
       </ul>
       {list.length > MAX_PUBLICATIONS && (
         <button type="button" className="link-button" onClick={() => setAll((v) => !v)}>
-          {all ? 'Mostrar só as primeiras' : `Mostrar as outras ${list.length - MAX_PUBLICATIONS}`}
+          {all ? t('Show only the first ones', 'Mostrar só as primeiras') : t(`Show the other ${list.length - MAX_PUBLICATIONS}`, `Mostrar as outras ${list.length - MAX_PUBLICATIONS}`)}
         </button>
       )}
     </div>
@@ -186,24 +204,24 @@ function Publications({ list }: { list: Publication[] }) {
 }
 
 const FACTS: [string, keyof Portal][] = [
-  ['Equipamento', 'equipamento'],
-  ['Plataforma', 'plataforma'],
-  ['Centro', 'centro_nasa'],
+  [t('Equipment', 'Equipamento'), 'equipamento'],
+  [t('Platform', 'Plataforma'), 'plataforma'],
+  [t('Center', 'Centro'), 'centro_nasa'],
 ]
 const TEXTS: [string, keyof Portal][] = [
-  ['Objetivo', 'objetivo'],
-  ['Hipótese', 'hipotese'],
-  ['Abordagem', 'abordagem'],
+  [t('Objective', 'Objetivo'), 'objetivo'],
+  [t('Hypothesis', 'Hipótese'), 'hipotese'],
+  [t('Approach', 'Abordagem'), 'abordagem'],
 ]
 
 /** Objetivo, hipótese, abordagem, equipamento e publicações, dos metadados do portal NASA PSI. */
 export function AboutPanel({ inv }: { inv: Investigation }) {
   const portal = inv.portal
   if (!portal) return null
-  const facts = [...FACTS.map(([label, key]) => [label, portal[key]] as const), ['Período', period(portal)] as const].filter(([, v]) => v)
+  const facts = [...FACTS.map(([label, key]) => [label, portal[key]] as const), [t('Period', 'Período'), period(portal)] as const].filter(([, v]) => v)
   return (
-    <Expander title="Objetivo, equipamento e publicações" icon={IconTarget}>
-      <Caption>Metadados do portal NASA PSI ({portal.arquivo_metadados}), no idioma original.</Caption>
+    <Expander title={t('Objective, equipment and publications', 'Objetivo, equipamento e publicações')} icon={IconTarget}>
+      <Caption>{t(`Metadata from the NASA PSI portal (${portal.arquivo_metadados}), in the original language.`, `Metadados do portal NASA PSI (${portal.arquivo_metadados}), no idioma original.`)}</Caption>
       {facts.length > 0 && (
         <dl className="about__facts">
           {facts.map(([label, text]) => (

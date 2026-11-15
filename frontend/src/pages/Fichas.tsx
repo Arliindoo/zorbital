@@ -11,7 +11,9 @@ import { Loading } from '@/components/Loading'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge, type BadgeTone, Callout, Caption, Code, Grid, Panel } from '@/components/ui'
 import { type Icon, IconCheck, IconClipboard, IconClose, IconCompare, IconInfo, IconMinus, IconQuestion, IconRuler, IconWarning } from '@/icons'
+import { t } from '@/lib/i18n'
 import { usePageState } from '@/lib/usePageState'
+import { td } from '@/lib/i18n-data'
 
 const MIN = 2
 const MAX = 4
@@ -27,14 +29,14 @@ const VERDICT: Record<string, { tone: BadgeTone; icon: Icon }> = {
 function PairCard({ pair, name, colors, span }: { pair: SheetPair; name: (id: string) => string; colors: Record<string, string>; span: number }) {
   const verdict = VERDICT[pair.veredito] ?? { tone: 'gray' as const, icon: IconQuestion }
   const parts: [string, string][] = [
-    ['Medem', pair.grandezas_comuns.join(', ').toLowerCase()],
-    ['Faixas em comum', pair.sobrepoe.join('; ')],
-    ['Sem sobreposição', pair.nao_sobrepoe.join('; ')],
-    ['Combustível em comum', pair.combustiveis_comuns.join(', ')],
+    [t('Both measure', 'Medem'), pair.grandezas_comuns.join(', ').toLowerCase()],
+    [t('Ranges in common', 'Faixas em comum'), pair.sobrepoe.join('; ')],
+    [t('No overlap', 'Sem sobreposição'), pair.nao_sobrepoe.join('; ')],
+    [t('Fuel in common', 'Combustível em comum'), pair.combustiveis_comuns.map(td).join(', ')],
   ]
   const shown = parts.filter(([, text]) => text)
   return (
-    <Panel span={span} spanMd={6} kind="card" label={`${pair.a} × ${pair.b}: ${pair.veredito}`}>
+    <Panel span={span} spanMd={6} kind="card" label={`${pair.a} × ${pair.b}: ${td(pair.veredito)}`}>
       <div className="pair">
         <p className="pair__names">
           <span>
@@ -48,7 +50,7 @@ function PairCard({ pair, name, colors, span }: { pair: SheetPair; name: (id: st
           </span>
         </p>
         <Badge tone={verdict.tone} icon={verdict.icon}>
-          {pair.veredito}
+          {td(pair.veredito)}
         </Badge>
         {shown.length ? (
           <dl className="pair__facts">
@@ -100,10 +102,10 @@ export default function Fichas() {
 
   useScreen({
     pagina: 'fichas',
-    titulo: 'Fichas lado a lado',
+    titulo: t('Study sheets side by side', 'Fichas lado a lado'),
     escopo: chosen.length ? chosen : null,
     filtros: { estudos: chosen },
-    graficos: (result?.faixas ?? []).map((band) => `Faixas de ${band.rotulo} por estudo`),
+    graficos: (result?.faixas ?? []).map((band) => t(`${td(band.rotulo)} ranges by study`, `Faixas de ${td(band.rotulo)} por estudo`)),
     dados: result?.tabela.rows ?? null,
     colunas: result?.tabela.columns.map((c) => c.name) ?? null,
     tabela_banco: 'ficha',
@@ -111,13 +113,11 @@ export default function Fichas() {
 
   return (
     <>
-      <SidebarFilters title={`Estudos (de ${MIN} a ${MAX})`}>
+      <SidebarFilters title={t(`Studies (${MIN} to ${MAX})`, `Estudos (de ${MIN} a ${MAX})`)}>
         <fieldset className="field">
           <legend className="field__label">
-            Comparar
-            <span>
-              {chosen.length} de {MAX}
-            </span>
+            {t('Compare', 'Comparar')}
+            <span>{t(`${chosen.length} of ${MAX}`, `${chosen.length} de ${MAX}`)}</span>
           </legend>
           <div className="checks">
             {data.estudos.map(({ id }) => {
@@ -134,26 +134,33 @@ export default function Fichas() {
         </fieldset>
       </SidebarFilters>
 
-      <PageHeader eyebrow={['Comparações', 'Calculado das fichas · sem IA']} title="Fichas lado a lado">
-        Antes de comparar resultados: o que os estudos testaram, em que faixas e o que mediram — tudo na mesma unidade.
+      <PageHeader eyebrow={[t('Comparisons', 'Comparações'), t('Computed from the study sheets · no AI', 'Calculado das fichas · sem IA')]} title={t('Study sheets side by side', 'Fichas lado a lado')}>
+        {t(
+          'Before comparing results: what the studies tested, over which ranges and what they measured — all in the same unit.',
+          'Antes de comparar resultados: o que os estudos testaram, em que faixas e o que mediram — tudo na mesma unidade.',
+        )}
       </PageHeader>
 
       {!data.disponivel ? (
         <Callout tone="error">
-          O banco não tem a ficha dos estudos. Rode a carga de novo: <Code>uv run spaceapps-build</Code>
+          {t('The database has no study sheets. Run the load again:', 'O banco não tem a ficha dos estudos. Rode a carga de novo:')} <Code>uv run spaceapps-build</Code>
         </Callout>
       ) : !ready ? (
-        <Callout icon={IconClipboard}>Escolha pelo menos dois estudos no painel de filtros.</Callout>
+        <Callout icon={IconClipboard}>{t('Choose at least two studies in the filters panel.', 'Escolha pelo menos dois estudos no painel de filtros.')}</Callout>
       ) : comparison.isError ? (
         <Callout tone="error">{comparison.error.message}</Callout>
       ) : !result ? (
-        <Loading label="Comparando as fichas…" />
+        <Loading label={t('Comparing the study sheets…', 'Comparando as fichas…')} />
       ) : (
         <>
           <section className="block">
             <header className="block__head">
-              <h2>O que dá para comparar</h2>
-              {windows.length > 0 && chosen.length > 2 && <Caption>Faixa comum a todos os escolhidos: {windows.map(([k, v]) => `${k} ${v}`).join('; ')}</Caption>}
+              <h2>{t('What can be compared', 'O que dá para comparar')}</h2>
+              {windows.length > 0 && chosen.length > 2 && (
+                <Caption>
+                  {t('Range common to all chosen studies:', 'Faixa comum a todos os escolhidos:')} {windows.map(([k, v]) => `${td(k)} ${td(v)}`).join('; ')}
+                </Caption>
+              )}
             </header>
             <Grid>
               {result.pares.map((pair) => (
@@ -164,18 +171,21 @@ export default function Fichas() {
 
           <section className="block">
             <header className="block__head">
-              <h2>Faixas das condições</h2>
+              <h2>{t('Condition ranges', 'Faixas das condições')}</h2>
               <Caption>
-                Cada linha vai do menor ao maior valor testado no estudo; um ponto só é valor fixo. A faixa sombreada é a comum a todos. Faixa comum não quer dizer que a mesma combinação foi testada.
+                {t(
+                  'Each line runs from the lowest to the highest value tested in the study; a single point is a fixed value. The shaded band is the range common to all. A common range does not mean the same combination was tested.',
+                  'Cada linha vai do menor ao maior valor testado no estudo; um ponto só é valor fixo. A faixa sombreada é a comum a todos. Faixa comum não quer dizer que a mesma combinação foi testada.',
+                )}
               </Caption>
             </header>
             {result.faixas.length ? (
               <Grid>
                 {result.faixas.map((band) => (
-                  <Panel key={band.atributo} span={6} spanMd={12} kind="chart" icon={IconRuler} title={band.rotulo} tag={band.unidade || 'sem unidade'} label={`Faixas de ${band.rotulo} por estudo`}>
+                  <Panel key={band.atributo} span={6} spanMd={12} kind="chart" icon={IconRuler} title={td(band.rotulo)} tag={td(band.unidade) || t('no unit', 'sem unidade')} label={t(`${td(band.rotulo)} ranges by study`, `Faixas de ${td(band.rotulo)} por estudo`)}>
                     <Ranges
-                      label={`Faixas de ${band.rotulo} por estudo`}
-                      xLabel={band.unidade ? `${band.rotulo} (${band.unidade})` : band.rotulo}
+                      label={t(`${td(band.rotulo)} ranges by study`, `Faixas de ${td(band.rotulo)} por estudo`)}
+                      xLabel={band.unidade ? `${td(band.rotulo)} (${td(band.unidade)})` : td(band.rotulo)}
                       window={band.janela}
                       rows={band.estudos.filter((s) => s.id in colors).map((s) => ({ label: short(s.id), color: colors[s.id]!, lo: s.minimo, hi: s.maximo, text: s.texto }))}
                     />
@@ -183,12 +193,12 @@ export default function Fichas() {
                 ))}
               </Grid>
             ) : (
-              <Caption>Nenhuma condição numérica aparece em mais de um dos estudos escolhidos.</Caption>
+              <Caption>{t('No numeric condition appears in more than one of the chosen studies.', 'Nenhuma condição numérica aparece em mais de um dos estudos escolhidos.')}</Caption>
             )}
           </section>
 
-          <Panel kind="table" icon={IconCompare} title="Ficha comparada" tag={`${result.tabela.rows.length} atributos`} caption="Uma linha por atributo. “—”: o estudo não registra esse atributo nos dados carregados." flush>
-            <DataTable rows={result.tabela.rows} columns={result.tabela.columns} filename="fichas_lado_a_lado" config={{ atributo: 'Atributo', ...Object.fromEntries(chosen.map((id) => [id, { label: short(id), wide: true }])) }} />
+          <Panel kind="table" icon={IconCompare} title={t('Compared study sheet', 'Ficha comparada')} tag={t(`${result.tabela.rows.length} attributes`, `${result.tabela.rows.length} atributos`)} caption={t('One row per attribute. “—”: the study does not record this attribute in the loaded data.', 'Uma linha por atributo. “—”: o estudo não registra esse atributo nos dados carregados.')} flush>
+            <DataTable rows={result.tabela.rows} columns={result.tabela.columns} filename="fichas_lado_a_lado" config={{ atributo: t('Attribute', 'Atributo'), ...Object.fromEntries(chosen.map((id) => [id, { label: short(id), wide: true }])) }} />
           </Panel>
         </>
       )}

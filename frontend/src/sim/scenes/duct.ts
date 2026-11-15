@@ -7,6 +7,7 @@
  * avanço da queima sobre a amostra. O duto tem ≈ 7,6 × 7,6 × 17 cm.
  */
 
+import { t } from '@/lib/i18n'
 import type { Lines, Renderer } from '../engine/renderer'
 import { clamp, compose, lerp, type Mat, rotY, scaling, translate, type V3 } from '../engine/vec'
 import { type Mesh, Wire } from '../engine/wire'
@@ -96,9 +97,9 @@ export function ductScene(r: Renderer): Scene<DuctRun> {
   const fills = { sheet: r.fills([built.sheet]), slab: r.fills([built.slab]), weave: r.fills([built.weave]) }
 
   const hotspots: Hotspot[] = [
-    { id: 'duto', at: [-HX, HY - 20, HX], label: 'Duto de escoamento', sub: '≈ 7,6 × 7,6 × 17 cm · régua de 1 cm', tag: 'duto', dx: -40, dy: -40, minor: true },
-    { id: 'ventilador', at: [0, -HY - 28, 31], label: 'Ventilador', sub: 'o gás entra por baixo; a fonte dá a leitura do painel', tag: 'ventilador', dx: -50, dy: 34, minor: true },
-    { id: 'saida', at: [0, HY + 30, 27], label: 'Saída', sub: 'tela e exaustão', tag: 'saida', dx: 40, dy: -30, minor: true },
+    { id: 'duto', at: [-HX, HY - 20, HX], label: t('Flow duct', 'Duto de escoamento'), sub: t('≈ 7.6 × 7.6 × 17 cm · 1 cm ruler', '≈ 7,6 × 7,6 × 17 cm · régua de 1 cm'), tag: 'duto', dx: -40, dy: -40, minor: true },
+    { id: 'ventilador', at: [0, -HY - 28, 31], label: t('Fan', 'Ventilador'), sub: t('gas enters from below; the source gives the panel reading', 'o gás entra por baixo; a fonte dá a leitura do painel'), tag: 'ventilador', dx: -50, dy: 34, minor: true },
+    { id: 'saida', at: [0, HY + 30, 27], label: t('Outlet', 'Saída'), sub: t('screen and exhaust', 'tela e exaustão'), tag: 'saida', dx: 40, dy: -30, minor: true },
   ]
   const dims: Dim[] = []
 

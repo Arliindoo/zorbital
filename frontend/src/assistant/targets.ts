@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n'
+
 /**
  * A página como palco: os blocos marcados com `data-agent-target` (gráficos, métricas, tabelas…) são o que
  * o agente "lê". Aqui eles são achados no DOM e medidos; quem desenha é o Overlay.
@@ -19,12 +21,12 @@ export interface TargetEl {
 const KIND_WEIGHT: Record<string, number> = { chart: 5, flow: 4, table: 3, metric: 2, card: 1 }
 /** Nome de cada tipo de bloco, como aparece na etiqueta do palco e nos ramos da linha do tempo. */
 export const KIND_LABEL: Record<string, string> = {
-  chart: 'gráfico',
-  metric: 'métrica',
-  table: 'tabela',
-  flow: 'fluxo',
-  card: 'bloco',
-  screen: 'tela',
+  chart: t('chart', 'gráfico'),
+  metric: t('metric', 'métrica'),
+  table: t('table', 'tabela'),
+  flow: t('flow', 'fluxo'),
+  card: t('block', 'bloco'),
+  screen: t('screen', 'tela'),
 }
 export const MAX_TARGETS = 8
 
@@ -62,7 +64,7 @@ export function collectTargets(): TargetEl[] {
     .filter((el) => !el.closest('[data-agent-ui]') && !el.querySelector('[data-agent-target]'))
     .map((el, i) => {
       const name = el.dataset.agentTarget
-      const label = el.dataset.agentLabel?.trim() || el.getAttribute('aria-label')?.trim() || name || 'Bloco'
+      const label = el.dataset.agentLabel?.trim() || el.getAttribute('aria-label')?.trim() || name || t('Block', 'Bloco')
       return { el, id: `${name || 'bloco'}#${i}`, kind: el.dataset.agentKind || 'card', label }
     })
 }

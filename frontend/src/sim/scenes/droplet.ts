@@ -11,6 +11,7 @@ import type { Lines, Renderer } from '../engine/renderer'
 import { clamp, compose, ease, lerp, type Mat, ramp, rotY, rotZ, scaling, translate, type V3 } from '../engine/vec'
 import { type Mesh, type Tone, Wire } from '../engine/wire'
 import { fixed } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { type DropletPlan, stateAt } from '../replay/droplet'
 import type { Dim, Hotspot, Scene } from '../types'
 
@@ -113,9 +114,9 @@ export function dropletScene(r: Renderer): Scene<DropletRun> {
   const ringEnd = { hot: r.lines([unitRing(w, 'hot', true)]), cool: r.lines([unitRing(w, 'cool', true)]) }
 
   const hotspots: Hotspot[] = [
-    { id: 'reticulo', at: [-FRAME, -FRAME, 0], label: 'Retículo', sub: '1 mm por marca · anéis a 5, 10 e 15 mm', tag: 'reticulo', dx: 24, dy: 36, minor: true },
-    { id: 'agulha', at: [NEEDLE_REST + 4, 0, 0], label: 'Agulhas', sub: 'formam a gota e recuam', dx: 22, dy: -48, minor: true },
-    { id: 'camara', at: [-138, 138, 0], label: 'Câmara de combustão', sub: 'parede e janelas de observação', tag: 'camara', dx: 30, dy: 30, minor: true },
+    { id: 'reticulo', at: [-FRAME, -FRAME, 0], label: t('Reticle', 'Retículo'), sub: t('1 mm per tick · rings at 5, 10 and 15 mm', '1 mm por marca · anéis a 5, 10 e 15 mm'), tag: 'reticulo', dx: 24, dy: 36, minor: true },
+    { id: 'agulha', at: [NEEDLE_REST + 4, 0, 0], label: t('Needles', 'Agulhas'), sub: t('form the droplet and retract', 'formam a gota e recuam'), dx: 22, dy: -48, minor: true },
+    { id: 'camara', at: [-138, 138, 0], label: t('Combustion chamber', 'Câmara de combustão'), sub: t('wall and viewing windows', 'parede e janelas de observação'), tag: 'camara', dx: 30, dy: 30, minor: true },
   ]
 
   // a ruptura e o fim são animados pelo tempo de parede, depois que o relógio do ensaio para

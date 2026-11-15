@@ -10,6 +10,7 @@
  *  - a resolução interna se ajusta ao tempo de quadro (ver `Director`).
  */
 
+import { t } from '@/lib/i18n'
 import { LAND_H, LAND_W, landMask } from './land'
 import { FILL_FS, FILL_VS, LINE_FS, LINE_VS, PARTICLE_FS, PARTICLE_VS, PLANET_FS, PLANET_VS, SPRITE_FS, SPRITE_VS, STAR_FS, STAR_VS } from './shaders'
 import { apply, cross, IDENTITY, type Mat, matMul, rng, sub, turn, unit, type V3 } from './vec'
@@ -190,7 +191,7 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false })
-    if (!gl) throw new Error('WebGL2 indisponível')
+    if (!gl) throw new Error(t('WebGL2 unavailable', 'WebGL2 indisponível'))
     this.gl = gl
     this.canvas = canvas
     this.palette = this.readPalette()
@@ -249,7 +250,7 @@ export class Renderer {
     gl.attachShader(p, v)
     gl.attachShader(p, f)
     gl.linkProgram(p)
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS) && !gl.isContextLost()) throw new Error(`Programa: ${gl.getProgramInfoLog(p) ?? ''}`)
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS) && !gl.isContextLost()) throw new Error(t(`Program: ${gl.getProgramInfoLog(p) ?? ''}`, `Programa: ${gl.getProgramInfoLog(p) ?? ''}`))
     gl.deleteShader(v)
     gl.deleteShader(f)
     const u: Program['u'] = {}

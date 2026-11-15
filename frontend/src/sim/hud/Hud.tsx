@@ -3,6 +3,7 @@
 import { type CSSProperties, memo, type ReactNode } from 'react'
 import { IconArrowRight, IconChevronRight, IconInfo, IconPause, IconPlay, IconRepeat, IconRestart, IconSkipNext, IconSkipPrevious, IconWarning } from '@/icons'
 import { fixed } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import type { Hotspot, Readout, SimRun, SimStudy, StageDef } from '../types'
 import { MiniChart } from './MiniChart'
 import { type TickStore, useTick } from './tick'
@@ -39,11 +40,11 @@ export const StageTrail = memo(function StageTrail<S>({
   onGo: (id: string) => void
 }) {
   return (
-    <nav className="sim-trail" aria-label="Cenas da simulação">
-      <span className="sim-gravity" data-g={study.gravity === 'µg' ? 'micro' : 'ground'} title={study.gravity === 'µg' ? 'Microgravidade: em queda livre, sem empuxo' : 'Gravidade normal, em laboratório no solo'}>
+    <nav className="sim-trail" aria-label={tr('Simulation scenes', 'Cenas da simulação')}>
+      <span className="sim-gravity" data-g={study.gravity === 'µg' ? 'micro' : 'ground'} title={study.gravity === 'µg' ? tr('Microgravity: in free fall, no buoyancy', 'Microgravidade: em queda livre, sem empuxo') : tr('Normal gravity, in a ground laboratory', 'Gravidade normal, em laboratório no solo')}>
         <i>{study.gravity}</i>
         <span>
-          <b>{study.gravity === 'µg' ? 'Microgravidade' : 'Gravidade de solo'}</b>
+          <b>{study.gravity === 'µg' ? tr('Microgravity', 'Microgravidade') : tr('Ground gravity', 'Gravidade de solo')}</b>
           <small>{study.place}</small>
         </span>
       </span>
@@ -82,23 +83,23 @@ export const RunCard = memo(function RunCard<S>({
   if (!run) {
     return (
       <section className="sim-card sim-card--run">
-        <p className="label">Nenhum {noun[0]} no filtro</p>
-        <p className="sim-card__text">Abra os filtros do painel e amplie a seleção.</p>
+        <p className="label">{tr(`No ${noun[0]} in the filter`, `Nenhum ${noun[0]} no filtro`)}</p>
+        <p className="sim-card__text">{tr('Open the dashboard filters and widen the selection.', 'Abra os filtros do painel e amplie a seleção.')}</p>
       </section>
     )
   }
   const sum = run.mix?.reduce((s, m) => s + m.value, 0) ?? 0
   return (
-    <section className="sim-card sim-card--run" aria-label={`${noun[0]} selecionado`}>
+    <section className="sim-card sim-card--run" aria-label={tr(`Selected ${noun[0]}`, `${noun[0]} selecionado`)}>
       <header className="sim-card__head">
         <p className="label">
-          {noun[0]} · {index + 1} de {total}
+          {noun[0]} · {index + 1} {tr('of', 'de')} {total}
         </p>
         <div className="sim-steps">
-          <button type="button" className="sim-icon" aria-label={`${noun[0]} anterior`} disabled={total < 2} onClick={() => onStep(-1)}>
+          <button type="button" className="sim-icon" aria-label={tr(`Previous ${noun[0]}`, `${noun[0]} anterior`)} disabled={total < 2} onClick={() => onStep(-1)}>
             <IconSkipPrevious size={15} />
           </button>
-          <button type="button" className="sim-icon" aria-label={`Próximo ${noun[0]}`} disabled={total < 2} onClick={() => onStep(1)}>
+          <button type="button" className="sim-icon" aria-label={tr(`Next ${noun[0]}`, `Próximo ${noun[0]}`)} disabled={total < 2} onClick={() => onStep(1)}>
             <IconSkipNext size={15} />
           </button>
         </div>
@@ -110,7 +111,7 @@ export const RunCard = memo(function RunCard<S>({
         {run.toneLabel}
       </p>
       {run.mix && sum > 0 && (
-        <div className="sim-mix" role="img" aria-label={`Atmosfera: ${run.mix.filter((m) => m.value > 0).map((m) => `${m.label} ${fixed(m.value * 100, 0)} %`).join(', ')}`}>
+        <div className="sim-mix" role="img" aria-label={`${tr('Atmosphere', 'Atmosfera')}: ${run.mix.filter((m) => m.value > 0).map((m) => `${m.label} ${fixed(m.value * 100, 0)} %`).join(', ')}`}>
           <div className="sim-mix__bar">
             {run.mix
               .filter((m) => m.value > 0)
@@ -139,14 +140,14 @@ export const RunCard = memo(function RunCard<S>({
 export function SceneCard<S>({ stage, run, next, onGo }: { stage: StageDef<S>; run: SimRun<S> | null; next: StageDef<S> | null; onGo: (id: string) => void }) {
   const facts = stage.facts(run)
   return (
-    <section className="sim-card sim-card--scene" aria-label="Sobre esta cena">
+    <section className="sim-card sim-card--scene" aria-label={tr('About this scene', 'Sobre esta cena')}>
       <p className="label">{stage.scale}</p>
       <h3>{stage.title}</h3>
       <p className="sim-card__text">{stage.blurb}</p>
       {facts.length > 0 && <Readouts items={facts} />}
       {next && (
         <button type="button" className="sim-cta" onClick={() => onGo(next.id)}>
-          <span>Aproximar: {next.label}</span>
+          <span>{tr('Zoom in', 'Aproximar')}: {next.label}</span>
           <IconArrowRight size={16} />
         </button>
       )}
@@ -162,17 +163,22 @@ export function Telemetry<S>({ run, store, onNext }: { run: SimRun<S> | null; st
   if (!run) return null
   if (!run.playable) {
     return (
-      <section className="sim-card sim-card--live" aria-label="Telemetria">
+      <section className="sim-card sim-card--live" aria-label={tr('Telemetry', 'Telemetria')}>
         <p className="sim-phase" data-tone="faint">
           <i />
-          Sem reconstrução
+          {tr('No reconstruction', 'Sem reconstrução')}
         </p>
         <p className="sim-card__text">
           <IconWarning size={15} /> {run.blocked}
         </p>
-        <p className="sim-card__text sim-card__text--dim">Nada foi inventado para preencher a lacuna: este ensaio aparece na faixa, mas não é reproduzido.</p>
+        <p className="sim-card__text sim-card__text--dim">
+          {tr(
+            'Nothing was made up to fill the gap: this test appears in the strip, but is not replayed.',
+            'Nada foi inventado para preencher a lacuna: este ensaio aparece na faixa, mas não é reproduzido.',
+          )}
+        </p>
         <button type="button" className="sim-cta" onClick={onNext}>
-          <span>Próximo ensaio reproduzível</span>
+          <span>{tr('Next replayable test', 'Próximo ensaio reproduzível')}</span>
           <IconArrowRight size={16} />
         </button>
       </section>
@@ -180,7 +186,7 @@ export function Telemetry<S>({ run, store, onNext }: { run: SimRun<S> | null; st
   }
   const phase = run.phaseAt(t)
   return (
-    <section className="sim-card sim-card--live" aria-label="Telemetria">
+    <section className="sim-card sim-card--live" aria-label={tr('Telemetry', 'Telemetria')}>
       <p className="sim-phase" data-tone={phase.tone} key={phase.label}>
         <i />
         {phase.label}
@@ -236,13 +242,13 @@ export function Transport<S>({
   return (
     <div className="sim-transport" data-live={live}>
       {live ? (
-        <button type="button" className="sim-play" aria-label={playing ? 'Pausar' : ended ? 'Reproduzir de novo' : 'Reproduzir'} disabled={!ready} onClick={onToggle}>
+        <button type="button" className="sim-play" aria-label={playing ? tr('Pause', 'Pausar') : ended ? tr('Play again', 'Reproduzir de novo') : tr('Play', 'Reproduzir')} disabled={!ready} onClick={onToggle}>
           {playing ? <IconPause size={18} /> : ended ? <IconRestart size={18} /> : <IconPlay size={18} />}
         </button>
       ) : (
         <button type="button" className="sim-play sim-play--enter" disabled={!ready} onClick={onEnter}>
           <IconPlay size={16} />
-          <span>Ver o ensaio</span>
+          <span>{tr('View the test', 'Ver o ensaio')}</span>
         </button>
       )}
       <div className="sim-scrub" data-off={!live || !ready || undefined}>
@@ -261,7 +267,7 @@ export function Transport<S>({
         </div>
         <input
           type="range"
-          aria-label="Posição na reprodução"
+          aria-label={tr('Playback position', 'Posição na reprodução')}
           min={start}
           max={end}
           step={span / 1000}
@@ -276,14 +282,14 @@ export function Transport<S>({
           / {run && ready ? fixed(end, 1) : '—'} {run?.clock.unit}
         </span>
       </p>
-      <div className="sim-speed" role="radiogroup" aria-label="Ritmo da reprodução">
+      <div className="sim-speed" role="radiogroup" aria-label={tr('Playback speed', 'Ritmo da reprodução')}>
         {SPEEDS.map((s) => (
           <button key={s} type="button" role="radio" aria-checked={s === speed} onClick={() => onSpeed(s)}>
             {s === 0.5 ? '½' : s}×
           </button>
         ))}
       </div>
-      <button type="button" className="sim-icon" aria-pressed={sequence} title="Sequência: ao terminar, passa para o próximo ensaio" aria-label="Reproduzir em sequência" onClick={() => onSequence(!sequence)}>
+      <button type="button" className="sim-icon" aria-pressed={sequence} title={tr('Sequence: when it ends, moves on to the next test', 'Sequência: ao terminar, passa para o próximo ensaio')} aria-label={tr('Play in sequence', 'Reproduzir em sequência')} onClick={() => onSequence(!sequence)}>
         <IconRepeat size={16} />
       </button>
     </div>
@@ -307,7 +313,7 @@ export const RunStrip = memo(function RunStrip<S>({
   const legend = [...new Map(runs.map((r) => [r.toneLabel, r.tone])).entries()]
   return (
     <div className="sim-strip">
-      <div className="sim-strip__bars" role="listbox" aria-label={`${noun[1]} no filtro`} title={measure}>
+      <div className="sim-strip__bars" role="listbox" aria-label={tr(`${noun[1]} in the filter`, `${noun[1]} no filtro`)} title={measure}>
         {runs.map((run) => (
           <button
             key={run.id}
@@ -389,12 +395,12 @@ export function HotspotLabel({
 /** O que é dado e o que é ilustração nesta reprodução. */
 export function Notes({ notes, blurb, onClose }: { notes: readonly string[]; blurb: string; onClose: () => void }) {
   return (
-    <aside className="sim-notes" role="dialog" aria-label="O que é dado e o que é ilustração">
+    <aside className="sim-notes" role="dialog" aria-label={tr('What is data and what is illustration', 'O que é dado e o que é ilustração')}>
       <header>
         <p className="label">
-          <IconInfo size={14} /> Dado × ilustração
+          <IconInfo size={14} /> {tr('Data × illustration', 'Dado × ilustração')}
         </p>
-        <button type="button" className="sim-icon" aria-label="Fechar" onClick={onClose}>
+        <button type="button" className="sim-icon" aria-label={tr('Close', 'Fechar')} onClick={onClose}>
           ×
         </button>
       </header>
@@ -405,7 +411,8 @@ export function Notes({ notes, blurb, onClose }: { notes: readonly string[]; blu
         ))}
       </ul>
       <p className="sim-notes__key">
-        <span data-soft>0,00</span> valores sublinhados em tracejado são reconstruídos ou estimados; os demais vêm da fonte.
+        <span data-soft>{tr('0.00', '0,00')}</span>{' '}
+        {tr('values with a dashed underline are reconstructed or estimated; the rest come from the source.', 'valores sublinhados em tracejado são reconstruídos ou estimados; os demais vêm da fonte.')}
       </p>
     </aside>
   )

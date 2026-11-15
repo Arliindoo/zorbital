@@ -36,9 +36,9 @@ describe('filtros e rótulos', () => {
   })
 
   it('escreve de onde saiu a interpretação', () => {
-    expect(evidenceLabel({ tipo: 'documento', arquivo: 'srd.pdf', pagina: 4, trecho: 'quiescent air' })).toBe('documento · srd.pdf p. 4 · “quiescent air”')
-    expect(evidenceLabel({ tipo: 'cabecalho' })).toBe('cabeçalho da tabela')
-    expect(evidenceLabel(null)).toBe('inferido pela IA')
+    expect(evidenceLabel({ tipo: 'documento', arquivo: 'srd.pdf', pagina: 4, trecho: 'quiescent air' })).toBe('document · srd.pdf p. 4 · “quiescent air”')
+    expect(evidenceLabel({ tipo: 'cabecalho' })).toBe('table header')
+    expect(evidenceLabel(null)).toBe('inferred by the AI')
   })
 
   it('resume período, faixa e pergunta longa', () => {

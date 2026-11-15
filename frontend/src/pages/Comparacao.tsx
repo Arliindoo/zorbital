@@ -16,6 +16,7 @@ import { Callout, Caption, Expander, Grid, Metric, Metrics, Section } from '@/co
 import { IconFlame, IconInfo, IconLink, IconSnowflake } from '@/icons'
 import { compareCells, extent, groupBy, inRangeOrNull, median, numbers, type Range, round, uniqueSorted } from '@/lib/data'
 import { flamesLong } from '@/lib/flames'
+import { t } from '@/lib/i18n'
 import { cautions } from '@/lib/text'
 import { usePageState } from '@/lib/usePageState'
 
@@ -112,16 +113,29 @@ export default function Comparacao() {
   const byPressure = links.rows.filter((r) => r.tabela_psi117 === 'extinção por pressão')
   const distinct = (values: unknown[]) => new Set(values.filter((v) => v !== null)).size
   const psiPressures = new Set(psi.rows.map((r) => r.pressao_atm))
+  const oneAtmFromCfi = distinct(oneAtm.filter((r) => r.cfi_teste_id !== null).map((r) => r.d0_mm))
+  const oneAtmDroplets = distinct(oneAtm.map((r) => r.d0_mm))
+  const byPressureFromCfi = byPressure.filter((r) => r.cfi_teste_id !== null).length
   const shared = distinct(long.filter((r) => r.dext_mm !== null && psiPressures.has(r.pressao_atm as number)).map((r) => r.pressao_atm))
 
   useScreen({
     pagina: 'comparacao',
-    titulo: 'Comparação PSI-117 × CFI',
+    titulo: t('PSI-117 × CFI comparison', 'Comparação PSI-117 × CFI'),
     escopo: ['PSI-117', 'PSI-39'],
-    filtros: { 'diluente do CFI': diluent, 'D0 do CFI (mm)': d0, 'só análise concluída': complete },
+    filtros: {
+      [t('CFI diluent', 'diluente do CFI')]: diluent,
+      [t('CFI D0 (mm)', 'D0 do CFI (mm)')]: d0,
+      [t('completed analysis only', 'só análise concluída')]: complete,
+    },
     graficos: [
-      'Dois painéis (chama quente, chama fria): pressão (x) × diâmetro de extinção (y). CFI: ensaios em pontos azuis e mediana em quadrados azuis; PSI-117: medição em losangos laranja, modelo tracejado, faixa de incerteza clara (só chama fria).',
-      'Tabela lado a lado por pressão: PSI-117 medido, modelo e faixa; CFI mediana, mínimo, máximo.',
+      t(
+        'Two panels (hot flame, cool flame): pressure (x) × extinction diameter (y). CFI: tests as blue points and median as blue squares; PSI-117: measurement as orange diamonds, dashed model, light uncertainty band (cool flame only).',
+        'Dois painéis (chama quente, chama fria): pressão (x) × diâmetro de extinção (y). CFI: ensaios em pontos azuis e mediana em quadrados azuis; PSI-117: medição em losangos laranja, modelo tracejado, faixa de incerteza clara (só chama fria).',
+      ),
+      t(
+        'Side-by-side table by pressure: PSI-117 measured, model and range; CFI median, minimum, maximum.',
+        'Tabela lado a lado por pressão: PSI-117 medido, modelo e faixa; CFI mediana, mínimo, máximo.',
+      ),
     ],
     dados: table,
     tabela_banco: 'v_extincao_c12_comparacao',
@@ -129,45 +143,67 @@ export default function Comparacao() {
 
   return (
     <>
-      <PageHeader eyebrow={['Comparação', 'n-dodecano', 'Solo × ISS']} title="PSI-117 × CFI">
-        Diâmetro de extinção de gotas de n-dodecano por pressão: modelo e medições em solo ao lado dos ensaios na ISS.
+      <PageHeader eyebrow={t(['Comparison', 'n-dodecane', 'Ground × ISS'], ['Comparação', 'n-dodecano', 'Solo × ISS'])} title="PSI-117 × CFI">
+        {t(
+          'Extinction diameter of n-dodecane droplets by pressure: ground model and measurements next to the tests on the ISS.',
+          'Diâmetro de extinção de gotas de n-dodecano por pressão: modelo e medições em solo ao lado dos ensaios na ISS.',
+        )}
       </PageHeader>
       <Callout tone="warning" icon={IconLink}>
-        <strong>Não é uma validação independente.</strong> As medições do PSI-117 vêm de ensaios de voo no aparelho do FLEX,
-        o mesmo do CFI: na tabela de 1 atm, {distinct(oneAtm.filter((r) => r.cfi_teste_id !== null).map((r) => r.d0_mm))} de{' '}
-        {distinct(oneAtm.map((r) => r.d0_mm))} gotas medidas são ensaios do CFI. Na tabela por pressão,{' '}
-        {byPressure.filter((r) => r.cfi_teste_id !== null).length} de {byPressure.length} pontos coincidem com um ensaio
-        individual; os outros podem ser médias ou outro tratamento. O que esta página mostra é{' '}
-        <strong>quanto o modelo do PSI-117 se afasta do conjunto completo de voos</strong>, não uma segunda opinião
-        experimental.
+        {t(
+          <>
+            <strong>This is not an independent validation.</strong> The PSI-117 measurements come from flight tests in the
+            FLEX apparatus, the same one used by CFI: in the 1 atm table, {oneAtmFromCfi} of {oneAtmDroplets} measured
+            droplets are CFI tests. In the by-pressure table, {byPressureFromCfi} of {byPressure.length} points match an
+            individual test; the others may be averages or some other processing. What this page shows is{' '}
+            <strong>how far the PSI-117 model is from the full set of flights</strong>, not a second experimental opinion.
+          </>,
+          <>
+            <strong>Não é uma validação independente.</strong> As medições do PSI-117 vêm de ensaios de voo no aparelho do
+            FLEX, o mesmo do CFI: na tabela de 1 atm, {oneAtmFromCfi} de {oneAtmDroplets} gotas medidas são ensaios do CFI.
+            Na tabela por pressão, {byPressureFromCfi} de {byPressure.length} pontos coincidem com um ensaio individual; os
+            outros podem ser médias ou outro tratamento. O que esta página mostra é{' '}
+            <strong>quanto o modelo do PSI-117 se afasta do conjunto completo de voos</strong>, não uma segunda opinião
+            experimental.
+          </>,
+        )}
       </Callout>
       {condicoes && (
         <Caption>
-          Condições declaradas pelo PSI-117 para esta tabela: D0 ≈ {String(condicoes.d0_mm_texto)} mm,{' '}
-          {String(condicoes.pressao_atm_texto)} atm, XO2 = {String(condicoes.xo2_texto)}, XN2 = {String(condicoes.xn2_texto)}.
-          Os filtros começam nessas condições.
+          {t(
+            <>
+              Conditions stated by PSI-117 for this table: D0 ≈ {String(condicoes.d0_mm_texto)} mm,{' '}
+              {String(condicoes.pressao_atm_texto)} atm, XO2 = {String(condicoes.xo2_texto)}, XN2 = {String(condicoes.xn2_texto)}.
+              The filters start at these conditions.
+            </>,
+            <>
+              Condições declaradas pelo PSI-117 para esta tabela: D0 ≈ {String(condicoes.d0_mm_texto)} mm,{' '}
+              {String(condicoes.pressao_atm_texto)} atm, XO2 = {String(condicoes.xo2_texto)}, XN2 = {String(condicoes.xn2_texto)}.
+              Os filtros começam nessas condições.
+            </>,
+          )}
         </Caption>
       )}
 
-      <SidebarFilters title="Ensaios do CFI">
-        <CheckboxGroup label="Diluente" options={diluents} value={diluent} onChange={setDiluent} />
+      <SidebarFilters title={t('CFI tests', 'Ensaios do CFI')}>
+        <CheckboxGroup label={t('Diluent', 'Diluente')} options={diluents} value={diluent} onChange={setDiluent} />
         <RangeFilter label="D0 (mm)" bounds={d0Bounds} value={d0} onChange={setD0} digits={2} />
-        <Toggle label="Só análise concluída" checked={complete} onChange={setComplete} />
+        <Toggle label={t('Completed analysis only', 'Só análise concluída')} checked={complete} onChange={setComplete} />
       </SidebarFilters>
 
       <Metrics>
-        <Metric label="Ensaios do CFI no filtro" value={view.length} />
-        <Metric label="Pressões com os dois estudos" value={shared} />
-        <Metric label="Medições do PSI-117 que são ensaios do CFI" value={distinct(sameTest.map((r) => r.cfi_teste_id))} />
-        <Metric label="Divergências entre as fontes" value={links.rows.filter((r) => r.situacao.includes('diferente')).length} />
+        <Metric label={t('CFI tests in filter', 'Ensaios do CFI no filtro')} value={view.length} />
+        <Metric label={t('Pressures with both studies', 'Pressões com os dois estudos')} value={shared} />
+        <Metric label={t('PSI-117 measurements that are CFI tests', 'Medições do PSI-117 que são ensaios do CFI')} value={distinct(sameTest.map((r) => r.cfi_teste_id))} />
+        <Metric label={t('Discrepancies between the sources', 'Divergências entre as fontes')} value={links.rows.filter((r) => r.situacao.includes('diferente')).length} />
       </Metrics>
 
       <Section
         kind="chart"
         icon={IconFlame}
-        tag="mesma escala nos dois painéis"
-        title="Diâmetro de extinção por pressão"
-        label="Diâmetro de extinção por pressão em dois painéis, CFI e PSI-117"
+        tag={t('same scale in both panels', 'mesma escala nos dois painéis')}
+        title={t('Extinction diameter by pressure', 'Diâmetro de extinção por pressão')}
+        label={t('Extinction diameter by pressure in two panels, CFI and PSI-117', 'Diâmetro de extinção por pressão em dois painéis, CFI e PSI-117')}
       >
         <div className="chart">
           <Legend items={legend} hidden={hidden} onToggle={toggle} />
@@ -178,50 +214,53 @@ export default function Comparacao() {
               <XYChart
                 series={series}
                 title={flame}
-                xLabel="Pressão (atm)"
-                yLabel="Diâmetro de extinção (mm)"
+                xLabel={t('Pressure (atm)', 'Pressão (atm)')}
+                yLabel={t('Extinction diameter (mm)', 'Diâmetro de extinção (mm)')}
                 yDomain={figure.yDomain}
                 height={420}
                 legend={false}
                 hidden={hidden}
                 onToggle={toggle}
-                label={`${flame}: diâmetro de extinção por pressão, CFI e PSI-117`}
+                label={t(`${flame}: extinction diameter by pressure, CFI and PSI-117`, `${flame}: diâmetro de extinção por pressão, CFI e PSI-117`)}
               />
             </div>
           ))}
         </Grid>
       <Caption>
-        Pontos azuis: cada ensaio do CFI no filtro · quadrados azuis: mediana do CFI por pressão (n no tooltip) · losangos:
-        medição do PSI-117 · tracejado: modelo do PSI-117 · faixa clara: incerteza informada pelo PSI-117 (só chama fria).
-        Ensaios em que a chama fria consumiu a gota sem extinção visível não aparecem no painel da chama fria.
+        {t(
+          'Blue points: each CFI test in the filter · blue squares: CFI median by pressure (n in the tooltip) · diamonds: PSI-117 measurement · dashed: PSI-117 model · light band: uncertainty reported by PSI-117 (cool flame only). Tests in which the cool flame consumed the droplet without visible extinction do not appear in the cool-flame panel.',
+          'Pontos azuis: cada ensaio do CFI no filtro · quadrados azuis: mediana do CFI por pressão (n no tooltip) · losangos: medição do PSI-117 · tracejado: modelo do PSI-117 · faixa clara: incerteza informada pelo PSI-117 (só chama fria). Ensaios em que a chama fria consumiu a gota sem extinção visível não aparecem no painel da chama fria.',
+        )}
       </Caption>
       </Section>
 
-      <Section title="Lado a lado" kind="table" tag="v_extincao_c12_comparacao" icon={IconSnowflake} flush>
+      <Section title={t('Side by side', 'Lado a lado')} kind="table" tag="v_extincao_c12_comparacao" icon={IconSnowflake} flush>
         <DataTable
           rows={table}
           filename="psi117_x_cfi"
           config={{
-            medido_mm: { label: 'PSI-117 medido (mm)', digits: 2 },
-            modelo_mm: { label: 'PSI-117 modelo (mm)', digits: 2 },
-            limite_inferior_mm: { label: 'Faixa mín. (mm)', digits: 2 },
-            limite_superior_mm: { label: 'Faixa máx. (mm)', digits: 2 },
-            cfi_mediana_mm: { label: 'CFI mediana (mm)', digits: 3 },
-            modelo_menos_cfi_mm: { label: 'Modelo − CFI (mm)', digits: 3, signed: true },
-            cfi_na_faixa_psi117: 'CFI na faixa do PSI-117',
+            medido_mm: { label: t('PSI-117 measured (mm)', 'PSI-117 medido (mm)'), digits: 2 },
+            modelo_mm: { label: t('PSI-117 model (mm)', 'PSI-117 modelo (mm)'), digits: 2 },
+            limite_inferior_mm: { label: t('Range min. (mm)', 'Faixa mín. (mm)'), digits: 2 },
+            limite_superior_mm: { label: t('Range max. (mm)', 'Faixa máx. (mm)'), digits: 2 },
+            cfi_mediana_mm: { label: t('CFI median (mm)', 'CFI mediana (mm)'), digits: 3 },
+            modelo_menos_cfi_mm: { label: t('Model − CFI (mm)', 'Modelo − CFI (mm)'), digits: 3, signed: true },
+            cfi_na_faixa_psi117: t('CFI within the PSI-117 range', 'CFI na faixa do PSI-117'),
           }}
         />
       </Section>
 
-      <Expander title={`Correspondência ponto a ponto (${links.rows.length})`} icon={IconLink}>
+      <Expander title={t(`Point-by-point correspondence (${links.rows.length})`, `Correspondência ponto a ponto (${links.rows.length})`)} icon={IconLink}>
         <Caption>
-          Cada medição do PSI-117 e o ensaio do CFI de onde ela parece vir. Na tabela de 1 atm o ensaio é identificado pelo
-          D0 e pelo diâmetro da chama quente, que batem exatamente.
+          {t(
+            'Each PSI-117 measurement and the CFI test it appears to come from. In the 1 atm table the test is identified by D0 and by the hot-flame diameter, which match exactly.',
+            'Cada medição do PSI-117 e o ensaio do CFI de onde ela parece vir. Na tabela de 1 atm o ensaio é identificado pelo D0 e pelo diâmetro da chama quente, que batem exatamente.',
+          )}
         </Caption>
         <DataTable rows={links.rows} columns={links.columns} hide={['fonte_arquivo']} filename="psi117_cfi_correspondencia" />
       </Expander>
 
-      <Expander title="O que não concluir desta comparação" icon={IconInfo}>
+      <Expander title={t('What not to conclude from this comparison', 'O que não concluir desta comparação')} icon={IconInfo}>
         {investigacoes.map((inv) => (
           <div key={inv.id}>
             <strong>{inv.nome}</strong>

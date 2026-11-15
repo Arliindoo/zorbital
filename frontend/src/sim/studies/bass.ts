@@ -2,9 +2,11 @@
 
 import type { BassRow } from '@/api/types'
 import { fixed, g } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import { type DuctRun, ductScene, type SampleShape } from '../scenes/duct'
 import type { Readout, SimRun, SimStudy, StageDef, Tone } from '../types'
 import { flightStages } from './flight'
+import { td } from '@/lib/i18n-data'
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v : null)
@@ -25,9 +27,9 @@ function sizeText(r: BassRow): string {
   const thick = num(r.espessura_mm)
   if (dia !== null) return `⌀ ${g(dia)} mm`
   if (wide !== null && thick !== null) return `${g(wide * 10)} × ${g(thick)} mm`
-  if (wide !== null) return `${g(wide * 10)} mm de largura`
-  if (thick !== null) return `${g(thick)} mm de espessura`
-  return 'medidas não escritas na fonte'
+  if (wide !== null) return tr(`${g(wide * 10)} mm wide`, `${g(wide * 10)} mm de largura`)
+  if (thick !== null) return tr(`${g(thick)} mm thick`, `${g(thick)} mm de espessura`)
+  return tr('dimensions not written in the source', 'medidas não escritas na fonte')
 }
 
 const signed = (v: number | null, digits: number) => (v === null ? '—' : fixed(v, digits, true))
@@ -49,19 +51,19 @@ function toRun(r: BassRow, o2Bounds: readonly [number, number]): SimRun<DuctRun>
   }
 
   const conditions: Readout[] = [
-    { label: 'Material', value: r.material_categoria, hint: `Texto da fonte: ${r.material_original}` },
-    { label: 'Geometria', value: r.geometria },
-    { label: 'Medidas', value: sizeText(r) },
-    { label: 'O2 inicial', value: fixed(o2a, 1), unit: '% vol' },
-    { label: 'Pesquisador', value: r.pesquisador },
+    { label: 'Material', value: td(r.material_categoria), hint: tr(`Source text: ${r.material_original}`, `Texto da fonte: ${r.material_original}`) },
+    { label: tr('Geometry', 'Geometria'), value: td(r.geometria) },
+    { label: tr('Dimensions', 'Medidas'), value: sizeText(r) },
+    { label: tr('Initial O2', 'O2 inicial'), value: fixed(o2a, 1), unit: '% vol' },
+    { label: tr('Researcher', 'Pesquisador'), value: r.pesquisador },
   ]
   const fanText = text(r.ventilador_display)
   const air = text(r.ar_display)
-  if (fanText) conditions.push({ label: 'Ventilador (painel)', value: fanText, hint: 'Leitura do painel, com os ajustes feitos durante o teste. Não é velocidade calibrada.' })
-  if (air) conditions.push({ label: 'Ar (painel)', value: air, hint: 'Leitura do painel. Não é vazão calibrada.' })
-  if (r.ajustes_durante_teste === true) conditions.push({ label: 'Ajustes no teste', value: 'sim' })
+  if (fanText) conditions.push({ label: tr('Fan (panel)', 'Ventilador (painel)'), value: fanText, hint: tr('Panel reading, with the adjustments made during the test. Not a calibrated speed.', 'Leitura do painel, com os ajustes feitos durante o teste. Não é velocidade calibrada.') })
+  if (air) conditions.push({ label: tr('Air (panel)', 'Ar (painel)'), value: air, hint: tr('Panel reading. Not a calibrated flow rate.', 'Leitura do painel. Não é vazão calibrada.') })
+  if (r.ajustes_durante_teste === true) conditions.push({ label: tr('Adjustments during test', 'Ajustes no teste'), value: tr('yes', 'sim') })
   const frames = num(r.quadros_total)
-  if (frames !== null) conditions.push({ label: 'Quadros gravados', value: g(frames) })
+  if (frames !== null) conditions.push({ label: tr('Frames recorded', 'Quadros gravados'), value: g(frames) })
 
   const dO2 = o2b === null ? null : o2b - o2a
   const dCO2 = co2a === null || co2b === null ? null : co2b - co2a
@@ -70,43 +72,43 @@ function toRun(r: BassRow, o2Bounds: readonly [number, number]): SimRun<DuctRun>
   return {
     id,
     label: id,
-    title: `${r.material_categoria} · ${r.geometria}`,
+    title: `${td(r.material_categoria)} · ${td(r.geometria)}`,
     group: r.pesquisador,
     tone,
-    toneLabel: r.material_categoria,
+    toneLabel: td(r.material_categoria),
     level: o2Bounds[1] > o2Bounds[0] ? (o2a - o2Bounds[0]) / (o2Bounds[1] - o2Bounds[0]) : 0.6,
     playable: true,
     start: 0,
     duration: 100,
     wall: 12,
-    clock: { label: 'Andamento do teste', unit: '%', digits: 0, note: 'A fonte não traz a duração do teste: o relógio vai do começo (0) ao fim (100).' },
-    phases: [{ id: 'teste', label: 'Do começo ao fim do teste', t0: 0, t1: 100, tone: 'hot' }],
+    clock: { label: tr('Test progress', 'Andamento do teste'), unit: '%', digits: 0, note: tr('The source does not give the test duration: the clock runs from start (0) to end (100).', 'A fonte não traz a duração do teste: o relógio vai do começo (0) ao fim (100).') },
+    phases: [{ id: 'teste', label: tr('From start to end of the test', 'Do começo ao fim do teste'), t0: 0, t1: 100, tone: 'hot' }],
     conditions,
     mix: [
       { label: 'O2', value: o2a / 100, tone: 'signal' },
-      { label: 'outros gases', value: 1 - o2a / 100, tone: 'faint' },
+      { label: tr('other gases', 'outros gases'), value: 1 - o2a / 100, tone: 'faint' },
     ],
     telemetry: (t) => {
       const u = t / 100
       return [read('O2', o2a, o2b, u, 1, '% vol'), read('CO2', co2a, co2b, u, 2, '% vol'), read('CO', coa, cob, u, 0, 'ppm')]
     },
-    phaseAt: (t) => (t >= 100 ? { label: 'Leituras finais', tone } : { label: 'Amostra em chamas', tone: 'hot' }),
+    phaseAt: (t) => (t >= 100 ? { label: tr('Final readings', 'Leituras finais'), tone } : { label: tr('Sample burning', 'Amostra em chamas'), tone: 'hot' }),
     verdict: {
-      label: 'Leituras finais da câmara',
-      detail: `ΔO2 ${signed(dO2, 1)} pp · ΔCO2 ${signed(dCO2, 2)} pp · ΔCO ${signed(dCO, 0)} ppm — dependem da duração e do protocolo, não são risco do material`,
+      label: tr('Final chamber readings', 'Leituras finais da câmara'),
+      detail: tr(`ΔO2 ${signed(dO2, 1)} pp · ΔCO2 ${signed(dCO2, 2)} pp · ΔCO ${signed(dCO, 0)} ppm — they depend on duration and protocol, they are not the material's risk`, `ΔO2 ${signed(dO2, 1)} pp · ΔCO2 ${signed(dCO2, 2)} pp · ΔCO ${signed(dCO, 0)} ppm — dependem da duração e do protocolo, não são risco do material`),
       tone,
     },
     chart: {
-      xLabel: 'andamento (%)',
-      yLabel: 'O2 na câmara (% vol)',
+      xLabel: tr('progress (%)', 'andamento (%)'),
+      yLabel: tr('O2 in the chamber (% vol)', 'O2 na câmara (% vol)'),
       series: [{ tone: 'signal', points: [[0, o2a], [100, o2b ?? o2a]], dashed: true, dots: true }],
       cursor: (t) => [t, at(o2a, o2b, t / 100) ?? o2a],
     },
     notes: [
-      'Da fonte: material, geometria e medidas da amostra, O2/CO2/CO no começo e no fim do teste, e as leituras do painel (ventilador e ar).',
-      'Entre a leitura inicial e a final, os valores de gás são uma linha reta: a fonte não traz o que houve no meio. Aparecem sublinhados em tracejado.',
-      'A chama, o avanço da queima e a velocidade dos traçadores são ilustrativos. As leituras de ventilador e ar são do painel, não velocidades calibradas.',
-      'Esta tabela não tem rótulo de risco: a cena não ranqueia materiais por segurança.',
+      tr('From the source: sample material, geometry and dimensions, O2/CO2/CO at the start and end of the test, and the panel readings (fan and air).', 'Da fonte: material, geometria e medidas da amostra, O2/CO2/CO no começo e no fim do teste, e as leituras do painel (ventilador e ar).'),
+      tr('Between the initial and final readings, the gas values are a straight line: the source does not give what happened in between. They appear with a dashed underline.', 'Entre a leitura inicial e a final, os valores de gás são uma linha reta: a fonte não traz o que houve no meio. Aparecem sublinhados em tracejado.'),
+      tr('The flame, the burn progress and the tracer speed are illustrative. The fan and air readings are from the panel, not calibrated speeds.', 'A chama, o avanço da queima e a velocidade dos traçadores são ilustrativos. As leituras de ventilador e ar são do painel, não velocidades calibradas.'),
+      tr('This table has no risk label: the scene does not rank materials by safety.', 'Esta tabela não tem rótulo de risco: a cena não ranqueia materiais por segurança.'),
     ],
     state: { shape, width: num(r.largura_cm) === null ? null : num(r.largura_cm)! * 10, thickness: num(r.espessura_mm), diameter: num(r.diametro_mm), o2: [o2a, o2b], size: sizeText(r) },
   }
@@ -114,10 +116,10 @@ function toRun(r: BassRow, o2Bounds: readonly [number, number]): SimRun<DuctRun>
 
 const ductStage: StageDef<DuctRun> = {
   id: 'duto',
-  label: 'Duto',
-  scale: 'amostra · centímetros',
-  title: 'Duto de escoamento do BASS',
-  blurb: 'Um ventilador empurra o gás devagar pela amostra em chamas. Sem empuxo, é esse sopro que traz oxigênio: a chama se molda ao escoamento, com a base azul virada para ele.',
+  label: tr('Duct', 'Duto'),
+  scale: tr('sample · centimeters', 'amostra · centímetros'),
+  title: tr('BASS flow duct', 'Duto de escoamento do BASS'),
+  blurb: tr('A fan slowly pushes the gas past the burning sample. Without buoyancy, it is this draft that brings oxygen: the flame shapes itself to the flow, with its blue base facing it.', 'Um ventilador empurra o gás devagar pela amostra em chamas. Sem empuxo, é esse sopro que traz oxigênio: a chama se molda ao escoamento, com a base azul virada para ele.'),
   facts: () => [],
   experiment: true,
   sceneKey: 'duto',
@@ -133,17 +135,17 @@ export function bassStudy(rows: readonly BassRow[]): SimStudy<DuctRun> {
     id: 'bass',
     gravity: 'µg',
     place: 'ISS · Destiny · MSG',
-    noun: ['teste', 'testes'],
-    stripMeasure: 'Altura da barra: O2 inicial (do menor ao maior no filtro)',
+    noun: tr(['test', 'tests'], ['teste', 'testes']),
+    stripMeasure: tr('Bar height: initial O2 (from lowest to highest in the filter)', 'Altura da barra: O2 inicial (do menor ao maior no filtro)'),
     stages: [
       ...flightStages<DuctRun>({
         rack: 'msg',
         experiment: 'BASS-II',
         next: ductStage.id,
         glow: 'hot',
-        noun: 'teste',
+        noun: tr('test', 'teste'),
         dateOf: (run) => (byId.get(run.id)?.data as string | null) ?? null,
-        rackFacts: [{ label: 'Volume de trabalho', value: '≈ 255', unit: 'L' }],
+        rackFacts: [{ label: tr('Work volume', 'Volume de trabalho'), value: '≈ 255', unit: 'L' }],
       }),
       ductStage,
     ],
