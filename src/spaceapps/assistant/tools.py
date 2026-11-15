@@ -734,7 +734,7 @@ _ALL = [
     Tool(
         "listar_investigacoes",
         "catalogo",
-        "As três investigações: pergunta, tipo de evidência, registros, se é amostra e nº de alertas.",
+        "Todas as investigações do painel: pergunta, tipo de evidência, registros, se é amostra e nº de alertas.",
         {"type": "object", "properties": {}},
         listar_investigacoes,
     ),

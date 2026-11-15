@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Dashboard interativo de análise e comparação de dados, com interpretação por IA"
 readme = "README.md"
 authors = [
-    { name = "MendanhaPuh", email = "ernesto_tteeu@hotmail.com" }
+    { name = "Zorbital team — NASA Space Apps Challenge 2026" }
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=2.0.0",
