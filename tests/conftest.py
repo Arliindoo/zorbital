@@ -333,7 +333,7 @@ def write_psi142(files: Path) -> None:
 
 @pytest.fixture(autouse=True)
 def no_real_ai(monkeypatch):
-    """Nenhum teste fala com a Zyria de verdade: o app.py chama load_dotenv(), que recarregaria o .env real
+    """Nenhum teste fala com a Zyria de verdade: a API chama dotenv.load_dotenv() ao subir, que recarregaria o .env real
     e faria perguntas cobradas. Os testes do assistente usam um servidor local que imita a Zyria."""
     monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
     for name in ("ZYRIA_BASE_URL", "ZYRIA_API_KEY", "ZYRIA_MODEL"):
@@ -353,3 +353,14 @@ def use_db(built_db, monkeypatch):
     """Aponta o dashboard para o banco sintético."""
     monkeypatch.setattr(db, "DB_PATH", built_db)
     return built_db
+
+
+@pytest.fixture
+def client(use_db):
+    """A API do painel sobre o banco sintético."""
+    from fastapi.testclient import TestClient
+
+    from spaceapps.api.app import create_app
+
+    with TestClient(create_app()) as api:
+        yield api

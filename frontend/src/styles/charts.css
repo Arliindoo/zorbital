@@ -1,0 +1,319 @@
+/* Gráficos em SVG: tipografia de eixo, legenda, tooltip e as animações de entrada.
+   As animações só rodam quando a moldura entra na tela (`data-on='true'`); o atraso vem de --d (ms). */
+
+.chart {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+.chart__plot {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.chart svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.chart text {
+  font: 400 10.5px var(--mono);
+  fill: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.chart .t-title {
+  font-family: var(--label);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.chart .t-ink {
+  fill: var(--ink);
+}
+.chart .t-ink2 {
+  fill: var(--ink-2);
+}
+.chart .t-big {
+  font: 300 28px var(--font);
+  letter-spacing: -0.03em;
+  fill: var(--ink);
+}
+.chart .t-sans {
+  font-family: var(--font);
+  font-size: 12px;
+}
+.chart .gridline {
+  stroke: rgb(var(--fg-rgb) / 0.06);
+}
+.chart .axisline {
+  stroke: var(--line-2);
+}
+.chart .cross {
+  stroke: var(--line-3);
+  stroke-dasharray: 2 4;
+  pointer-events: none;
+}
+
+/* ---- entradas ---- */
+.chart .a-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.chart[data-on='true'] .a-draw {
+  animation: draw var(--dur-5) var(--ease-out) forwards;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+.chart .a-pop {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.chart[data-on='true'] .a-pop {
+  animation: pop var(--dur-3) var(--ease-spring) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+.chart .a-fade {
+  opacity: 0;
+}
+.chart[data-on='true'] .a-fade {
+  animation: fade var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+.chart .a-grow-y,
+.chart .a-grow-x {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+.chart .a-grow-x {
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.chart .a-grow-top {
+  transform-origin: top;
+}
+.chart[data-on='true'] .a-grow-y {
+  animation: grow-y var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+.chart[data-on='true'] .a-grow-x {
+  animation: grow-x var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+.chart .a-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin var(--spin, 60s) linear infinite;
+}
+.chart .a-spin-back {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin-back var(--spin, 80s) linear infinite;
+}
+
+/* ---- marcas com foco ---- */
+.chart .mark {
+  transition: opacity var(--dur-1) linear;
+}
+.chart[data-focus='true'] .mark:not([data-hot='true']) {
+  opacity: 0.28;
+}
+
+/* ---- legenda ---- */
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+.chart__legend > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 9px 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+.chart__legend button:hover {
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+.chart__legend [data-off='true'] {
+  color: var(--ink-4);
+  text-decoration: line-through;
+}
+.chart__legend [data-off='true'] .sw {
+  opacity: 0.25;
+}
+.sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+.sw--line,
+.sw--dash {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+}
+.sw--dash {
+  background: linear-gradient(90deg, var(--c) 0 5px, transparent 5px 8px, var(--c) 8px 13px, transparent 13px);
+}
+.sw--bar {
+  width: 9px;
+  height: 11px;
+  border-radius: 3px 3px 0 0;
+}
+.sw--band {
+  width: 7px;
+  height: 14px;
+  border-radius: 4px;
+  opacity: 0.4;
+}
+.sw--square {
+  border-radius: 2px;
+}
+.sw--diamond {
+  border-radius: 1px;
+  transform: rotate(45deg) scale(0.86);
+}
+
+/* ---- tooltip ---- */
+.chart__tip {
+  position: absolute;
+  z-index: 5;
+  min-width: 132px;
+  max-width: 280px;
+  padding: 9px 11px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r-sm);
+  background: rgb(var(--glass-rgb) / 0.94);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  animation: fade var(--dur-1) linear both;
+}
+.chart__tip strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.chart__tip strong i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.chart__tip dl {
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 3px;
+}
+.chart__tip dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.chart__tip dt {
+  color: var(--ink-3);
+}
+.chart__tip dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ---- fluxo da página inicial ---- */
+.flow {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.flow svg {
+  min-width: 940px;
+  height: auto;
+}
+.flow__end {
+  cursor: pointer;
+  outline: none;
+}
+.flow__end:focus-visible circle {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.minibars {
+  display: block;
+}
+
+/* ---- ranking em barras ---- */
+.barlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.barlist li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: baseline;
+  font-size: var(--fs-sm);
+}
+.barlist__label {
+  color: var(--ink-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barlist__value {
+  color: var(--ink);
+  font-size: var(--fs-xs);
+}
+.barlist__track {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(var(--fg-rgb) / 0.055);
+  overflow: hidden;
+}
+.barlist__track i {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 45%, transparent), var(--c));
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.barlist[data-on='true'] .barlist__track i {
+  animation: grow-x var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--i) * 70ms + 100ms);
+}
+
+/* rótulos sobre as fitas: contorno na cor do painel para continuarem legíveis */
+.sankey__label text {
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}

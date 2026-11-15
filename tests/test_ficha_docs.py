@@ -203,51 +203,23 @@ def test_submission_proposal_carries_the_checked_sheet(received, fake_zyria_prop
 # --- revisão na tela ------------------------------------------------------------------------------
 
 
-def test_review_merge_keeps_evidence_applies_edits_and_drops_deleted_rows():
-    import pandas as pd
-
-    from spaceapps import ui_ficha
-
-    old = [{"atributo": "pressao", "valor": "2 atm", "evidencia": evidence("a"), "conferido": False},
-           {"atributo": "helio", "valor": "0", "evidencia": evidence("b"), "conferido": True}]  # fmt: skip
-    edited = pd.DataFrame(
-        [
-            {"_i": 0, "confirmado": True, "atributo": "pressao", "valor": "2 atm (câmara)", "minimo": 2.0},
-            {"_i": None, "confirmado": True, "atributo": "temperatura", "valor": "300 K", "minimo": None},
-        ]
-    )  # a linha 1 (hélio) foi apagada; uma linha nova, sem evidência, foi adicionada
-    merged = ui_ficha._merge(old, edited, ["atributo", "valor", "minimo"], numeric=("minimo",))
-
-    assert [m["atributo"] for m in merged] == ["pressao", "temperatura"]
-    assert (
-        merged[0]["evidencia"] == evidence("a")
-        and merged[0]["valor"] == "2 atm (câmara)"
-        and merged[0]["confirmado"]
-    )
-    assert merged[1]["evidencia"] == {}
-    assert any("falta arquivo ou trecho" in p for p in ficha_docs.validate({"condicoes": merged}))
-
-
-def test_documents_page_counts_what_enters_and_what_stays_out(docs_upload, use_db, monkeypatch):
-    from streamlit.testing.v1 import AppTest
-
-    from tests.test_smoke import ROOT
-
+def test_documents_review_counts_what_enters_and_what_stays_out(docs_upload, client, monkeypatch):
     monkeypatch.setattr(staging, "UPLOADS_DIR", docs_upload.folder.parent)
     checked = ficha_docs.check(sheet(), docs_upload.files_dir)
     proposal = ficha_docs.Proposal(ficha=checked, problemas=ficha_docs.validate(checked), modelo="m",
                                    uso={"custo_zyt": 0.03}, investigacao="PSI-69")  # fmt: skip
     (docs_upload.folder / ficha_docs.PROPOSAL_FILE).write_text(json.dumps(proposal.__dict__))
 
-    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
-    app.session_state["documentos_atual"] = docs_upload.id
-    app.switch_page("views/documentos.py").run()
+    state = client.get(f"/api/documentos/{docs_upload.id}").json()
 
-    assert not app.exception, [e.value for e in app.exception]
-    assert "4 item(ns); 1 desmarcado(s) fica(m) de fora" in app.success[0].value
-    assert not next(b for b in app.button if b.label == "Aprovar e gravar").disabled
-    app.checkbox(key="ficha_doc:" + docs_upload.id + ":obj_ok").uncheck().run()  # o objetivo sai
-    assert not app.exception and "3 item(ns); 2 desmarcado(s)" in app.success[0].value
+    assert state["estudo"]["id"] == "PSI-69" and state["proposta"]["custo_zyt"] == 0.03
+    assert state["conferencia"] == {"problemas": [], "itens": 4, "desmarcados": 1}
+    edited = state["ficha"]
+    edited["objetivo"]["confirmado"] = False  # o objetivo sai
+    saved = client.put(f"/api/documentos/{docs_upload.id}/ficha", json=edited).json()
+    assert saved == {"problemas": [], "itens": 3, "desmarcados": 2}
+    # a revisão fica guardada no envio: recarregar a página continua de onde parou
+    assert client.get(f"/api/documentos/{docs_upload.id}").json()["ficha"]["objetivo"]["confirmado"] is False
 
 
 def test_open_ranges_and_gas_percent_units_from_documents():
@@ -268,9 +240,6 @@ def test_open_ranges_and_gas_percent_units_from_documents():
 
 
 def test_extinguishing_agent_and_planned_items():
-    import pandas as pd
-
-    from spaceapps import ui_ficha
     from spaceapps.ingest import ficha
 
     assert "agente_extintor" in ficha_docs.CONDITION_ATTRS and "agente_extintor" in fichas.CATEGORICOS
@@ -286,12 +255,3 @@ def test_extinguishing_agent_and_planned_items():
     assert not ficha_docs.validate({"condicoes": [item]})
     row = ficha.document_rows("PSI-26", {"condicoes": [item]})[0]
     assert row["secao"] == "condicao" and "planejado" in row["nota"]
-
-    edited = pd.DataFrame(
-        [
-            {"_i": 0, "confirmado": True, "atributo": "agente_extintor", "valor": "N2", "planejado": False},
-            {"_i": None, "confirmado": None, "atributo": None, "valor": None, "planejado": None},
-        ]
-    )
-    merged = ui_ficha._merge([item], edited, ["atributo", "valor", "planejado"])
-    assert len(merged) == 1 and merged[0]["planejado"] is False  # a linha vazia não virou item

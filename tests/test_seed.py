@@ -1,12 +1,11 @@
 """Seed: o banco pode ser montado só a partir de seed/, sem a pasta dados/."""
 
 import duckdb
-from streamlit.testing.v1 import AppTest
+from fastapi.testclient import TestClient
 
 from spaceapps import db
+from spaceapps.api.app import create_app
 from spaceapps.ingest import seed
-
-from .test_smoke import ROOT
 
 
 def tables(path):
@@ -54,8 +53,9 @@ def test_app_builds_the_database_from_the_seed_on_first_open(built_db, tmp_path,
     monkeypatch.setattr(db, "DB_PATH", fresh)
     monkeypatch.setattr(seed, "SEED_DIR", folder)
 
-    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    with TestClient(create_app()) as client:  # a montagem acontece ao subir o servidor
+        overview = client.get("/api/overview")
 
-    assert not app.exception, [e.value for e in app.exception]
     assert fresh.exists()
-    assert app.title[0].value == "Combustão em microgravidade"
+    assert overview.status_code == 200
+    assert {c["id"] for c in overview.json()["investigacoes"]} >= {"PSI-69", "PSI-117"}
