@@ -32,91 +32,102 @@ The form asks six questions; each answer below is ready to paste under its headi
 
 ### What does it do or how does it work?
 
-Zorbital is an interactive dashboard that gathers NASA's public experiments on how fire behaves
-without gravity and makes them readable, comparable and trustworthy in one place. NASA's Physical
-Sciences Informatics repository holds decades of these results, but each experiment published its
-data in its own format, and the answers people need — in which conditions did a flame go out, what
-materials burned, how do two experiments relate — are hard to get without weeks of manual work.
+Zorbital brings NASA's public microgravity combustion experiments (the PSI repository) into one
+place and makes them comparable without letting the screen invite a wrong conclusion. It loads six
+investigations — FLEX (PSI-69), CFI (PSI-39), PSI-117, BASS-II (PSI-25), PSI-142 and BASS (PSI-26)
+— through a deterministic data pipeline that recognizes duplicate files, preserves data types,
+extracts categories from free-text fields while keeping the original text, keeps measurement,
+model and uncertainty as separate records, and registers every value it cannot read as an alert
+with the original content instead of guessing. The result is a local database whose tables are
+versioned with the code, so anyone who clones the repository opens the dashboard with all the data
+and no downloads.
 
-Zorbital loads six investigations from the repository, cleans and organizes them without altering
-the original files, and keeps a record of where every number came from. For each experiment it
-shows the question that experiment answers, how complete the data is, a fact sheet (fuels, samples,
-test conditions, what was measured, what varied and what stayed fixed), and the cautions that
-scientists attached to the results. A 3D simulation reconstructs each test from the recorded
-values, from the Space Station down to the combustion chamber, and tells the viewer which parts are
-data and which are illustration. Comparison pages say, with explicit rules, when two experiments can
-be compared and when they cannot. An AI assistant on every page explains what is on screen.
+On top of it: one page per investigation with its own filters and charts, the question the data
+answers, the source and its completeness, and the "what not to conclude" cautions taken from the
+reports; a fact sheet per study computed from the data (fuels, sample shape and size, conditions in
+common units, what was measured, what varied between tests and what stayed fixed, and which
+conditions varied together and therefore cannot be separated); a 3D simulation that descends from
+the Space Station or the laboratory to the experiment and replays the chosen test from the recorded
+values, marking on screen what is data and what is illustration; two comparison pages with explicit
+rules (PSI-117 against CFI with a point-by-point match, and side-by-side fact sheets with a verdict
+per pair); and an AI assistant on every page.
 
-The assistant and the other AI features follow one principle: the AI proposes, the software checks,
-and a person approves. The assistant can only consult the data through a fixed set of queries, so
-every number it gives comes from the data and is shown with its source. When a new experiment is
-added, the AI reads its documents and proposes how to interpret each column, citing the page it
-relied on; the software verifies the citations and a curator reviews and approves before anything
-is stored. The AI never writes to the database.
+The AI is used in three contained ways, all under one principle: the AI proposes, the software
+checks, a person approves. The assistant can only consult the data through a fixed set of queries
+enabled per page, so it cannot cross investigations outside the comparison pages, and every number
+it cites comes from a query it shows; before answering, it reads the fact sheets and cautions of
+the studies involved. When a new study is submitted, the AI reads the spreadsheets' structure and
+the documents and proposes how to read each column, with the evidence for every interpretation;
+the software validates the proposal, a curator confirms every inference, and from then on the
+software applies that reading on every load. For a study's documents, the AI proposes objective,
+sensors and fixed conditions with page and verbatim quote; the software checks that the quote
+exists on that page; a reviewer decides what enters. The AI never writes to the database.
 
 ### What benefits does it offer?
 
-For researchers and engineers, it turns a scattered archive into a single, organized source where
-every value carries its origin and its caveats, and where the question "can these two experiments
-be compared?" gets an answer based on the actual test conditions. For students and the public, it
-makes decades of space combustion science explorable without specialist tooling. For the people
-who maintain the collection, it offers a way to add new experiments through review rather than
-through programming. For everyone, it offers an AI assistant that cannot invent numbers and always
-says what its answer is based on. The whole dashboard runs on an ordinary computer, offline, with
-no downloads.
+Researchers and fire-safety engineers get decades of PSI combustion results already normalized,
+with the provenance of every number and the cautions attached, and an answer to "can these two
+studies be compared?" based on their actual test conditions rather than on intuition. Readers get an
+assistant that cannot invent numbers and that states the basis of each one (filtered rows or whole
+table, sample or complete data). Curators get a way to add investigations without writing a parser
+for each: the AI proposes, the person reviews, the software applies. Students and the public get
+decades of space combustion science that can be explored without specialist tools. Anyone can run
+it offline on an ordinary computer, and the whole chain from source file to screen is reproducible.
 
 ### What is the intended impact of the project?
 
-Fire is one of the risks that grows with the length of a mission, and the knowledge needed to design
-safe habitats for the Moon and Mars already exists — scattered across files and reports that few
-people have the time to reconcile. Zorbital aims to shorten the distance between "NASA has tested
-this" and "here is what the tests show, under which conditions, and what they do not show", so that
-scientific evidence reaches the people making design decisions with its limits intact. More broadly,
-it demonstrates a responsible way to put AI in front of experimental data: not as an oracle, but as
-a proposer whose work is checked and approved by people.
+Fire is one of the risks that scale badly on long missions, and the knowledge needed to design for
+it exists but is scattered across incompatible files and reports. The intended impact is to make
+that knowledge usable with its limits intact: to shorten the path from "NASA has tested this" to
+"here is what the tests show, under which conditions, and what they do not show", for the people
+preparing Moon and Mars habitats. Beyond combustion, the project is a template for presenting
+experimental physical-science data with AI in the loop: evidence types kept apart, provenance kept,
+limits stated, and the model used as a proposer under human review rather than as an oracle.
 
 ### What tools, coding languages, hardware, or software did you use to develop your project?
 
-The data processing and the server are written in Python, with open-source libraries for data
-analysis and an embedded analytical database; the interface is a web application written in React
-and TypeScript, with charts and the 3D simulation drawn by our own code. The AI assistant uses
-Anthropic Claude models through a language-model gateway. The data comes exclusively from NASA's
-Physical Sciences Informatics repository, downloaded manually and loaded unchanged. No special
-hardware is needed: it runs on a laptop. The project has automated tests for the data pipeline, the
-server, the assistant and the interface. An AI coding assistant was used in pair-programming to
-write code and documentation, under the team's direction and review; this is disclosed in the
-repository.
+The data pipeline and the server are written in Python, with Polars and DuckDB for analysis and
+storage, Parquet for the versioned data, and FastAPI for the web API. The interface is a web
+application in React and TypeScript; the charts are drawn in SVG and the 3D simulation in WebGL2,
+both written by the team without a charting or 3D library. The AI assistant uses Anthropic Claude
+models through an OpenAI-compatible gateway (Zyria), which also reports the cost of each call. The
+data comes exclusively from NASA's Physical Sciences Informatics repository, downloaded manually and
+loaded unchanged. No special hardware is needed: it runs on a laptop. Automated tests cover the
+pipeline, the server, the assistant and the interface, and run without data or AI credentials. An
+AI coding assistant was used in pair-programming to write code and documentation under the team's
+direction and review; this is disclosed in the repository.
 
 ### How is your project creative?
 
-Most AI-powered dashboards place the model between the user and the data and trust it to be
-accurate. Zorbital turns that around: the AI never touches the data directly. It proposes — a query
-to run, a way to read a column, a sentence from a report — and the software verifies the proposal
-before a person accepts it. This led to three ideas we have not seen elsewhere in this form: new
-experiments can be added through a reviewed interpretation rather than new code; every fact the AI
-extracts from a report must come with the page and the exact quote, which the software checks
-against the document; and each experiment's fact sheet reveals which test conditions always changed
-together, which is what a reader needs before attributing an effect to one of them. Working this
-carefully with the data also surfaced a finding worth sharing: a comparison the archive seems to
-invite — a ground model against flight measurements — turns out not to be an independent check,
-because the "measurements" are the same flights, and the dashboard shows this point by point.
-Finally, the simulation lets a person see each test as a scene while being told exactly which parts
-are reconstructed.
+Most AI dashboards put the model between the user and the data and hope the prompt keeps it honest.
+Zorbital inverts that: the model never touches the data; it only proposes — a query to run, a way to
+read a column, a sentence from a report — and the software verifies the proposal before a person
+approves it. Three concrete ideas came out of this stance. First, a reviewable reading specification
+that lets a new study enter the dashboard through review rather than through code, with the
+evidence stored next to every column. Second, a quote check: the AI must cite page and verbatim
+text for anything it extracts from a report, and the software searches that text on that page, so a
+paraphrase or a wrong page is caught before anyone reads it. Third, "linked conditions": a rule that
+finds, in each experiment, the pairs of conditions that only ever varied together — the information
+a reader needs before attributing an effect to one of them. Working this carefully with the data
+also produced a finding we did not expect: all four droplets in PSI-117's one-atmosphere table are
+CFI flights, so the model-versus-measurement comparison that the archive invites is not an
+independent validation, and the dashboard says so point by point. Finally, the simulation turns rows
+into a scene a person can read, while underlining which parts are reconstructed and refusing to
+invent what is missing.
 
 ### What factors did your team consider?
 
 We started from the question "how could this dashboard mislead someone?" and designed against each
-answer. Different kinds of evidence (measurement, simulation, uncertainty) are never averaged
-together. Experiments are only compared on pages that state what the sources share. Each
-experiment's cautions travel with its data, and the assistant must read them before interpreting
-anything. Values that cannot be read as they are become alerts, never silent corrections; when a
-document and the data disagree, both are shown and the data prevails. We also considered
-reproducibility (the same files always produce the same result, with no AI in the pipeline),
-transparency of cost (every AI call shows its estimated and real cost), security of uploaded files,
-the privacy of the researchers named in NASA's metadata (deliberately not loaded), and access
-(offline, in English, readable colors). And we considered the rules of the challenge: NASA data at
-the core, no NASA branding, full citation of data and tools, and a plain disclosure of where and how
-AI was used.
+answer. Measured, simulated and uncertainty values never enter the same average. Investigations are
+only crossed on pages that say what their sources share. Every experiment's cautions travel with its
+data, and the assistant must read them before interpreting anything. What cannot be read becomes an
+alert, never a correction; when a document contradicts the data, both are shown and the data wins.
+We also considered reproducibility (no AI in the pipeline: the same files give the same result),
+transparency of cost (every AI call shows its estimated and real cost, with hard limits), security
+of uploaded files, the privacy of the researchers named in NASA's metadata (deliberately not
+loaded), and access (offline, in English by default, with fixed colors per category so filtering
+never recolors a chart). And we considered the rules of the challenge: NASA data at the core, no
+NASA branding, full citation of data and tools, and a plain disclosure of where and how AI was used.
 
 ## NASA Data
 
