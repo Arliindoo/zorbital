@@ -1,9 +1,9 @@
 # Architecture
 
-Zorbital is a single-process local application: a deterministic data pipeline, a read-only
-dashboard on top of it, and three narrowly scoped uses of a language model, each gated by code and
-by a person. This page describes the pieces, how they talk, and the principles that hold across all
-of them.
+Zorbital is a local application in two parts — a Python API over a deterministic data pipeline, and
+a React front end that does the drawing in the browser — plus three narrowly scoped uses of a
+language model, each gated by code and by a person. This page describes the pieces, how they talk,
+and the principles that hold across all of them.
 
 ## Quality goals, in order
 
@@ -29,7 +29,7 @@ flowchart LR
     U["Dashboard user<br/>(researcher, judge, curious reader)"]
     O["Maintainer<br/>(downloads data, submits studies, approves)"]
     subgraph Z["Zorbital"]
-        APP["Streamlit dashboard"]
+        APP["FastAPI API + React front end"]
     end
     PSI["NASA PSI portal<br/>(manual download of tables,<br/>documents and metadata)"]
     ZY["Model gateway (Zyria)<br/>OpenAI-compatible API"]
@@ -49,14 +49,20 @@ maintainer (one person in this version).
 
 ## Containers
 
-Everything runs in one Python process on the user's machine.
+Everything runs on the user's machine: a Python process (the API; in production it also serves the
+built front end) and the browser.
 
 ```mermaid
 flowchart TB
     subgraph Local["Local machine"]
-        subgraph ST["Streamlit process"]
-            V["views/ — one page per screen"]
-            UI["spaceapps.ui — header, fact sheet, chat"]
+        subgraph BR["Browser — React + Vite (frontend/)"]
+            PG["pages/ — one page per screen"]
+            CH["charts/ — hand-drawn SVG"]
+            SIM["sim/ — WebGL2 simulation"]
+            AW["assistant/ — chat panel"]
+        end
+        subgraph ST["Python process — FastAPI (spaceapps.api)"]
+            PAPI["pages, studies, uploads, chat routers"]
             AS["spaceapps.assistant — loop, tools, provider"]
             STU["spaceapps.studies — submission and document sheet"]
             FI["spaceapps.fichas — side-by-side comparison"]
@@ -79,8 +85,11 @@ flowchart TB
     SEED -->|builds, if no database| S
     S --> DUCK
     DUCK -->|read-only| DB
-    DB --> V & UI & AS & FI
-    V --> STU
+    DB --> PAPI & AS & FI
+    PAPI --> STU
+    PG -->|"GET /api/pages/… once per page; JSON"| PAPI
+    AW -->|"POST /api/assistant/chat; NDJSON stream"| PAPI
+    PG --> CH & SIM
     STU -->|receives and unpacks| UP
     STU -->|"approval: copies to dados/PSI-XX/ and runs the load"| DADOS
     AS -->|HTTPS, streaming| ZY
@@ -91,12 +100,23 @@ flowchart TB
 |---|---|---|
 | Load (`spaceapps-build`) | inventory `dados/`, choose sources, read each format, build the database, compute the fact sheets, export the seed | Python, Polars, DuckDB, openpyxl |
 | Seed (`spaceapps-seed`) | build the database from the versioned Parquet files, without `dados/` | DuckDB |
-| Dashboard | pages, filters, charts, fact sheets, study hub | Streamlit 1.67, Plotly |
+| API (`spaceapps.api`) | one JSON payload per page with typed tables; studies, sheets and search; submission endpoints; the assistant as an NDJSON stream; serves `frontend/dist` in production (`spaceapps-serve`) | FastAPI, uvicorn |
+| Front end (`frontend/`) | pages, filters, charts and counts in the browser; the study hub; the 3D simulation view; the assistant panel; English by default, Portuguese in settings | React 19, Vite, TypeScript, TanStack Query, React Router; SVG and WebGL2 written by hand |
 | Assistant | chat per page with closed-scope tools | `openai` SDK pointed at the gateway |
 | Study submission | receive files, ask the model for a proposal, validate, review, approve | pypdf, zipfile/tarfile, `7z` |
 | Fact sheets and comparisons | common attributes, linked conditions, side-by-side verdicts | Polars |
 
-The dependency rule: nothing in `ingest/` imports from the views, the UI or the assistant, and
+How the two parts talk: each page makes **one** request (`GET /api/pages/<page>`) and receives its
+tables with column types; filters, charts and counts then run in the browser, cached by TanStack
+Query, so moving a filter never goes to the server. The database only changes when a submission is
+approved, and approval invalidates the cache. The PSI-142 page fetches one digitized set at a time.
+Side-by-side sheets are computed on the server. The submission flow keeps its state in the upload
+folder on disk (`PUT /api/envios/<id>/especificacao` saves each review edit and returns the checks
+and the preview), so reloading the page continues where it stopped. The assistant streams NDJSON
+events (`studies`, `tool`, `text`, `done`, `error`); the server keeps no conversation, the history
+lives in the browser tab, one per page.
+
+The dependency rule: nothing in `ingest/` imports from the API, the front end or the assistant, and
 nothing in `ingest/` calls the model. `studies/` is the only bridge between the model and the load,
 and it passes through a file on disk (`estudo.json`, `ficha.json`) approved by a person.
 
@@ -141,11 +161,13 @@ sequenceDiagram
     participant Z as Model
     participant D as db (read-only)
     P->>W: question, on page X
-    W->>A: answer(Screen of page X, history, question)
+    W->>A: POST /api/assistant/chat (screen state of page X, history, question, language)
     A->>Z: check_model: does the model support tools? (cached catalog)
     A->>A: schemas = tools_for(page X) — only this page's groups
+    A->>D: fact sheets of the studies involved (question, evidence, source, cautions) → into the prompt
+    A-->>W: "studies" event (the panel shows which sheets were read)
     loop up to 6 rounds
-        A->>Z: chat.completions (system = rules + active groups + screen summary; last 10 questions)
+        A->>Z: chat.completions (system = rules + active groups + study sheets + screen summary; last 10 questions)
         Z-->>A: streamed text and/or tool_calls
         alt the model called tools
             A->>T: execute(name, args, Screen)
@@ -235,13 +257,13 @@ person.
 
 | Path | Responsibility |
 |---|---|
-| `app.py` | navigation |
-| `views/` | one page per screen: overview, study hub (also the generic page of submitted studies), FLEX, CFI, PSI-117, BASS-II, PSI-142, side-by-side sheets, PSI-117 × CFI, submit study, add documents, explore |
+| `src/spaceapps/api/` | `app.py` (FastAPI app, database bootstrap from the seed, production server), `pages.py` (one payload per page, explore sources), `studies.py` (hub, generic study page, side-by-side), `uploads.py` (study and document submission: receive, analyze, review, approve), `chat.py` (assistant as NDJSON stream), `frames.py` (tables → JSON with column types) |
+| `frontend/src/` | `pages/` (one per screen: overview, study hub and generic study page, FLEX, CFI, PSI-117, BASS-II, PSI-142, side-by-side sheets, PSI-117 × CFI, submit study, add documents, explore), `charts/` (SVG charts, fixed category colors, pure series builders), `sim/` (WebGL2 engine, scenes, burn replay, per-study binding, HUD), `assistant/` (panel, stream client, screen state), `components/`, `styles/`, `api/` (client and types), `lib/` |
 | `src/spaceapps/ingest/` | `catalog.py` (what each investigation and file is), `build.py` (the load), one reader per format, `generic.py` (reader for submitted studies), `ficha.py` (fact sheets, linked conditions, vocabulary), `links.py` (PSI-117 × CFI match), `metadados.py` (PSI metadata), `seed.py` |
 | `src/spaceapps/studies/` | `archive.py` (safe extraction), `staging.py` (receive), `profile.py`, `documents.py`, `propose.py` (reading-spec proposal), `ficha_docs.py` (document sheet: proposal, quote check, approval), `approve.py` |
 | `src/spaceapps/assistant/` | `screen.py`, `tools.py` (24 tools in 11 groups; scope enforcement), `agent.py` (the loop), `provider.py` (gateway client, errors, model check), `dictionary.py` |
-| `src/spaceapps/` | `db.py` (read-only), `ui.py`, `ui_ficha.py`, `charts.py`, `fichas.py` (side-by-side), `search.py` |
-| `tests/` | synthetic `dados/` folder and 109 tests; a local HTTP server stands in for the gateway |
+| `src/spaceapps/` | `db.py` (read-only), `fichas.py` (side-by-side), `search.py`, `data.py` (explore sources) |
+| `tests/` | synthetic `dados/` folder and 114 Python tests (load, seed, API, uploads API, assistant, submission, sheets); a local HTTP server stands in for the gateway. Front-end tests: 7 Vitest files (48 tests) under `frontend/src/**/*.test.ts` |
 | `seed/` | 21 Parquet files and a manifest |
 
 ## Known limitations

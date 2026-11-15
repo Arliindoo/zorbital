@@ -1,0 +1,89 @@
+/* Marca (o nome desenhado e a órbita do trilho) e a abertura que a apresenta. */
+
+.wordmark {
+  display: block;
+}
+
+/* Órbita do topo do trilho: o corpo e o rastro correm o mesmo caminho (pathLength=1). --l é o
+   comprimento de cada arco do rastro; partir de --l põe a ponta de todos no mesmo lugar. */
+.orbit {
+  display: block;
+  overflow: visible;
+}
+.orbit__ring {
+  stroke: rgb(var(--fg-rgb) / 0.14);
+  stroke-width: 1;
+}
+.orbit__core {
+  fill: var(--signal);
+}
+.orbit__trail,
+.orbit__body {
+  stroke: var(--ink);
+  animation: orbit-run 4.2s cubic-bezier(0.42, 0.16, 0.58, 0.84) infinite;
+}
+.orbit__trail {
+  stroke-width: 1.4;
+  stroke-dasharray: var(--l) calc(1px - var(--l)); /* período 1: o arco emenda ao fechar a volta */
+}
+/* tracejado de comprimento zero com ponta redonda: um ponto que anda pelo caminho */
+.orbit__body {
+  --l: 0px;
+  stroke-width: 3.2;
+  stroke-dasharray: 0 1px;
+}
+@keyframes orbit-run {
+  from {
+    stroke-dashoffset: var(--l);
+  }
+  to {
+    stroke-dashoffset: calc(var(--l) - 1px);
+  }
+}
+
+/* ---------- Abertura ---------------------------------------------------------------------------- */
+/* Três folhas de tela cheia empilhadas: a preta na frente, com o nome; atrás dela o magenta da
+   marca e, por último, a tinta clara do próprio nome. Sobem em sequência e descobrem o painel.
+   O verde-sinal fica de fora: ele é a cor do painel que a cortina revela. Sempre escura
+   (.sim-dark), em qualquer tema. O movimento vem de components/Intro.tsx. */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  touch-action: none;
+  cursor: pointer;
+}
+.intro__panel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  will-change: transform;
+}
+.intro__panel--void {
+  z-index: 3;
+  background: var(--void);
+  color: var(--ink);
+}
+.intro__panel--magenta {
+  z-index: 2;
+  background: var(--magenta);
+}
+.intro__panel--ink {
+  z-index: 1;
+  background: var(--ink);
+}
+.intro .wordmark {
+  width: min(88vw, 900px);
+  height: auto;
+  overflow: hidden; /* máscara: as letras sobem de baixo da linha de base */
+}
+
+/* Enquanto a abertura toca, as entradas do painel esperam paradas no primeiro quadro; quando a
+   cortina o descobre, tudo começa junto. */
+:root[data-intro='playing'] .app *,
+:root[data-intro='playing'] .app *::before,
+:root[data-intro='playing'] .app *::after {
+  animation-play-state: paused !important;
+}

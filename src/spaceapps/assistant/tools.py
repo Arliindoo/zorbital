@@ -74,6 +74,9 @@ PAGE_GROUPS = {
 
 INVESTIGATIONS = ["PSI-69", "PSI-25", "PSI-117", "PSI-39", "PSI-142"]
 
+# Grupos cujas ferramentas consultam a ficha dos estudos (cautelas, origem, catálogo), e não os dados.
+STUDY_GROUPS = frozenset({"qualidade", "catalogo"})
+
 
 def tools_for(page: str) -> list[Tool]:
     groups = PAGE_GROUPS[page]
@@ -142,6 +145,20 @@ def _scoped_investigation(screen: Screen, requested: str | None) -> list[str] | 
     if requested:
         return [requested]
     return allowed
+
+
+def studies_in_scope(screen: Screen) -> list[dict]:
+    """Ficha dos estudos envolvidos na página: a investigação dela, as duas da comparação, ou todas
+    na visão geral. Páginas sem ferramentas de estudo (o explorador livre) não têm nenhuma."""
+    if not STUDY_GROUPS & set(PAGE_GROUPS[screen.pagina]):
+        return []
+    where, params = _in("id", screen.allowed())
+    rows = db.query(
+        "SELECT id, nome, categoria, ambiente, tipo_evidencia, pergunta, cautelas, url_nasa, relatorio, doi, "
+        f"fonte_carregada FROM investigacoes WHERE {where} ORDER BY id",
+        params,
+    )
+    return _rows(rows)
 
 
 def _in(column: str, values: list[str] | None) -> tuple[str, list]:

@@ -2,13 +2,55 @@
 
 The choices that shape the project, with what they cost and what would make us revisit them.
 
-## Python, Streamlit and Plotly rather than Go
+## Python on the server, React in the browser
 
 The bottleneck of an analysis dashboard is reading, aggregating and drawing data and then waiting
-for a model, not server concurrency. Polars, DuckDB and the scientific ecosystem have no equivalent
-in Go, and Go would need a separate front end. Streamlit builds the screen from the analysis code
-itself. Cost: one process per user and a script re-run on every interaction. We would revisit this
-if the project became continuous ingestion or a multi-user service.
+for a model, not server concurrency. Polars and DuckDB have no equivalent in Go or Node, so the load,
+the database and the assistant's tools stay in Python, behind a small FastAPI API that only serves
+ready tables. The first version drew the screen with Streamlit from the same Python code; it was
+replaced by a React + Vite + TypeScript front end so that filters, charts and counts run in the
+browser (moving a filter never goes to the server), each page is one API call cached by TanStack
+Query, and the simulation could be drawn in WebGL2. Cost: two processes in development and a build
+step for production. We would revisit the server language if the project became continuous
+ingestion or a multi-user service.
+
+## One API call per page; the browser does the rest
+
+Each page requests `GET /api/pages/<page>` once and receives its tables with column types. Filters,
+charts and counts are computed client-side; the database only changes when a submission is
+approved, and approval invalidates the cache. Large sets (PSI-142's thousands of points) are
+fetched one set at a time; side-by-side sheets are computed on the server, one call per combination.
+Page filters live in the tab's session storage, so leaving and coming back keeps them. Cost: the
+browser holds a page's data in memory; acceptable at the current volumes (a few thousand rows).
+
+## Hand-drawn SVG charts and hand-written WebGL2, no charting or 3D library
+
+Charts are React-rendered SVG with fixed category colors (outcome, flame type, material, fuel keep
+the same color on every page; filtering never recolors the remaining series). The simulation is a
+line-drawing engine in WebGL2: geometry goes to the GPU once (instanced segments, one draw call per
+batch), Earth and flames are computed in the fragment shader, particles keep no CPU state, the loop
+stops when the tab is hidden or the scene is off-screen, and internal resolution adapts to frame
+time. Cost: more code to own than a library would need; gain: a visual system that is one piece,
+small bundles, and pages loaded on demand.
+
+## The simulation is a reconstruction, and the screen says which parts are data
+
+The simulation view descends by scale (ISS in orbit → Destiny laboratory and rack → combustion
+chamber; or Earth → optical bench → reaction zone between the nozzles) and replays the chosen test
+from source values: droplet diameters, times, rates, gas composition, sample dimensions, digitized
+points. Between two measured diameters of a droplet the curve follows the d² law, a reconstruction
+that passes through the measured ends. Flame position and glow, tracer flow, needle and igniter
+choreography and the mock-ups (ISS, Destiny, racks, burner) are schematic illustration. On screen,
+reconstructed or estimated values are underlined with a dashed line, an ⓘ button lists test by test
+what each element is, and when the data to reconstruct is missing the test is shown as "no
+reconstruction" with the reason. Nothing is invented to fill a gap.
+
+## English by default, Portuguese in the settings
+
+The interface language defaults to English for the Space Apps audience and can be switched to
+Portuguese. The data, the fact sheets and the assistant's system prompt stay in Portuguese in both;
+in English mode the assistant is instructed to answer in English and translate what it quotes,
+keeping column names and identifiers as they are.
 
 ## The files are the source; the database is a derived artifact
 

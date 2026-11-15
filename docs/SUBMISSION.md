@@ -47,8 +47,11 @@ duplicates by content hash, preserves types, extracts categories from free text 
 original text, keeps measurement, model and uncertainty as separate rows, records every unreadable
 cell as an alert with its original value, computes the fact sheets, and builds a DuckDB database.
 The database's tables are versioned as a small Parquet seed, so anyone who clones the repository
-opens the dashboard with all the data and no downloads. The dashboard (Streamlit + Plotly) opens the
-database read-only. The language model is used in three contained ways: (1) the assistant is a
+opens the dashboard with all the data and no downloads. A FastAPI API serves each page's tables in
+one call; the React front end runs filters, charts and counts in the browser. Each study also has a
+3D simulation view (hand-written WebGL2) that descends from the ISS or the laboratory to the
+experiment and replays the chosen test from the source values, marking on screen what is data and
+what is illustration, and showing "no reconstruction" when the data is missing. The language model is used in three contained ways: (1) the assistant is a
 tool-using agent whose tools are fixed queries with closed parameters, enabled per page and enforced
 in code, so it cannot run SQL, read files or cross investigations outside the comparison pages;
 (2) when a new study is submitted, the model receives a profile of the spreadsheets and the text of
@@ -69,10 +72,13 @@ investigations without writing a parser for each one.
 people who need to act on it: separating kinds of evidence, keeping provenance, stating limits, and
 using AI as a proposer under human review rather than as an oracle.
 
-**Tools, languages and software.** Python 3.12 (uv), Streamlit, Plotly, Polars, DuckDB, Apache
-Parquet, openpyxl, pypdf, python-dotenv, the openai Python SDK as the client for an
-OpenAI-compatible model gateway (Zyria) routing to Anthropic Claude models, pytest and ruff,
-7-Zip for `.rar` uploads. 109 automated tests run without data, database or AI credential.
+**Tools, languages and software.** Server: Python 3.12 (uv), FastAPI and uvicorn, Polars, DuckDB,
+Apache Parquet (pyarrow), openpyxl, pypdf, python-dotenv, python-multipart, the openai Python SDK as
+the client for an OpenAI-compatible model gateway (Zyria) routing to Anthropic Claude models, pytest,
+httpx and ruff, 7-Zip for `.rar` uploads. Front end: Node.js 22, React 19, Vite, TypeScript,
+TanStack Query, React Router, react-markdown, Motion, Vitest and oxlint; charts in hand-drawn SVG
+and the simulation in hand-written WebGL2, with no charting or 3D library. 114 Python tests and 7
+front-end test files run without data, database or AI credential.
 
 ## NASA Data
 
@@ -103,10 +109,15 @@ NASA Technical Reports Server: FLEX report (NTRS 20150023456) and BASS-II summar
 
 No space-agency-partner data was used. Other references, code and tools:
 
-- Python 3.12 with uv (https://docs.astral.sh/uv/); Streamlit (https://streamlit.io/); Plotly
-  (https://plotly.com/python/); Polars (https://pola.rs/); DuckDB (https://duckdb.org/); Apache
-  Parquet; openpyxl (https://openpyxl.readthedocs.io/); pypdf (https://pypdf.readthedocs.io/);
-  python-dotenv; openai Python SDK (https://github.com/openai/openai-python); pytest; ruff; 7-Zip.
+- Server: Python 3.12 with uv (https://docs.astral.sh/uv/); FastAPI (https://fastapi.tiangolo.com/);
+  uvicorn; Polars (https://pola.rs/); DuckDB (https://duckdb.org/); Apache Parquet via pyarrow;
+  openpyxl (https://openpyxl.readthedocs.io/); pypdf (https://pypdf.readthedocs.io/); python-dotenv;
+  python-multipart; openai Python SDK (https://github.com/openai/openai-python); pytest; httpx; ruff;
+  7-Zip.
+- Front end: Node.js 22; React (https://react.dev/); Vite (https://vite.dev/); TypeScript; TanStack
+  Query (https://tanstack.com/query); React Router; react-markdown with remark-gfm; Motion
+  (https://motion.dev/); Vitest; oxlint; fonts Sora and Geist Mono via Fontsource; Solar icons
+  generated with better-icons.
 - Zyria (https://zyria.ai), an OpenAI-compatible model gateway, routing to Anthropic Claude models.
 - Third-party tabular copies of PSI data (https://github.com/AnteurAbderraouf/Fotia/tree/main/combustion_science),
   consulted only to select the investigations before downloading from PSI.

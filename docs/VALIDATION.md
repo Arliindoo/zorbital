@@ -15,7 +15,8 @@ What was verified, how, and what is still open. Numbers are as measured on 2026-
 | Document sheet, second pass, after the vocabulary and prompt fixes | same documents, "replace" checked | 11 items; nitrogen as extinguishing agent, cameras as "other measurement", requirement items marked "as planned"; one item (nozzle size) still misfiled, to be fixed in a new review |
 | Quote checker against the real SRD PDF | literal quote; page off by one; paraphrase; hyphenated line break | found; found; rejected; found |
 | Review grid in the browser (no model cost: a local fake gateway) | uncheck an item; change an attribute from the dropdown | both recorded in the draft; counter updated |
-| Every page renders | Playwright with local Chrome against a second Streamlit instance, light and dark themes | 0 exceptions on FLEX, CFI, study hub, PSI-26, side-by-side sheets, submit, add documents |
+| Every page renders (earlier Streamlit front end) | Playwright with local Chrome, light and dark themes | 0 exceptions on FLEX, CFI, study hub, PSI-26, side-by-side sheets, submit, add documents. The React front end that replaced it is covered by its type check, Vitest suite and production build (below) and by the team's manual use during the demo |
+| Front end after the React rewrite | `npm ci`, `npm run typecheck`, `npm test`, `npm run build` | type check clean; 7 test files, 48 tests passed in 0.7 s; production build in 0.8 s (main bundle 717 kB, 229 kB gzipped) |
 | Assistant failure modes | a non-existent model configured; errors sent inside the stream | clear message with alternative models before any charge |
 
 Not yet done with a real credential: a scripted round of assistant questions (count with a filter,
@@ -24,7 +25,7 @@ tests cover the mechanics; the quality of the answers was checked informally dur
 
 ## Automated tests
 
-`uv run pytest` — 109 tests, 37.6 s, no `dados/`, database or credential needed. A synthetic
+`uv run pytest` — 114 tests, 25 s, no `dados/`, database or credential needed. A synthetic
 `dados/` folder mirrors the real layouts (FLEX CSV, BASS-II sheets per investigator, the five CFI
 sheets, PSI-117 wide tables and ReadMe, the three PSI-142 block layouts, ISA-Tab metadata). A local
 HTTP server replays recorded responses in place of the model gateway; a fixture blocks the real
@@ -35,13 +36,16 @@ ZYT).
 |---|---|---|
 | `tests/test_ingest.py` | 19 | each investigation in its own table; exact duplicates not loaded; original beats sample; unreadable cells become alerts; BASS material text → categories (8 real strings); measured and model kept apart in views; CFI sheets joined and zeros kept out of measurements; PSI-142 metadata conflicts and swapped columns flagged; portal prefixes recognized; PSI-117 ReadMe says which tables are missing; PSI-117 measurements traced to CFI flights |
 | `tests/test_seed.py` | 4 | export is stable when data does not change; round trip rebuilds tables and views; no local paths in the seed; the app builds the database from the seed on first open |
-| `tests/test_assistant.py` | 22 | every page uses known groups and ≤ 10 tools; tools from another page refused; unknown parameters refused; quality tools locked to the page's investigation; cross-study tools only on comparison pages; history trimmed at user boundaries; unusable model refused before spending; gateway error codes and mid-stream errors become messages; a full tool round trip with the real SDK against a local server; each tool returns what it promises |
+| `tests/test_api.py` | 17 | the API: health; overview; each page payload with typed tables; investigation with sheet, links and metadata; studies hub with search index; generic study page; side-by-side comparison; explore sources; the assistant endpoint streams NDJSON and refuses unknown pages |
+| `tests/test_uploads_api.py` | 5 | submission over HTTP: receive, analyze with the fake gateway, save the review, approve, delete; the documents flow |
+| `tests/test_assistant.py` | 23 | every page uses known groups and ≤ 10 tools; tools from another page refused; unknown parameters refused; quality tools locked to the page's investigation; cross-study tools only on comparison pages; history trimmed at user boundaries; unusable model refused before spending; gateway error codes and mid-stream errors become messages; a full tool round trip with the real SDK against a local server; each tool returns what it promises |
 | `tests/test_studies.py` | 19 | archives: escaping paths, links, size limits, `.rar` via 7z; receive, classify, nested archives, junk skipped, document required, invalid PSI; profile finds the header below title rows; validation blocks unconfirmed inferences and unmapped columns; the generic reader keeps provenance and records alerts; the proposal is validated and corrected by the model (two attempts); approval writes the spec and loads the study; catalog studies and existing folders refused; pages render; hub search and filters |
 | `tests/test_ficha.py` | 17 | unit conversion and varied/fixed; natural levels; linked conditions found and excluded correctly; sheet written with evidence; submitted studies use their declared attributes; unknown units isolated; hub filters by range; side-by-side verdicts, table, same-hardware warning; the comparison tool locked to the studies on screen; PSI metadata without people; metadata feeds search and the study page |
-| `tests/test_ficha_docs.py` | 11 | quotes checked against page text; wrong page, short quote and escaping paths do not verify; a reviewer's decision survives a re-check; the full propose → check → approve → load path; invalid sheet files not loaded; the submission proposal carries the checked sheet; the review grid merge; the add-documents page; extinguishing agent and "as planned" items |
-| `tests/test_smoke.py` | 17 | every page renders; chart colors follow the entity; more than 8 series refused; navigation opens on the overview; the chat widget opens, docks and closes; the chat explains missing configuration |
+| `tests/test_ficha_docs.py` | 10 | quotes checked against page text; wrong page, short quote and escaping paths do not verify; a reviewer's decision survives a re-check; the full propose → check → approve → load path; invalid sheet files not loaded; the submission proposal carries the checked sheet; the review grid merge; the add-documents page; extinguishing agent and "as planned" items |
+| `frontend/src/**/*.test.ts` (Vitest) | 48 in 7 files | explore helpers; data i18n; review grid logic; studies hub search and filters; droplet burn replay (d² law between measured ends); scene model; per-study simulation bindings |
 
-Lint and formatting: `uv run ruff check .` and `uv run ruff format .`, clean.
+Lint and formatting: `uv run ruff check .` and `uv run ruff format .` (Python), `npm run lint`
+(oxlint) and `npm run typecheck` (TypeScript), clean.
 
 ## Test review
 
@@ -54,7 +58,8 @@ area by area; this table records the review date of each area.
 | Assistant | `test_assistant.py` | |
 | Study submission | `test_studies.py` | |
 | Fact sheets and comparisons | `test_ficha.py`, `test_ficha_docs.py` | |
-| Pages | `test_smoke.py` | |
+| API | `test_api.py`, `test_uploads_api.py` | |
+| Front end | `frontend/src/**/*.test.ts` | |
 
 ## Open issues
 

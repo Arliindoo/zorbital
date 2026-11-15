@@ -24,6 +24,9 @@ IA responde com fluência sobre números que não existem.
 - **Ficha de cada estudo**, calculada dos dados: combustíveis, amostras, condições na mesma unidade,
   o que se mediu, o que variou e o que ficou fixo, e as condições que variaram juntas. Com os
   documentos do estudo, a ficha ganha objetivo, sensores e condições fixas, com a página de origem.
+- **Simulação 3D por estudo**: uma reconstrução em WebGL2 que desce da ISS ou do laboratório até o
+  experimento e reproduz o ensaio escolhido a partir dos valores da fonte; a tela diz, ensaio a
+  ensaio, o que é dado e o que é ilustração, e nada é inventado quando falta o dado.
 - **Comparações com regras**: PSI-117 × CFI com correspondência ponto a ponto (não é validação
   independente), e **Fichas lado a lado**, com veredito por par.
 - **Assistente por página**, que só usa consultas prontas aos dados daquela página e mostra o custo
@@ -36,14 +39,22 @@ tela vem da IA; medido, simulado e incerteza nunca entram na mesma conta.
 
 ## Rodar
 
+Pré-requisitos: [uv](https://docs.astral.sh/uv/) e Node.js 22 ou mais novo. O painel tem duas partes:
+a **API** em Python (FastAPI) e o **front-end** em React + Vite.
+
 ```bash
-uv sync
-uv run streamlit run app.py        # http://localhost:8501
+uv sync && cp .env.example .env               # credencial de IA é opcional
+uv run uvicorn spaceapps.api.app:app --reload # API em http://localhost:8000
+cd frontend && npm install && npm run dev     # painel em http://localhost:5173
 ```
 
-Quem clona não baixa nada: na primeira abertura o painel monta o banco a partir de `seed/`. Sem
-credencial de IA, tudo funciona menos o assistente e o envio de estudos (`cp .env.example .env`).
-`uv run spaceapps-build` refaz banco e seed a partir de `dados/`; `uv run pytest` roda os 109 testes.
+Produção, num processo só: `npm --prefix frontend ci && npm --prefix frontend run build` e
+`uv run spaceapps-serve` (http://localhost:8000).
+
+Quem clona não baixa nada: ao subir, a API monta o banco a partir de `seed/`. Sem credencial de IA,
+tudo funciona menos o assistente e o envio de estudos. A interface vem em inglês, com português nas
+configurações. `uv run spaceapps-build` refaz banco e seed a partir de `dados/`; `uv run pytest`
+roda os testes do Python e `npm --prefix frontend test` os do front-end.
 
 ## Dados da NASA, referências, uso de IA e equipe
 
