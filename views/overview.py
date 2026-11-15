@@ -15,8 +15,6 @@ tables = set(db.tables())
 
 # gotas primeiro (voo e solo), depois sólidos e contrafluxo
 ORDER = ["PSI-69", "PSI-39", "PSI-117", "PSI-25", "PSI-142"]
-PAGES = {"PSI-69": "views/flex.py", "PSI-25": "views/bass.py", "PSI-39": "views/cfi.py",
-         "PSI-117": "views/psi117.py", "PSI-142": "views/psi142.py"}  # fmt: skip
 UNITS = {
     "PSI-69": "Ensaios",
     "PSI-25": "Testes",
@@ -55,8 +53,8 @@ for start in range(0, len(rows), 3):
                 + f" :gray-badge[{n_alerts} alertas]"
             )
             st.caption(inv["pergunta"])
-            if inv["id"] in PAGES:
-                st.page_link(PAGES[inv["id"]], label="Abrir", icon=":material/arrow_forward:")
+            page, params = ui.study_link(inv)
+            st.page_link(page, label="Abrir", icon=":material/arrow_forward:", query_params=params)
 
 if "v_extincao_c12_comparacao" in tables:
     with st.container(border=True):

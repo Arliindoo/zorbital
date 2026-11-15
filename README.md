@@ -87,6 +87,8 @@ Os **arquivos continuam sendo a fonte**. O banco é um derivado deles e existe p
 | `cfi_ensaios`, `cfi_cameras` | Um ensaio do CFI por linha: condições, resultados, ignição, comentário; e as câmeras |
 | `psi142_conjuntos`, `psi142_pontos` | Os 8 conjuntos digitalizados do PSI-142 (artigo, figura, DOI) e seus pontos (x, y) |
 | `psi117_cfi_correspondencia` | Quais medições do PSI-117 são ensaios do CFI, e onde os valores divergem |
+| `ficha`, `ficha_vinculos` | Ficha de cada estudo (combustível, amostra, condições, medições, o que variou e o que ficou fixo) e as condições que não variaram de forma independente |
+| `metadados`, `publicacoes` | Objetivo, hipótese, abordagem, equipamento e publicações de cada investigação, do portal NASA PSI |
 | `alertas` | Achados de qualidade: valor original, tipo e explicação |
 | `fontes` | Todos os arquivos de `dados/`, com hash, status (carregado, duplicata, derivado) e motivo |
 | `v_psi117_comparacao` | Medido e modelo lado a lado por pressão, com a faixa de incerteza |
@@ -109,13 +111,103 @@ cd dados && python Zorbital/scripts/gerar_dados_zorbital.py Zorbital_dados_compl
 cd .. && uv run spaceapps-build
 ```
 
+### Ficha dos estudos
+
+Cada estudo ganha uma ficha calculada dos dados na carga, sem IA
+([ficha.py](src/spaceapps/ingest/ficha.py)). Ela aparece no topo da página do estudo, gera as etiquetas
+dos cartões em **Estudos** e alimenta os filtros por faixa de O₂, pressão e formato da amostra.
+
+- Um vocabulário comum (`ATRIBUTOS`) põe tudo na mesma unidade: O₂ como fração, pressão em atm,
+  tamanhos em mm. Unidades que o código não sabe converter ficam como estão e não entram nos filtros.
+- Nas tabelas do catálogo, `PAPEIS` diz o que cada coluna representa. Estudos enviados trazem o
+  `atributo` de cada coluna na especificação, conferido na revisão.
+- Cada item diz de onde saiu: a coluna (`flex_ensaios.pressao_mmhg ÷ 760`) ou o documento.
+- **Condições que não variaram de forma independente:** quando um nível de uma condição só aparece
+  com um nível de outra (no FLEX, pressão alta só com um nível de O₂), a diferença nesses testes não
+  pode ser atribuída a uma delas sozinha. A composição do gás (N₂ como resto) e as características
+  da própria amostra não entram nessa lista.
+
+### Metadados do portal
+
+O `dados/metadados/DadosPsi.tar.gz` (download em lote do portal NASA PSI, formato ISA-Tab, um zip por
+investigação) entra pelo [metadados.py](src/spaceapps/ingest/metadados.py) nas tabelas `metadados`
+(objetivo, hipótese, abordagem, equipamento, plataforma, período, palavras-chave) e `publicacoes`. É
+lido na memória, sem extrair nada, e sem IA: os campos são fixos. Nome, e-mail e contato dos
+pesquisadores ficam de fora.
+
+Aparece em "Objetivo, equipamento e publicações" na página de cada estudo, entra na busca e nas fichas
+lado a lado (dois estudos no mesmo aparelho geram um aviso) e é devolvido pela ferramenta `cautelas`.
+
+### Ficha a partir dos documentos
+
+O que só está escrito nos documentos (sensores, condições mantidas fixas, objetivo) entra pela
+[ficha_docs.py](src/spaceapps/studies/ficha_docs.py):
+
+1. **A IA propõe** um bloco `ficha`. No envio, ele vem na mesma chamada da especificação; para estudos
+   do catálogo, use **Dados → Adicionar documentos**, que lê só a ficha. Cada item cita arquivo,
+   página e um trecho copiado.
+2. **O código confere o trecho** no texto daquela página (com uma página de folga, sem diferenciar
+   acentos, maiúsculas, pontuação e quebras). O que confere nasce marcado em *Entra na ficha*; o que
+   não confere nasce desmarcado.
+3. **A pessoa revisa:** edita, apaga, marca ou desmarca. Só o que está marcado é gravado: em
+   `estudo.json` → `ficha` (envio) ou em `dados/<PSI>/ficha.json`, com os documentos em
+   `dados/<PSI>/documentos/` (catálogo).
+4. **A carga lê sem IA.** Os itens entram na `ficha` com a origem *documento* e a citação. Os dados
+   valem mais que o documento: se a faixa escrita não cobre a dos dados, a ficha mostra os dois e
+   registra o alerta `ficha_divergente`; as comparações usam a faixa dos dados.
+
+### Fichas lado a lado
+
+A página **Comparações → Fichas lado a lado** ([fichas.py](src/spaceapps/fichas.py)) compara de 2 a 4
+estudos antes de qualquer resultado: as faixas de O₂, pressão, hélio e tamanho da amostra, na mesma
+unidade, com a faixa comum sombreada; o que cada um mede; e um veredito por par.
+
+- **Grandezas medidas** (`GRANDEZAS` em [ficha.py](src/spaceapps/ingest/ficha.py)): diâmetro de
+  extinção, taxa de queima, tempo de queima, taxa de estiramento, temperatura da chama, gases e emissão da
+  chama. É o que diz que dois estudos mediram a mesma coisa. Nos envios, a IA propõe a grandeza de cada
+  coluna de resultado e a revisão confirma.
+- **Vereditos:** *Janela comparável*, *Combustíveis diferentes*, *Condições sem sobreposição*, *Sem
+  condição numérica em comum* e *Nada medido em comum*.
+- **Avisos que acompanham o veredito:** ambiente e tipo de evidência diferentes, a relação PSI-117 × CFI
+  (não é validação independente) e os vínculos de cada estudo entre as condições cujas faixas se cruzam:
+  faixa comum não quer dizer que a mesma combinação foi testada.
+- O assistente da página tem a ferramenta `comparar_fichas`, presa aos estudos escolhidos na tela.
+
+## Enviar um estudo
+
+A página **Enviar estudo** recebe as tabelas (.csv, .xlsx) e ao menos um documento (.pdf, .md, .txt),
+soltos ou em .zip, .rar ou .tar.gz (o .rar usa o `7z` instalado na máquina).
+
+1. **Receber:** os arquivos vão para `data/uploads/<envio>/`, fora do git. Compactados são abertos com
+   proteção contra caminhos que saem da pasta, links, *zip bombs* e excesso de tamanho.
+2. **Analisar:** a IA (`ZYRIA_MODEL_ANALISE`, padrão `anthropic/claude-sonnet-5.5`) recebe o perfil
+   das tabelas (não as planilhas inteiras) e o texto dos documentos com o número da página, e propõe
+   uma **especificação de leitura**: o que cada coluna é, a unidade, valores especiais, linhas a
+   excluir, cautelas e, para cada interpretação, de onde ela saiu (documento e página, cabeçalho ou
+   inferência). O custo estimado aparece antes da chamada.
+3. **Revisar:** tudo é editável. As interpretações inferidas pela IA precisam ser confirmadas uma a
+   uma; até lá, e enquanto a validação apontar problemas, não dá para aprovar.
+4. **Aprovar:** os arquivos vão para `dados/<PSI>/`, junto com `estudo.json` (a especificação
+   aprovada), e a carga e a seed são refeitas.
+
+**A IA não grava dados.** Quem lê as tabelas é o leitor genérico (`ingest/generic.py`), que aplica a
+especificação de forma determinística: toda carga dá o mesmo resultado, sem chamar a IA, e cada
+linha guarda o arquivo, a aba e a linha de origem. O estudo aparece em **Estudos enviados**, com a
+seção "Dados aferidos" mostrando a natureza (medido, simulado, condição…) e a evidência de cada
+coluna.
+
+Layouts lidos nesta versão: tabela simples e várias fontes com as mesmas colunas, empilhadas. Blocos
+lado a lado e abas ligadas por chave ainda pedem leitor manual. As comparações sugeridas pela IA
+ficam gravadas, mas ainda não são verificadas por regras de compatibilidade.
+
 ## Estrutura
 
 | Caminho | O que é |
 |---|---|
 | `app.py` | Navegação entre as páginas |
 | `views/` | Uma página por investigação, a Visão geral e o explorador livre |
-| `src/spaceapps/ingest/` | Leitura de cada fonte, catálogo de arquivos e montagem do banco |
+| `src/spaceapps/ingest/` | Leitura de cada fonte, catálogo de arquivos, leitor genérico e montagem do banco |
+| `src/spaceapps/studies/` | Envio de estudos: extração segura, perfil, documentos, proposta da IA e aprovação |
 | `src/spaceapps/db.py` | Leitura do banco (só leitura) |
 | `src/spaceapps/charts.py` | Gráficos Plotly e as cores fixas por categoria (claro e escuro) |
 | `src/spaceapps/assistant/` | Assistente: estado da tela, ferramentas por grupo, cliente Zyria e o laço |

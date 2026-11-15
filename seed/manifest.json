@@ -1,20 +1,26 @@
 {
   "formato": 1,
-  "gerado_em": "2026-11-14T19:48:15",
+  "gerado_em": "2026-11-15T11:40:34",
   "tabelas": {
-    "alertas": 103,
+    "alertas": 105,
     "bass_ensaios": 129,
     "cfi_cameras": 227,
     "cfi_ensaios": 227,
+    "estudo_colunas": 6,
+    "ficha": 61,
+    "ficha_vinculos": 12,
     "flex_ensaios": 34,
-    "fontes": 23,
-    "investigacoes": 5,
+    "fontes": 35,
+    "investigacoes": 6,
+    "metadados": 25,
     "psi117_cfi_correspondencia": 19,
     "psi117_extincao": 31,
     "psi117_extincao_1atm": 33,
     "psi117_series_modelo": 640,
     "psi117_tabelas": 9,
     "psi142_conjuntos": 8,
-    "psi142_pontos": 6741
+    "psi142_pontos": 6741,
+    "psi26_ensaios": 122,
+    "publicacoes": 361
   }
 }

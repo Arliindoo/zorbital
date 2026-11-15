@@ -68,7 +68,48 @@ def write_dados(root: Path) -> Path:
     write_cfi(files)
     write_psi117_more(files)
     write_psi142(files)
+    write_metadados(files)
     return files
+
+
+ISA = """STUDY
+Study Identifier\t"{psi}"
+Study Title\t"{title}"
+Comment[Objective]\t"Map the limits:
+    1) first item.
+    2) second item."
+Comment[Experiment Hardware]\t"{hardware}"
+Comment[Investigation Start Date]\t"08-01-2007"
+Comment[Investigation End Date]\t"07-31-2016"
+Study Design Type\t"Droplet"\t"Extinction"
+Study Publication Title\t"Paper one"\t"Paper two"
+Study Publication DOI\t"10.1/one"\t""
+Comment[Study Publication Link]\t""\t"https://ntrs.nasa.gov/citations/2"
+Study Person Last Name\t"Pessoa"
+Study Person Email\t"pessoa@exemplo.org"
+"""
+
+
+def write_metadados(files: Path) -> None:
+    """Metadados do portal como chegam: um .tar.gz com um zip por investigação."""
+    import io
+    import tarfile
+    import zipfile
+
+    studies = {"PSI-69_metadata_FLEX.zip": ("PSI-69", "Flame Extinguishment Experiment",
+                                            "Combustion Integrated Rack (CIR), Multi-user Droplet Apparatus (MDCA)"),
+               "PSI-39_metadata_CFI.zip": ("PSI-39", "Cool Flames Investigation",
+                                           "Multi-User Droplet Combustion Apparatus (MDCA)")}  # fmt: skip
+    (files / "metadados").mkdir(exist_ok=True)
+    with tarfile.open(files / "metadados" / "DadosPsi.tar.gz", "w:gz") as archive:
+        for name, (psi, title, hardware) in studies.items():
+            buffer = io.BytesIO()
+            with zipfile.ZipFile(buffer, "w") as inner:
+                inner.writestr("i_Investigation.txt", ISA.format(psi=psi, title=title, hardware=hardware))
+                inner.writestr(f"s_{psi}.txt", "")
+            info = tarfile.TarInfo(name)
+            info.size = len(buffer.getvalue())
+            archive.addfile(info, io.BytesIO(buffer.getvalue()))
 
 
 # --- CFI (PSI-39): planilha com as 5 abas, ligadas pelo Flex Number --------------------------------

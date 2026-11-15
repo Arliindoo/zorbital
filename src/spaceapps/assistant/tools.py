@@ -3,8 +3,9 @@
 Regras de escopo, garantidas aqui e não só no prompt:
 - Só existem consultas prontas, com colunas de uma lista fechada. Não há SQL livre nem web.
 - Nas páginas de investigação, as ferramentas de qualidade só respondem sobre aquela investigação.
-- Só o grupo `comparacao`, na página de comparação, cruza investigações (PSI-117 × CFI), e ele
-  devolve junto a correspondência entre as duas fontes e as cautelas.
+- Só os grupos `comparacao` (PSI-117 × CFI) e `fichas` (fichas lado a lado), nas páginas de comparação,
+  cruzam investigações; eles devolvem junto a correspondência entre as fontes, os vínculos e as cautelas.
+  O `fichas` só compara os estudos escolhidos na tela.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from dataclasses import dataclass
 
 import polars as pl
 
-from .. import db
+from .. import db, fichas
 from . import dictionary
 from .screen import Screen
 
@@ -52,6 +53,7 @@ GROUPS = {
     "cfi": "Consultas na tabela do CFI (chamas frias de gotas de n-dodecano e misturas, ISS).",
     "psi142": "Conjuntos e pontos digitalizados do PSI-142 (chamas em contrafluxo, Princeton).",
     "comparacao": "Comparação PSI-117 × CFI do diâmetro de extinção, com a correspondência entre as fontes.",
+    "fichas": "Fichas dos estudos escolhidos lado a lado: o que têm em comum, o que se sobrepõe e o que não.",
     "qualidade": "Alertas de qualidade, origem dos dados e o que não concluir.",
     "catalogo": "As investigações e os arquivos de dados/.",
     "dicionario": "Significado de colunas, unidades, categorias e tipos de alerta.",
@@ -65,6 +67,8 @@ PAGE_GROUPS = {
     "cfi": ["tela", "cfi", "qualidade", "dicionario"],
     "psi142": ["tela", "psi142", "qualidade", "dicionario"],
     "comparacao": ["tela", "comparacao", "qualidade", "dicionario"],
+    "estudos": ["tela", "qualidade", "dicionario"],
+    "fichas": ["tela", "fichas", "qualidade", "dicionario"],
     "explore": ["tela", "dicionario"],
 }
 
@@ -119,12 +123,20 @@ def _column(frame: pl.DataFrame, column: str) -> str:
     return column
 
 
+def _known_investigations() -> list[str]:
+    """As do catálogo e as enviadas pelo painel."""
+    try:
+        return db.query("SELECT id FROM investigacoes")["id"].to_list()
+    except Exception:  # noqa: BLE001 — sem banco, só as do catálogo
+        return INVESTIGATIONS
+
+
 def _scoped_investigation(screen: Screen, requested: str | None) -> list[str] | None:
     """Investigações a consultar. Na página de uma investigação, só ela; na comparação, as duas dela;
     na visão geral, qualquer uma (None = todas)."""
     allowed = screen.allowed()
-    if requested and requested not in INVESTIGATIONS:
-        raise ToolError(f"Investigação desconhecida: {requested}. Opções: {INVESTIGATIONS}.")
+    if requested and requested not in (known := _known_investigations()):
+        raise ToolError(f"Investigação desconhecida: {requested}. Opções: {known}.")
     if allowed and requested and requested not in allowed:
         raise ToolError(f"Esta página é de {', '.join(allowed)}; para {requested}, abra a página dela.")
     if requested:
@@ -359,13 +371,37 @@ def cautelas(screen: Screen, investigacao: str | None = None) -> dict:
         f"SELECT id, nome, pergunta, cautelas, url_nasa, relatorio, doi FROM investigacoes WHERE {where}",
         params,
     )
-    return {"investigacoes": _rows(rows), "cautela_geral": db.meta()["geral"]}
+    result = {"investigacoes": _rows(rows), "cautela_geral": db.meta()["geral"]}
+    detailed = len(result["investigacoes"]) == 1  # com várias, só o essencial (o resultado tem limite)
+    if not detailed:
+        result["nota"] = (
+            "Resumo de várias investigações; peça uma só para ver a ficha, a hipótese e a abordagem."
+        )
+    for inv in result["investigacoes"]:
+        meta, publications = db.metadata(inv["id"])
+        if not detailed:
+            if meta:
+                inv["portal_nasa"] = {k: meta.get(k) for k in ("objetivo", "equipamento")}
+            continue
+        sheet, links = db.ficha(inv["id"])
+        if sheet.height:
+            inv["ficha"] = _rows(sheet.select("secao", "rotulo", "unidade", "natureza", "valores", "situacao",
+                                              "evidencia", "nota"))  # fmt: skip
+        if links.height:
+            inv["condicoes_nao_independentes"] = _rows(links.select("variavel_a", "variavel_b", "exemplos"))
+        if meta:
+            inv["portal_nasa"] = {k: meta.get(k) for k in ("objetivo", "hipotese", "abordagem", "equipamento",
+                                                          "plataforma", "inicio", "fim", "palavras_chave")}  # fmt: skip
+        if publications.height:
+            inv["publicacoes"] = {"total": publications.height,
+                                  "primeiras": _rows(publications.select("titulo", "doi", "link").head(8))}  # fmt: skip
+    return result
 
 
 INV_PARAM = {
     "type": "string",
-    "enum": INVESTIGATIONS,
-    "description": "PSI-69 (FLEX), PSI-25 (BASS-II) ou PSI-117. Nas páginas de investigação, só a da página.",
+    "description": "Número da investigação (ex.: PSI-69, PSI-25, PSI-117, PSI-39, PSI-142 ou um estudo enviado). "
+    "Nas páginas de investigação, só a da página.",
 }
 
 # --- Grupo catalogo -----------------------------------------------------------------------------
@@ -410,7 +446,14 @@ STATUSES = ["Carregado", "Não carregado", "Duplicata exata", "Documentação", 
 
 
 def dicionario(screen: Screen, termo: str, tabela: str | None = None) -> dict:
-    return dictionary.lookup(termo, tabela or screen.tabela_banco)
+    found = dictionary.lookup(termo, tabela or screen.tabela_banco)
+    if "erro" not in found or "estudo_colunas" not in set(db.tables()):
+        return found
+    # estudos enviados: o dicionário vem da especificação aprovada, com a evidência de cada interpretação
+    rows = db.query("SELECT * FROM estudo_colunas WHERE coluna = ? OR origem = ?", [termo, termo])
+    if screen.investigacao:
+        rows = rows.filter(pl.col("investigacao") == screen.investigacao)
+    return {"tipo": "coluna de estudo enviado", "linhas": _rows(rows)} if rows.height else found
 
 
 # --- Registro -----------------------------------------------------------------------------------
@@ -479,6 +522,35 @@ def comparacao_correspondencia(screen: Screen) -> dict:
     rows = db.query("SELECT * FROM psi117_cfi_correspondencia")
     summary = rows.group_by("tabela_psi117", "situacao").len("pontos").sort("tabela_psi117")
     return {"resumo": _rows(summary), "pontos": _rows(rows)}
+
+
+def comparar_fichas(screen: Screen, investigacoes: list[str] | None = None) -> dict:
+    """Fichas lado a lado, só entre os estudos escolhidos na tela."""
+    chosen = screen.escopo or []
+    ids = investigacoes or chosen
+    if outside := [i for i in ids if i not in chosen]:
+        raise ToolError(f"Só os estudos escolhidos na tela podem ser comparados: {', '.join(chosen)}. "
+                        f"Fora da seleção: {', '.join(outside)}.")  # fmt: skip
+    if not 2 <= len(ids) <= 4:
+        raise ToolError("Compare de 2 a 4 estudos.")
+    names = set(db.tables())
+    if "ficha" not in names:
+        raise ToolError("O banco não tem a ficha dos estudos; rode a carga de novo.")
+    result = fichas.compare(
+        db.query("SELECT * FROM ficha"),
+        db.query("SELECT * FROM ficha_vinculos") if "ficha_vinculos" in names else pl.DataFrame(),
+        db.query("SELECT * FROM investigacoes"),
+        ids,
+        db.query("SELECT * FROM metadados") if "metadados" in names else None,
+    )
+    return {
+        "tabela": _rows(result["tabela"]),
+        "faixas_comuns_a_todos": result["janelas_comuns"],
+        "pares": [p.as_dict() for p in result["pares"]],
+        "regra": "Faixas que se cruzam indicam uma janela comparável, não testes nas mesmas condições "
+        "combinadas. Combustível, ambiente e tipo de evidência diferentes entram como avisos, não como "
+        "conclusão. Grandezas iguais com unidades diferentes não se comparam em número.",
+    }
 
 
 FLEX_GROUPS = ["desfecho", "oxigenio_fracao", "pressao_mmhg", "combustivel", "helio_fracao"]
@@ -635,8 +707,10 @@ _ALL = [
     Tool(
         "cautelas",
         "qualidade",
-        "O que a investigação responde, o que NÃO se pode concluir dela e os links da NASA. "
-        "Consulte antes de qualquer interpretação.",
+        "O que a investigação responde, o que NÃO se pode concluir dela, os links da NASA, o objetivo, a "
+        "hipótese, o equipamento e as publicações (metadados do portal), e a ficha "
+        "(combustível, amostra, condições, medições, o que variou e o que ficou fixo, e as condições que não "
+        "variaram de forma independente). Consulte antes de qualquer interpretação.",
         {"type": "object", "properties": {"investigacao": INV_PARAM}},
         cautelas,
     ),
@@ -735,5 +809,26 @@ _ALL = [
         {"type": "object", "properties": {}},
         comparacao_correspondencia,
     ),
+    Tool(
+        "comparar_fichas",
+        "fichas",
+        "Compara as fichas dos estudos escolhidos na tela: combustíveis, amostras, faixas de O2, pressão e "
+        "tamanho na mesma unidade, o que se sobrepõe, o que medem em comum, o veredito de cada par e os avisos "
+        "(ambientes, evidência, condições que não variaram de forma independente).",
+        {
+            "type": "object",
+            "properties": {
+                "investigacoes": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 2,
+                    "maxItems": 4,
+                    "description": "Subconjunto dos estudos escolhidos na tela (ex.: ['PSI-69', 'PSI-39']). "
+                    "Sem ele, compara todos os escolhidos.",
+                }
+            },
+        },
+        comparar_fichas,
+    ),  # fmt: skip
 ]
 TOOLS = {t.name: t for t in _ALL}

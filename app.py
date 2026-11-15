@@ -12,7 +12,10 @@ st.set_page_config(page_title="Zorbital — combustão em microgravidade", layou
 
 page = st.navigation(
     {
-        "": [st.Page("views/overview.py", title="Visão geral", icon=":material/dashboard:", default=True)],
+        "": [
+            st.Page("views/overview.py", title="Visão geral", icon=":material/dashboard:", default=True),
+            st.Page("views/estudos.py", title="Estudos", icon=":material/library_books:"),
+        ],
         "Gotas de combustível": [
             st.Page("views/flex.py", title="FLEX · extinção de gotas (ISS)", icon=":material/water_drop:"),
             st.Page("views/cfi.py", title="CFI · chamas frias (ISS)", icon=":material/ac_unit:"),
@@ -23,9 +26,14 @@ page = st.navigation(
             st.Page("views/psi142.py", title="PSI-142 · contrafluxo (solo)", icon=":material/swap_vert:"),
         ],
         "Comparações": [
+            st.Page("views/fichas.py", title="Fichas lado a lado", icon=":material/view_column:"),
             st.Page("views/comparacao.py", title="PSI-117 × CFI", icon=":material/compare_arrows:"),
         ],
-        "Ferramentas": [st.Page("views/explore.py", title="Explorar", icon=":material/query_stats:")],
+        "Dados": [
+            st.Page("views/enviar.py", title="Enviar estudo", icon=":material/upload:"),
+            st.Page("views/documentos.py", title="Adicionar documentos", icon=":material/description:"),
+            st.Page("views/explore.py", title="Explorar", icon=":material/query_stats:"),
+        ],
     }
 )
 page.run()
