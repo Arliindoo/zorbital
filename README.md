@@ -157,6 +157,11 @@ the team. This README and the `docs/` folder were drafted the same way and revis
 | Eduardo Luiz | Design · front-end |
 | Arlindo Antonio | Software engineer · pitch structure · documentation · project-level decisions |
 
+## License
+
+Code and documentation: [MIT](LICENSE). The data in `seed/` is derived from NASA PSI and follows
+NASA's data usage terms.
+
 ## What this project does not claim
 
 Zorbital shows evidence and its limits; it does not predict fires or give operational safety advice.
