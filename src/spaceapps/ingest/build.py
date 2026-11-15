@@ -18,7 +18,7 @@ from pathlib import Path
 import duckdb
 import polars as pl
 
-from . import bass, cfi, flex, links, psi117, psi117_more, psi142
+from . import bass, cfi, ficha, flex, generic, links, metadados, psi117, psi117_more, psi142
 from .catalog import DOC_SUFFIXES, GERAL, INVESTIGACOES, KNOWN_FILES, canonical_name
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -44,6 +44,11 @@ def _psi142(path, companion):
     return {"psi142_conjuntos": sets, "psi142_pontos": points}, alerts
 
 
+def _metadados(path, companion):
+    investigations, publications, alerts = metadados.load(path)
+    return {"metadados": investigations, "publicacoes": publications}, alerts
+
+
 # leitor → função(arquivo, arquivo complementar ou None) → ({tabela: linhas}, alertas)
 LOADERS = {
     "flex": _single("flex_ensaios", flex.load),
@@ -56,6 +61,7 @@ LOADERS = {
     "psi117_serie_oscilatoria": _single("psi117_series_modelo", psi117_more.load_series),
     "cfi": _cfi,
     "psi142": _psi142,
+    "metadados": _metadados,
 }
 
 VIEWS = {
@@ -193,6 +199,11 @@ def build(dados: Path = DADOS, db_path: Path = DB_PATH) -> dict[str, int]:
         if companion:
             companion.update(status="Carregado", motivo=f"Metadados cruzados com {f['caminho']}.")
 
+    submitted, columns_dictionary, suggestions = _load_submitted_studies(
+        files, dados, tables, alerts, table_source
+    )
+    documented = _load_document_sheets(files)
+
     correspondence, found = links.psi117_cfi(tables)
     if correspondence is not None:
         tables["psi117_cfi_correspondencia"] = correspondence
@@ -226,10 +237,14 @@ def build(dados: Path = DADOS, db_path: Path = DB_PATH) -> dict[str, int]:
         [{k: v for k, v in f.items() if not k.startswith("_")} for f in files], infer_schema_length=None
     )
     # fonte da tabela principal de cada investigação, e todas as que entraram para ela
-    main = {inv["id"]: table_source.get(inv["tabela"]) for inv in INVESTIGACOES}
+    catalog = [{**inv, "origem": "catálogo"} for inv in INVESTIGACOES]
+    catalog += [
+        {**row, "origem": "envio"} for row in submitted if row["id"] not in {i["id"] for i in INVESTIGACOES}
+    ]
+    main = {inv["id"]: table_source.get(inv["tabela"]) for inv in catalog}
     every = {inv["id"]: "; ".join(f["caminho"] for f in files if f["status"] == "Carregado"
-                                  and f["investigacao"] == inv["id"]) or None for inv in INVESTIGACOES}  # fmt: skip
-    investigations = pl.DataFrame(INVESTIGACOES).with_columns(
+                                  and f["investigacao"] == inv["id"]) or None for inv in catalog}  # fmt: skip
+    investigations = pl.DataFrame(catalog).with_columns(
         fonte_carregada=pl.col("id").replace_strict(main, default=None),
         fontes_carregadas=pl.col("id").replace_strict(every, default=None),
     )
@@ -243,7 +258,20 @@ def build(dados: Path = DADOS, db_path: Path = DB_PATH) -> dict[str, int]:
     tmp = db_path.with_suffix(".tmp.duckdb")
     tmp.unlink(missing_ok=True)
     with duckdb.connect(str(tmp)) as con:
-        frames = {**tables, "alertas": pl.concat(alerts), "fontes": sources, "investigacoes": investigations}
+        frames = {**tables, "alertas": pl.concat(alerts, how="diagonal"), "fontes": sources,
+                  "investigacoes": investigations}  # fmt: skip
+        if columns_dictionary.height:
+            frames["estudo_colunas"] = columns_dictionary
+        if suggestions:
+            frames["estudo_sugestoes"] = pl.DataFrame(suggestions, infer_schema_length=None)
+        sheet, links_found = ficha.compute(tables, catalog, columns_dictionary, documented)
+        sheet, divergent = ficha.mark_divergences(sheet)
+        if divergent.height:
+            frames["alertas"] = pl.concat([frames["alertas"], divergent], how="diagonal")
+        if sheet.height:
+            frames["ficha"] = sheet
+        if links_found.height:
+            frames["ficha_vinculos"] = links_found
         for name, frame in frames.items():
             con.register("_frame", frame.to_arrow())
             con.execute(f'CREATE TABLE "{name}" AS SELECT * FROM _frame')
@@ -258,6 +286,71 @@ def build(dados: Path = DADOS, db_path: Path = DB_PATH) -> dict[str, int]:
         )
     tmp.replace(db_path)
     return {name: frame.height for name, frame in frames.items()}
+
+
+def _load_document_sheets(files) -> dict[str, list[dict]]:
+    """Fichas aprovadas a partir dos documentos: o bloco `ficha` de cada `estudo.json` e cada
+    `dados/<PSI>/ficha.json` (estudos do catálogo). Sem IA: o que foi aprovado na revisão."""
+    from ..studies import ficha_docs  # aqui dentro: o módulo usa o banco, que importa a carga
+
+    out: dict[str, list[dict]] = {}
+    for f in files:
+        if f["nome"] == "estudo.json" and f["status"] == "Carregado":
+            spec = json.loads(f["_path"].read_text(encoding="utf-8"))
+            if spec.get("ficha"):
+                out.setdefault(spec["investigacao"]["id"], []).append(ficha_docs.accepted(spec["ficha"]))
+        elif f["nome"] == ficha_docs.FICHA_FILE and not f["duplicata_de"]:
+            try:
+                sheet = json.loads(f["_path"].read_text(encoding="utf-8"))
+                psi = sheet["investigacao"]
+            except (json.JSONDecodeError, KeyError, TypeError) as error:
+                f.update(status="Não carregado", motivo=f"Ficha ilegível: {error}")
+                continue
+            if problems := ficha_docs.validate(sheet, stored=True):
+                f.update(status="Não carregado", motivo="Ficha com problemas: " + "; ".join(problems))
+                continue
+            out.setdefault(psi, []).append(sheet)
+            f.update(investigacao=psi, papel="Ficha dos documentos (aprovada)", status="Carregado")
+    return out
+
+
+def _load_submitted_studies(files, dados, tables, alerts, table_source):
+    """Estudos enviados pelo painel: cada `dados/<PSI>/estudo.json` aprovado é lido pelo leitor genérico.
+    Devolve as linhas de `investigacoes`, o dicionário das colunas e as comparações sugeridas."""
+    rows, dictionaries, suggestions = [], [], []
+    for spec_file in [f for f in files if f["nome"] == "estudo.json"]:
+        folder = spec_file["_path"].parent
+        try:
+            spec = json.loads(spec_file["_path"].read_text(encoding="utf-8"))
+            loaded, found, dictionary = generic.apply(spec, folder)
+        except (ValueError, KeyError, OSError) as error:  # inclui SpecError e JSON inválido
+            spec_file.update(status="Não carregado", motivo=f"Especificação não aplicável: {error}")
+            continue
+        psi = spec["investigacao"]["id"]
+        prefix = str(folder.relative_to(dados))
+        for name, table in loaded.items():
+            tables[name] = table.with_columns(fonte_arquivo=pl.lit(prefix) + "/" + pl.col("fonte_arquivo"))
+            table_source.setdefault(name, f"{prefix}/{spec['tabelas'][0]['fontes'][0]['arquivo']}")
+        alerts.append(found)
+        dictionaries.append(dictionary)
+        rows.append(generic.investigation_row(spec))
+        approval = spec.get("_aprovacao") or {}
+        for item in spec.get("comparacoes_sugeridas") or []:
+            suggestions.append({"investigacao": psi, "com_investigacao": item.get("com_investigacao"),
+                                "grandeza": item.get("grandeza"), "condicoes_em_comum": item.get("condicoes_em_comum"),
+                                "ressalvas": item.get("ressalvas"), "sugerida_por": approval.get("modelo_que_propos"),
+                                "situacao": "sugerida, não verificada"})  # fmt: skip
+        used = {f"{prefix}/{s['arquivo']}" for t in spec["tabelas"] for s in t["fontes"]}
+        spec_file.update(investigacao=psi, papel="Especificação de leitura aprovada", status="Carregado",
+                         motivo=f"Aplicada pelo leitor genérico ({len(loaded)} tabela(s)).")  # fmt: skip
+        for f in files:
+            if f["caminho"].startswith(prefix + "/") and f is not spec_file:
+                f["investigacao"] = psi
+                if f["caminho"] in used:
+                    f.update(papel="Tabela do estudo enviado", status="Carregado",
+                             linhas_carregadas=sum(t.height for t in loaded.values()),
+                             motivo="Lida pela especificação estudo.json.")  # fmt: skip
+    return rows, (pl.concat(dictionaries) if dictionaries else pl.DataFrame()), suggestions
 
 
 def _tables_in(sql: str) -> list[str]:

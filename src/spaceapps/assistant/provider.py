@@ -82,7 +82,7 @@ def client(config: Config) -> openai.OpenAI:
 
 
 def stream_turn(
-    api: openai.OpenAI, model: str, messages: list[dict], tools: list[dict]
+    api: openai.OpenAI, model: str, messages: list[dict], tools: list[dict], *, max_tokens: int = 1500
 ) -> Iterator[str | Turn]:
     """Faz uma chamada em streaming. Rende os pedaços de texto e, no fim, o `Turn` completo."""
     turn, calls = Turn(), {}
@@ -93,7 +93,7 @@ def stream_turn(
             tools=tools or openai.omit,
             tool_choice="auto" if tools else openai.omit,
             temperature=0.2,
-            max_tokens=1500,
+            max_tokens=max_tokens,
             stream=True,
             extra_body={"zyria_label": LABEL},
         )

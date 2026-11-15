@@ -38,3 +38,33 @@ def alerts(inv_id: str | None = None) -> pl.DataFrame:
     return query(
         f"SELECT * FROM alertas {where} ORDER BY investigacao, tipo, teste_id", [inv_id] if inv_id else []
     )
+
+
+def ficha(inv_id: str) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Ficha do estudo (atributos) e os vínculos entre condições; vazios se o banco não tiver a ficha."""
+    names = set(tables())
+    sheet = (
+        query("SELECT * FROM ficha WHERE investigacao = ? ORDER BY ordem", [inv_id])
+        if "ficha" in names
+        else pl.DataFrame()
+    )
+    links = (
+        query("SELECT * FROM ficha_vinculos WHERE investigacao = ? ORDER BY testes DESC", [inv_id])
+        if "ficha_vinculos" in names
+        else pl.DataFrame()
+    )
+    return sheet, links
+
+
+def metadata(inv_id: str) -> tuple[dict | None, pl.DataFrame]:
+    """Metadados do portal (objetivo, equipamento…) e as publicações; vazios se o banco não os tiver."""
+    names = set(tables())
+    found = (
+        query("SELECT * FROM metadados WHERE investigacao = ?", [inv_id]) if "metadados" in names else None
+    )
+    publications = (
+        query("SELECT * FROM publicacoes WHERE investigacao = ? ORDER BY ordem", [inv_id])
+        if "publicacoes" in names
+        else pl.DataFrame()
+    )
+    return (found.row(0, named=True) if found is not None and found.height else None), publications

@@ -19,7 +19,7 @@ def load(source: str, file=None) -> pl.DataFrame:
 
 
 with st.sidebar:
-    st.header("Dados")
+    st.header("Tabela a explorar")
     options = (db.tables() if db.exists() else []) + [EXAMPLE]
     source = st.selectbox("Tabela", options)
     uploaded = st.file_uploader("…ou envie um CSV/Parquet", type=["csv", "parquet"])

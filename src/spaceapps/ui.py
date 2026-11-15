@@ -14,6 +14,23 @@ from .assistant.screen import Screen
 log = logging.getLogger(__name__)
 
 
+# página de cada estudo do catálogo; os enviados abrem na página genérica de estudos
+STUDY_PAGES = {"PSI-69": "views/flex.py", "PSI-25": "views/bass.py", "PSI-39": "views/cfi.py",
+               "PSI-117": "views/psi117.py", "PSI-142": "views/psi142.py"}  # fmt: skip
+
+
+def study_link(inv: dict) -> tuple[str, dict | None]:
+    """Página e parâmetros da URL que abrem um estudo."""
+    if inv["id"] in STUDY_PAGES:
+        return STUDY_PAGES[inv["id"]], None
+    return "views/estudos.py", {"estudo": inv["id"]}
+
+
+def db_stamp() -> str:
+    """Muda sempre que o banco é refeito: serve de chave para caches."""
+    return f"{db.DB_PATH}:{db.DB_PATH.stat().st_mtime_ns}" if db.exists() else "sem banco"
+
+
 def theme() -> str:
     return st.context.theme.type or "light"
 
@@ -52,6 +69,8 @@ def investigation_header(inv: dict, rows: int) -> None:
             f"Fonte: `{source}` · {rows} linhas"
             + (f" · mais {len(others)} tabela(s) desta investigação" if others else "")
         )
+    ficha_panel(inv["id"])
+    about_panel(inv["id"])
     with st.expander("O que não concluir destes dados", icon=":material/info:"):
         st.markdown(inv["cautelas"].replace(". ", ".\n\n"))
         links = [f"[Página NASA PSI]({inv['url_nasa']})"]
@@ -60,6 +79,130 @@ def investigation_header(inv: dict, rows: int) -> None:
         if inv["doi"]:
             links.append(f"DOI {inv['doi']}")
         st.markdown(" · ".join(links))
+
+
+MAX_LINKS_SHOWN = 3
+MAX_PUBLICATIONS = 10
+SITUACAO_BADGE = {"variou": "orange", "fixo": "gray", "medido": "blue", "simulado": "violet",
+                  "documento": "violet", "divergente": "red",
+                  "derivado": "violet", "digitalizado": "violet", "sem dados": "red"}  # fmt: skip
+FICHA_COLUNAS = [("Combustíveis e amostras", ("combustivel", "amostra")), ("Condições de teste", ("condicao",)),
+                 ("Medições e sensores", ("medicao", "sensor"))]  # fmt: skip
+
+
+def md_escape(text: object) -> str:
+    """Texto dos dados dentro de markdown do Streamlit, sem virar fórmula, negrito ou link."""
+    out = str(text)
+    for char in "\\$*_[]`~":
+        out = out.replace(char, "\\" + char)
+    return out
+
+
+def ficha_panel(inv_id: str) -> None:
+    """Ficha do estudo: o que foi testado, em que condições, o que se mediu, o que variou e o que ficou fixo."""
+    sheet, links = db.ficha(inv_id)
+    if not sheet.height:
+        return
+    with st.expander("Ficha do estudo", icon=":material/assignment:", expanded=True):
+        varied = sheet.filter(pl.col("situacao") == "variou")["rotulo"].to_list()
+        fixed = sheet.filter(pl.col("situacao") == "fixo")["rotulo"].to_list()
+        summary = []
+        if varied:
+            summary.append("**Variou entre os testes:** " + ", ".join(md_escape(v) for v in varied))
+        if fixed:
+            summary.append("**Igual em todos:** " + ", ".join(md_escape(v) for v in fixed))
+        written = sheet.filter(pl.col("situacao").is_in(["documento", "divergente"])
+                               & pl.col("secao").is_in(["combustivel", "amostra", "condicao"]))  # fmt: skip
+        if written.height:
+            summary.append("**Segundo os documentos:** " + "; ".join(
+                md_escape(f"{r['rotulo']} {r['valores']}") for r in written.iter_rows(named=True)))  # fmt: skip
+        st.markdown("  \n".join(summary))
+        for goal in sheet.filter(pl.col("secao") == "objetivo").iter_rows(named=True):
+            st.markdown(f"**Objetivo (documento):** {md_escape(goal['valores'])}")
+            st.caption(md_escape(goal["evidencia"]))
+        st.caption(
+            "Calculada dos dados carregados, sem IA; os itens marcados *documento* foram lidos dos documentos e "
+            "aprovados na revisão. Abaixo de cada item, de onde ele saiu."
+        )
+        for column, (title, sections) in zip(st.columns(3), FICHA_COLUNAS, strict=True):
+            with column:
+                st.markdown(f"**{title}**")
+                items = sheet.filter(pl.col("secao").is_in(sections))
+                if not items.height:
+                    st.caption("Nada registrado nos dados.")
+                for item in items.iter_rows(named=True):
+                    _ficha_item(item)
+        if links.height:
+            st.markdown("**Condições que não variaram de forma independente**")
+            st.caption(
+                "Algum nível de uma só aparece com um nível da outra: uma diferença nesses testes não pode "
+                "ser atribuída a uma delas sozinha."
+            )
+            shown = links.head(MAX_LINKS_SHOWN)
+            st.markdown("\n".join(
+                f"- :orange[:material/link:] **{md_escape(link['variavel_a'])} × "
+                f"{md_escape(link['variavel_b'])}**: {md_escape(link['exemplos'].split('; ')[0])}"
+                for link in shown.iter_rows(named=True)
+            ))  # fmt: skip
+            if links.height > shown.height:
+                rest = links.slice(shown.height)
+                st.caption(
+                    "Também: "
+                    + "; ".join(
+                        md_escape(f"{a} × {b}")
+                        for a, b in zip(rest["variavel_a"], rest["variavel_b"], strict=True)
+                    )
+                    + ". O assistente detalha qualquer um deles."
+                )
+
+
+def period(meta: dict) -> str | None:
+    """'08-01-2007' e '07-31-2016' (mês-dia-ano, como no portal) → '2007–2016'."""
+    years = [d[-4:] for d in (meta.get("inicio"), meta.get("fim")) if d and d[-4:].isdigit()]
+    return "–".join(dict.fromkeys(years)) or None
+
+
+def about_panel(inv_id: str) -> None:
+    """Objetivo, hipótese, abordagem, equipamento e publicações, dos metadados do portal NASA PSI."""
+    meta, publications = db.metadata(inv_id)
+    if meta is None:
+        return
+    with st.expander("Objetivo, equipamento e publicações", icon=":material/target:"):
+        st.caption(
+            f"Metadados do portal NASA PSI ({md_escape(meta['arquivo_metadados'])}), no idioma original."
+        )
+        facts = [(label, meta.get(key)) for label, key in (("Equipamento", "equipamento"),
+                 ("Plataforma", "plataforma"), ("Centro", "centro_nasa"))]  # fmt: skip
+        facts.append(("Período", period(meta)))
+        st.markdown("  \n".join(f"**{label}:** {md_escape(value)}" for label, value in facts if value))
+        for label, key in (("Objetivo", "objetivo"), ("Hipótese", "hipotese"), ("Abordagem", "abordagem")):
+            if meta.get(key):
+                st.markdown(f"**{label}**")
+                st.markdown(md_escape(meta[key]).replace("\n", "  \n"))
+        if publications.height:
+            st.markdown(f"**Publicações ({publications.height})**")
+            lines = []
+            for pub in publications.head(MAX_PUBLICATIONS).iter_rows(named=True):
+                link = pub["link"] or (f"https://doi.org/{pub['doi']}" if pub["doi"] else None)
+                title = md_escape(pub["titulo"])
+                lines.append(f"- [{title}]({link})" if link and link.startswith("http") else f"- {title}")
+            st.markdown("\n".join(lines))
+            if publications.height > MAX_PUBLICATIONS:
+                st.caption(f"Mais {publications.height - MAX_PUBLICATIONS}; o assistente lista todas.")
+
+
+def _ficha_item(item: dict) -> None:
+    color = SITUACAO_BADGE.get(item["situacao"], "gray")
+    unit = ""
+    if item["unidade"] and item["minimo"] is not None:  # "não informada", "a conferir": não é unidade
+        unit = f" (unidade {item['unidade']})" if item["unidade"] in ("não informada", "a conferir") else (
+            f" {item['unidade']}"
+        )  # fmt: skip
+    value = md_escape(f"{item['valores']}{unit}") if item["valores"] else "—"
+    st.markdown(f"{md_escape(item['rotulo'])} :{color}-badge[{item['situacao']}]  \n{value}")
+    origin = item["evidencia"] if item["origem"] in ("dados", "documento") else item["origem"]
+    note = f" · {item['nota']}" if item["nota"] else ""
+    st.caption(md_escape(f"{origin}{note}"))
 
 
 def alerts_table(inv_id: str) -> None:
@@ -80,9 +223,17 @@ SUGGESTIONS = {
     "psi117": ["Em que pressões o modelo sai da faixa de incerteza?", "O que é uma chama fria?"],
     "cfi": ["Como a extinção da chama fria muda com a pressão?", "O que quer dizer Dext fria = 0 na fonte?"],
     "psi142": ["O que este conjunto mostra?", "Por que há alertas neste conjunto?"],
+    "fichas": [
+        "O que estes estudos têm em comum?",
+        "Dá para comparar o diâmetro de extinção entre eles?",
+    ],
     "comparacao": [
         "O modelo do PSI-117 acompanha os voos do CFI?",
         "Por que isso não é validação independente?",
+    ],
+    "estudos": [
+        "O que este estudo mediu?",
+        "Quais interpretações vieram do documento e quais foram inferidas?",
     ],
     "explore": ["O que este gráfico mostra?", "Qual série tem o maior valor?"],
 }
@@ -249,6 +400,24 @@ def _answer(screen: Screen, state: dict, question: str) -> None:
         area.markdown(text)
     state["api"] = history
     state["view"] += [{"role": "user", "text": question}, {"role": "assistant", "text": text, "tools": used}]
+
+
+def evidence_label(evidence: dict | None) -> str:
+    """De onde saiu uma interpretação: "documento · relatorio.pdf p. 4 · "trecho"", "cabeçalho" ou "inferido"."""
+    evidence = evidence or {}
+    kind = evidence.get("tipo") or "inferido"
+    if kind == "documento":
+        where = " ".join(
+            x
+            for x in (
+                evidence.get("arquivo") or "",
+                f"p. {evidence['pagina']}" if evidence.get("pagina") else "",
+            )
+            if x
+        )
+        quote = f' · "{evidence["trecho"]}"' if evidence.get("trecho") else ""
+        return f"documento · {where}{quote}"
+    return {"cabecalho": "cabeçalho da tabela", "inferido": "inferido pela IA"}.get(kind, kind)
 
 
 def range_filter(label: str, series: pl.Series, *, key: str, fmt: str = "%.2f") -> tuple[float, float] | None:

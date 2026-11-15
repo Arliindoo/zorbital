@@ -10,7 +10,7 @@ from spaceapps import charts, data
 ROOT = Path(__file__).parent.parent
 PAGES = [
     "views/overview.py", "views/flex.py", "views/bass.py", "views/psi117.py", "views/cfi.py",
-    "views/psi142.py", "views/comparacao.py", "views/explore.py",
+    "views/psi142.py", "views/comparacao.py", "views/fichas.py", "views/documentos.py", "views/explore.py",
 ]  # fmt: skip
 
 

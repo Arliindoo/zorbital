@@ -188,6 +188,10 @@ KNOWN_FILES = {
     "Data Summary Table.csv": KnownFile(
         "PSI-142", "Descrição e DOI de cada conjunto", 9, complementa="psi142"
     ),
+    # Metadados do portal (ISA-Tab), um zip por investigação: objetivo, equipamento e publicações.
+    "DadosPsi.tar.gz": KnownFile(
+        None, "Metadados do portal NASA PSI de várias investigações", 1, "metadados"
+    ),
 }
 DOC_SUFFIXES = {".md", ".json", ".ipynb", ".py", ".pdf", ".txt"}
 
