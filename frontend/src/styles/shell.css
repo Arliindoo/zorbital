@@ -1,0 +1,575 @@
+/* Estrutura: fundo, trilho de navegação, painel de filtros, barra superior e palco. */
+
+.app {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* ---------- Fundo: grade de pontos, órbitas e um clarão de gradiente (sem sombras) ------------ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 420px at 82% -8%, color-mix(in srgb, var(--signal) 13%, transparent), transparent 62%),
+    radial-gradient(700px 380px at 8% 108%, color-mix(in srgb, var(--magenta) 7%, transparent), transparent 60%), var(--void);
+}
+.backdrop__grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(var(--fg-rgb) / 0.085) 1px, transparent 1.2px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(120% 90% at 60% 0%, #000 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
+}
+.backdrop__orbits {
+  position: absolute;
+  right: -280px;
+  top: -420px;
+  width: 1100px;
+  height: 1100px;
+  opacity: 0.55;
+}
+.backdrop__orbits g {
+  transform-origin: 550px 550px;
+  animation: spin 160s linear infinite;
+}
+.backdrop__orbits g:nth-child(2) {
+  animation: spin-back 220s linear infinite;
+}
+
+/* ---------- Trilho ---------------------------------------------------------------------------- */
+
+.rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: var(--rail);
+  display: flex;
+  flex-direction: column;
+  background: var(--void);
+  border-right: 1px solid var(--line);
+  overflow: hidden;
+  transition:
+    width var(--dur-2) var(--ease-out) 60ms,
+    background-color var(--dur-2) linear;
+}
+.rail:hover,
+.rail:has(:focus-visible),
+.rail[data-open='true'] {
+  width: 272px;
+  background: rgb(var(--glass-rgb) / 0.92);
+  backdrop-filter: blur(22px) saturate(1.3);
+  border-right-color: var(--line-2);
+}
+
+/* fechado, o topo mostra a órbita; aberto, ela dá lugar ao nome */
+.brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 26px;
+  height: var(--topbar);
+  flex: none;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.brand__name {
+  flex: none;
+  height: 14px;
+  width: auto;
+}
+.brand__orbit {
+  position: absolute;
+  left: calc((var(--rail) - 32px) / 2);
+  top: calc(50% - 16px);
+  width: 32px;
+  height: 32px;
+  transition:
+    opacity var(--dur-1) linear,
+    transform var(--dur-2) var(--ease-out);
+}
+.rail:hover .brand__orbit,
+.rail:has(:focus-visible) .brand__orbit,
+.rail[data-open='true'] .brand__orbit {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.rail nav {
+  flex: 1;
+  overflow: hidden auto;
+  padding: 14px 0;
+  scrollbar-width: none;
+}
+.rail__section {
+  height: 26px;
+  margin: 10px 0 2px;
+  padding-left: 26px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  position: relative;
+}
+/* fechado, a seção vira um traço; aberto, o nome aparece */
+.rail__section::before {
+  content: '';
+  position: absolute;
+  left: 26px;
+  width: 16px;
+  height: 1px;
+  background: var(--line-2);
+  transition: opacity var(--dur-1) linear;
+}
+.rail__link {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  height: 42px;
+  margin: 2px 12px;
+  border-radius: 12px;
+  color: var(--ink-3);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--dur-1) linear,
+    background-color var(--dur-1) linear;
+}
+.rail__link svg {
+  justify-self: center;
+}
+.rail__link:hover {
+  color: var(--ink);
+  background: var(--panel-2);
+}
+.rail__link.active {
+  color: var(--ink);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 16%, transparent), color-mix(in srgb, var(--signal) 2%, transparent) 70%);
+}
+.rail__link.active svg {
+  color: var(--signal);
+}
+.rail__link.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--signal);
+}
+.rail__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+.rail__text b {
+  font-weight: 500;
+  font-size: var(--fs-sm);
+}
+.rail__text small {
+  font: 400 var(--fs-micro) var(--label);
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.rail__key {
+  margin-right: 12px;
+  font: 500 var(--fs-micro) var(--mono);
+  color: var(--ink-4);
+}
+.rail__text,
+.rail__key,
+.rail__section span,
+.brand__name {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition:
+    opacity var(--dur-1) linear,
+    transform var(--dur-2) var(--ease-out);
+}
+.rail:hover :is(.rail__text, .rail__key, .rail__section span, .brand__name),
+.rail:has(:focus-visible) :is(.rail__text, .rail__key, .rail__section span, .brand__name),
+.rail[data-open='true'] :is(.rail__text, .rail__key, .rail__section span, .brand__name) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 90ms;
+}
+.rail:hover .rail__section::before,
+.rail:has(:focus-visible) .rail__section::before,
+.rail[data-open='true'] .rail__section::before {
+  opacity: 0;
+}
+/* ---------- Barra superior ---------------------------------------------------------------------- */
+
+.topbar {
+  position: fixed;
+  inset: 0 0 auto var(--rail);
+  z-index: 30;
+  height: var(--topbar);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 var(--gutter);
+  padding-right: calc(var(--gutter) + var(--agent-inset, 0px));
+  border-bottom: 1px solid var(--line);
+  background: rgb(var(--glass-rgb) / 0.72);
+  backdrop-filter: blur(18px) saturate(1.4);
+  transition: padding-right var(--dur-3) var(--ease-out);
+}
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.crumbs span + span::before {
+  content: '/';
+  margin-right: 10px;
+  color: var(--ink-4);
+}
+.crumbs span:last-child {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__spacer {
+  flex: 1;
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+.status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+  animation: blink 2.4s var(--ease-in-out) infinite;
+}
+.ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 16px 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-1) linear,
+    color var(--dur-1) linear;
+}
+.ask:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--signal) 55%, transparent);
+}
+.ask svg {
+  color: var(--signal);
+}
+.ask::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--signal-2) 14%, transparent) 50%, transparent 65%);
+  animation: sweep 4.5s var(--ease-in-out) infinite;
+  pointer-events: none;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  transition:
+    color var(--dur-1) linear,
+    border-color var(--dur-1) linear,
+    background-color var(--dur-1) linear;
+}
+.icon-button:hover {
+  color: var(--ink);
+  border-color: var(--line-3);
+  background: var(--panel-2);
+}
+.icon-button[aria-pressed='true'] {
+  color: var(--signal);
+  border-color: color-mix(in srgb, var(--signal) 45%, transparent);
+}
+.topbar__menu {
+  display: none;
+}
+
+/* ---------- Troca de tema ------------------------------------------------------------------------ */
+/* O botão empilha lua e sol; o que sai gira e encolhe, o que entra chega girando do outro lado. */
+
+.theme-toggle {
+  position: relative;
+  flex: none;
+}
+.theme-toggle svg {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--dur-3) var(--ease-spring),
+    opacity var(--dur-2) linear;
+}
+.theme-toggle[data-theme-now='dark'] .theme-toggle__sun {
+  opacity: 0;
+  transform: rotate(-120deg) scale(0.3);
+}
+.theme-toggle[data-theme-now='light'] .theme-toggle__moon {
+  opacity: 0;
+  transform: rotate(120deg) scale(0.3);
+}
+.theme-toggle:hover {
+  color: var(--signal);
+  border-color: color-mix(in srgb, var(--signal) 45%, transparent);
+}
+.theme-toggle:active svg {
+  transform: scale(0.82);
+}
+
+/* O tema novo se abre em círculo a partir do botão (View Transition). Vale só durante a troca,
+   marcada por data-theme-switch em <html>. */
+:root[data-theme-switch]::view-transition-old(root),
+:root[data-theme-switch]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root[data-theme-switch]::view-transition-new(root) {
+  animation: theme-reveal var(--dur-4) var(--ease-out) both;
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-x) var(--theme-y));
+  }
+  to {
+    clip-path: circle(var(--theme-r) at var(--theme-x) var(--theme-y));
+  }
+}
+
+/* ---------- Painel de filtros ------------------------------------------------------------------- */
+
+.deck {
+  position: fixed;
+  inset: var(--topbar) var(--agent-inset, 0px) 0 auto;
+  z-index: 20;
+  width: var(--deck);
+  padding: 22px 20px calc(var(--agent-dock-space) - 20px);
+  border-left: 1px solid var(--line);
+  background: rgb(var(--glass-rgb) / 0.6);
+  backdrop-filter: blur(16px);
+  overflow: hidden auto;
+  scrollbar-width: none;
+  transform: translateX(102%);
+  visibility: hidden;
+  transition:
+    transform var(--dur-3) var(--ease-out),
+    right var(--dur-3) var(--ease-out),
+    visibility 0s linear var(--dur-3);
+}
+.app[data-deck='open']:has(.deck .filters) .deck {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--dur-3) var(--ease-out),
+    right var(--dur-3) var(--ease-out),
+    visibility 0s;
+}
+.deck__toggle {
+  display: none;
+}
+.app:has(.deck .filters) .deck__toggle {
+  display: inline-grid;
+}
+
+/* ---------- Palco ------------------------------------------------------------------------------- */
+
+.stage {
+  margin-left: var(--rail);
+  padding: calc(var(--topbar) + 34px) var(--gutter) var(--agent-dock-space);
+  padding-right: calc(var(--gutter) + var(--agent-inset, 0px));
+  container: stage / inline-size;
+  transition:
+    margin-left var(--dur-3) var(--ease-out),
+    padding-right var(--dur-3) var(--ease-out);
+}
+.app[data-deck='open']:has(.deck .filters) .stage {
+  padding-right: calc(var(--gutter) + var(--agent-inset, 0px) + var(--deck));
+}
+.route {
+  max-width: 1520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+/* entrada de página: cada bloco de primeiro nível sobe em sequência */
+.route > * {
+  animation: rise var(--dur-3) var(--ease-out) both;
+}
+.route > :nth-child(1) {
+  animation-delay: 0ms;
+}
+.route > :nth-child(2) {
+  animation-delay: 80ms;
+}
+.route > :nth-child(3) {
+  animation-delay: 160ms;
+}
+.route > :nth-child(4) {
+  animation-delay: 240ms;
+}
+.route > :nth-child(5) {
+  animation-delay: 320ms;
+}
+.route > :nth-child(n + 6) {
+  animation-delay: 400ms;
+}
+
+.scrim {
+  display: none;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 46vh;
+  justify-content: center;
+  color: var(--ink-3);
+}
+.loading svg circle {
+  transform-origin: 20px 20px;
+}
+.loading svg .a {
+  animation: spin 1.6s linear infinite;
+}
+.loading svg .b {
+  animation: spin-back 2.6s linear infinite;
+}
+
+/* ---------- Telas estreitas ----------------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  /* a gaveta de filtros passa a cobrir o conteúdo em vez de empurrá-lo */
+  .app[data-deck='open']:has(.deck .filters) .stage {
+    padding-right: calc(var(--gutter) + var(--agent-inset, 0px));
+  }
+  .deck {
+    background: rgb(var(--glass-rgb) / 0.92);
+    border-left-color: var(--line-2);
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --topbar: 54px;
+  }
+  .rail {
+    width: 272px;
+    transform: translateX(-100%);
+    transition: transform var(--dur-3) var(--ease-out);
+    background: rgb(var(--glass-rgb) / 0.96);
+  }
+  .rail[data-open='true'] {
+    transform: none;
+  }
+  .rail .brand__orbit {
+    display: none;
+  }
+  .rail :is(.rail__text, .rail__key, .rail__section span, .brand__name) {
+    opacity: 1;
+    transform: none;
+  }
+  .rail .rail__section::before {
+    opacity: 0;
+  }
+  .topbar {
+    left: 0;
+  }
+  .topbar__menu {
+    display: inline-grid;
+  }
+  .stage {
+    margin-left: 0 !important;
+  }
+  .deck {
+    right: 0;
+    width: min(86vw, 320px);
+  }
+  .status,
+  .ask span,
+  .crumbs span:not(:last-child) {
+    display: none;
+  }
+  .ask {
+    padding: 0 6px 0 10px;
+  }
+  .app:is([data-menu='true'], [data-deck='open']:has(.deck .filters)) .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    background: var(--scrim);
+  }
+  .app[data-menu='true'] .scrim {
+    z-index: 35;
+  }
+}
+
+/* feixe de transição de página, na base da barra superior */
+.topbar__beam {
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--signal) 40%, var(--magenta) 60%, transparent);
+  transform: translateX(-100%);
+  animation: sweep 900ms var(--ease-in-out) both;
+  pointer-events: none;
+}
+
+/* a barra superior encolhe quando o painel do agente empurra a página: some o que é secundário */
+.topbar {
+  container: topbar / inline-size;
+}
+.ask,
+.status {
+  flex: none;
+  white-space: nowrap;
+}
+.crumbs {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+@container topbar (max-width: 760px) {
+  .status {
+    display: none;
+  }
+}
+@container topbar (max-width: 520px) {
+  .ask span,
+  .crumbs span:not(:last-child) {
+    display: none;
+  }
+}

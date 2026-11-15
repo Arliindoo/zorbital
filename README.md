@@ -15,19 +15,68 @@ A página **PSI-117 × CFI** é a única que compara investigações: diâmetro 
 n-dodecano por pressão. Ela mostra também que parte das "medições" do PSI-117 são ensaios do próprio
 CFI (identificados pelo D0 e pelo diâmetro da chama quente), então não é uma validação independente.
 
+Cada investigação tem duas vistas: o **Painel** (dados e gráficos) e a **Simulação** (o experimento
+no seu ambiente, em 3D). A troca fica logo abaixo do título e no endereço (`?vista=simulacao`).
+
+## Simulação
+
+A vista de simulação desce por escalas até o experimento e reproduz o item escolhido a partir dos
+valores da fonte:
+
+| Estudo | Cenas | O que é reproduzido |
+|---|---|---|
+| FLEX, CFI | ISS em órbita → laboratório Destiny e rack CIR → câmara de combustão | A gota de cada ensaio, de D0 ao diâmetro de extinção (chama quente e, no CFI, chama fria) |
+| BASS-II | ISS em órbita → Destiny e bancada MSG → duto de escoamento | A amostra com a forma e as medidas da fonte, e as leituras de gás do começo ao fim |
+| PSI-142 | Terra (Princeton) → bancada óptica → zona de reação entre os bocais | Cada série: perfis desenhados no próprio vão, ou a curva de limite de extinção percorrida ponto a ponto |
+| PSI-117 | Terra → domínio do modelo | A gota medida e a do modelo lado a lado, com a faixa de incerteza; e a série temporal do modelo |
+
+Na cena: arrastar orbita a câmera, clicar e rolar aproxima, os marcadores levam à cena seguinte,
+`←` `→` trocam de ensaio, `espaço` toca e pausa, `F` abre em tela cheia. Os filtros do painel valem
+também aqui: a faixa de ensaios no rodapé mostra só o que está no filtro.
+
+**O que é dado e o que é ilustração.** A simulação é uma reconstrução, não um vídeo do experimento.
+Vêm da fonte os valores de cada ensaio (diâmetros, tempos, taxas, composição do gás, medidas da
+amostra, pontos digitalizados). Entre dois valores medidos de uma gota, a curva é a lei do d² (o
+quadrado do diâmetro cai em linha reta) — uma reconstrução que passa pelos extremos medidos. São
+ilustrativos a posição e o brilho das chamas, o escoamento dos traçadores, a coreografia de agulhas
+e ignitores e as maquetes (ISS, Destiny, racks, queimador), que são esquemáticas. Na tela, valores
+reconstruídos ou estimados aparecem sublinhados em tracejado, e o botão ⓘ lista, ensaio a ensaio, o
+que é cada coisa. Quando falta o dado para reconstruir, o ensaio aparece na faixa como "sem
+reconstrução", com o motivo; nada é inventado para preencher.
+
 ## Como rodar
 
-Pré-requisito: [uv](https://docs.astral.sh/uv/) (ele instala o Python 3.12 e as dependências sozinho).
+Pré-requisitos: [uv](https://docs.astral.sh/uv/) (ele instala o Python 3.12 e as dependências
+sozinho) e Node.js 22 ou mais novo.
+
+O painel tem duas partes: a **API** em Python (FastAPI, em `src/spaceapps/api/`), que lê o banco e
+roda o assistente, e o **front-end** em React + Vite + TypeScript (em `frontend/`), que desenha a
+tela no navegador.
+
+Desenvolvimento, em dois terminais:
 
 ```bash
-uv sync                          # cria .venv e instala tudo do uv.lock
-cp .env.example .env             # depois preencha ZYRIA_BASE_URL e ZYRIA_API_KEY
-uv run streamlit run app.py      # abre em http://localhost:8501
+uv sync && cp .env.example .env               # depois preencha ZYRIA_BASE_URL e ZYRIA_API_KEY
+uv run uvicorn spaceapps.api.app:app --reload # API em http://localhost:8000 (docs em /api/docs)
 ```
 
-Quem clona o repositório não precisa baixar tabela nenhuma: na primeira abertura, o app monta o
-banco a partir da **seed** versionada em `seed/`. Sem a chave da API, tudo funciona menos o
-assistente.
+```bash
+cd frontend && npm install && npm run dev     # painel em http://localhost:5173, com recarga instantânea
+```
+
+O Vite repassa `/api` para a porta 8000, então o navegador só fala com uma origem.
+
+Produção (um processo só, que serve a API e o front-end já compilado):
+
+```bash
+npm --prefix frontend ci && npm --prefix frontend run build   # gera frontend/dist
+uv run spaceapps-serve                                       # http://localhost:8000
+```
+
+`SPACEAPPS_HOST` e `SPACEAPPS_PORT` mudam o endereço (o padrão só aceita conexões desta máquina).
+
+Quem clona o repositório não precisa baixar tabela nenhuma: ao subir, a API monta o banco a partir
+da **seed** versionada em `seed/`. Sem a chave da Zyria, tudo funciona menos o assistente.
 
 Quem tem os arquivos originais em `dados/` e muda algo neles roda a carga, que refaz o banco e a
 seed, e depois faz commit de `seed/`:
@@ -40,9 +89,12 @@ uv run spaceapps-seed            # (opcional) refaz o banco só a partir da seed
 Outros comandos:
 
 ```bash
-uv run pytest          # testes da carga e de todas as páginas (com uma pasta dados/ sintética)
-uv run ruff check .    # lint
-uv run ruff format .   # formatação
+uv run pytest                # testes da carga, da API e do assistente (com uma pasta dados/ sintética)
+uv run ruff check .          # lint do Python
+uv run ruff format .         # formatação do Python
+npm --prefix frontend test           # testes do front-end (Vitest)
+npm --prefix frontend run typecheck  # TypeScript
+npm --prefix frontend run lint       # lint do front-end (oxlint)
 ```
 
 ## Como os dados fluem
@@ -55,7 +107,7 @@ dados/  (arquivos originais do portal NASA PSI, nunca alterados, fora do git)
 data/zorbital.duckdb ◄┘  (derivado: pode ser apagado e refeito, fora do git)
    │
    ▼
-dashboard (só leitura)
+API FastAPI (leitura; só o envio aprovado escreve) ──JSON──► front-end React (filtros, gráficos e tabelas no navegador)
 ```
 
 A seed guarda as tabelas do banco já normalizadas, com os tipos preservados. As visões (`v_*`) não
@@ -192,7 +244,7 @@ soltos ou em .zip, .rar ou .tar.gz (o .rar usa o `7z` instalado na máquina).
 
 **A IA não grava dados.** Quem lê as tabelas é o leitor genérico (`ingest/generic.py`), que aplica a
 especificação de forma determinística: toda carga dá o mesmo resultado, sem chamar a IA, e cada
-linha guarda o arquivo, a aba e a linha de origem. O estudo aparece em **Estudos enviados**, com a
+linha guarda o arquivo, a aba e a linha de origem. O estudo aparece em **Estudos**, com a
 seção "Dados aferidos" mostrando a natureza (medido, simulado, condição…) e a evidência de cada
 coluna.
 
@@ -204,23 +256,61 @@ ficam gravadas, mas ainda não são verificadas por regras de compatibilidade.
 
 | Caminho | O que é |
 |---|---|
-| `app.py` | Navegação entre as páginas |
-| `views/` | Uma página por investigação, a Visão geral e o explorador livre |
+| `src/spaceapps/api/` | API FastAPI: dados de cada página (`pages.py`), estudos, fichas e busca (`studies.py`), envio de estudos e documentos (`uploads.py`), assistente em streaming (`chat.py`) e o servidor de produção (`app.py`) |
 | `src/spaceapps/ingest/` | Leitura de cada fonte, catálogo de arquivos, leitor genérico e montagem do banco |
 | `src/spaceapps/studies/` | Envio de estudos: extração segura, perfil, documentos, proposta da IA e aprovação |
 | `src/spaceapps/db.py` | Leitura do banco (só leitura) |
-| `src/spaceapps/charts.py` | Gráficos Plotly e as cores fixas por categoria (claro e escuro) |
 | `src/spaceapps/assistant/` | Assistente: estado da tela, ferramentas por grupo, cliente Zyria e o laço |
-| `src/spaceapps/ui.py` | Peças de tela repetidas: cabeçalho, alertas, chat |
-| `tests/` | Pasta `dados/` sintética, testes da carga e de cada página |
+| `frontend/src/pages/` | Uma página por investigação, a Visão geral, Estudos (todos, com busca) e a página genérica dos enviados, as fichas lado a lado, a comparação PSI-117 × CFI, o envio de estudos e de documentos, o explorador livre e a galeria de gráficos |
+| `frontend/src/charts/` | Gráficos em SVG feitos à mão (`XYChart`, Sankey, 3D isométrico, ridgeline…), as séries de cada página (`build.ts`, funções puras) e as cores fixas por categoria (`colors.ts`) |
+| `frontend/src/styles/` | Sistema visual: `tokens.css` (cores, tipografia, movimento), estrutura, peças e gráficos. Tema escuro único, sem sombras |
+| `frontend/src/sim/` | Simulação em WebGL2: motor de desenho em linhas (`engine/`), cenas (`scenes/`), reconstrução da queima (`replay/`), a ligação de cada estudo aos dados (`studies/`) e o HUD (`hud/`) |
+| `frontend/src/fx/` | Efeitos de entrada: contagem de números, texto que decifra, holofote na borda dos painéis |
+| `frontend/src/icons/` | Ícones Solar gerados por `scripts/icons.mjs` (via `better-icons`) |
+| `frontend/src/components/` | Peças de tela: layout com navegação, filtros, tabela, cabeçalho de investigação com a ficha do estudo (`Ficha.tsx`), tabela editável e revisão da ficha (`EditTable.tsx`, `FichaReview.tsx`) e as peças do envio (`upload.tsx`) |
+| `frontend/src/assistant/` | Painel do assistente e o estado da tela que cada página entrega a ele |
+| `tests/` | Pasta `dados/` sintética, testes da carga, da API e do assistente |
+
+### Como o front-end conversa com a API
+
+- Cada página faz **uma** consulta (`GET /api/pages/<página>`) e recebe as tabelas com o tipo de cada
+  coluna. Filtros, gráficos e contagens rodam no navegador: mexer num filtro não vai ao servidor.
+- As consultas passam pelo TanStack Query, com cache: voltar a uma página não baixa os dados de novo.
+  O banco só muda quando um envio é aprovado, e a aprovação invalida o cache: o que já veio não fica velho.
+- A ficha, os vínculos e os metadados do portal vêm junto com a investigação de cada página; a lista de
+  **Estudos** traz o índice de busca de cada estudo, e a busca e os filtros por faixa rodam no navegador.
+- As fichas lado a lado são calculadas no servidor (`GET /api/fichas/comparar?ids=…`), uma consulta por
+  combinação de estudos.
+- O envio guarda o estado na pasta do envio (`data/uploads/<envio>/`): o navegador lembra só o
+  identificador, e cada edição da revisão é gravada lá (`PUT /api/envios/<envio>/especificacao`), que
+  devolve a conferência e a prévia. Recarregar a página continua de onde parou.
+- Os filtros de cada página ficam guardados na aba (sessionStorage): sair e voltar mantém o que estava.
+- Os gráficos são SVG desenhado pelo próprio React (sem biblioteca de gráficos); cada página é carregada sob demanda.
+- O PSI-142 tem milhares de pontos: a página baixa um conjunto por vez (`/api/pages/psi142/<id>`).
+- A simulação é desenhada em WebGL2, sem biblioteca 3D, e só é baixada quando alguém abre a vista.
+  A geometria vai para a GPU uma vez (segmentos instanciados, uma chamada de desenho por lote); a
+  Terra e as chamas são calculadas no fragmento; as partículas não têm estado na CPU. O laço para com
+  a aba oculta ou a cena fora da tela, e a resolução interna se ajusta ao tempo de quadro.
 
 ## Assistente
 
-Um botão no canto inferior direito abre o assistente, que explica o que está na tela. O painel fica
-fixo por cima da página e não fecha ao clicar fora, para dar para mexer nos filtros enquanto se
-conversa; ele continua aberto ao trocar de página, com uma conversa separada para cada uma.
-O botão de expandir no cabeçalho do painel o fixa na lateral direita, com a altura toda da tela: a
-página encolhe para não ficar coberta e os gráficos lado a lado passam a ser empilhados. O provedor é a **Zyria** (API compatível
+A barra de comando no rodapé (⌘K) abre o agente, que explica o que está na tela. Ao enviar a pergunta,
+a própria página vira o palco: os blocos lidos são destacados e o trabalho passa por cinco etapas,
+todas tiradas do fluxo real do servidor:
+
+1. **Ler a tela** — a pergunta segue com o estado da página (filtros, descrição dos gráficos e as
+   linhas filtradas).
+2. **Estudos** — antes de qualquer consulta aos dados, o servidor lê a ficha das investigações
+   envolvidas (a da página, as duas da comparação, ou todas na Visão geral) e a coloca no contexto do
+   modelo: a pergunta que cada estudo responde, o tipo de evidência, a fonte carregada e as cautelas.
+   Idas posteriores à ficha (`cautelas`, `alertas`, `fonte_dos_dados`, catálogo) também aparecem aqui.
+3. **Consultar** — cada consulta aos dados feita pelas ferramentas da página.
+4. **Compor** — a resposta chega em streaming.
+5. **Concluído** — recibo com custo em ZYT, estudos, consultas e tempo.
+
+A pergunta vai para `POST /api/assistant/chat` com o estado da tela e o histórico, e a resposta volta
+em NDJSON (`studies`, `tool`, `text`, `done`, `error`). O servidor não guarda conversa: o histórico
+fica na aba do navegador, uma conversa por página, e some ao fechá-la. O provedor é a **Zyria** (API compatível
 com a da OpenAI, documentação em `dados/zyria/`); configure `ZYRIA_BASE_URL` e `ZYRIA_API_KEY` no
 `.env`. O consumo aparece nos relatórios da Zyria com a etiqueta `zorbital-dashboard`.
 
@@ -264,15 +354,16 @@ Para mudar o escopo, edite `GROUPS`, `PAGE_GROUPS` e a lista de ferramentas em
 [tools.py](src/spaceapps/assistant/tools.py); o prompt de sistema está em
 [agent.py](src/spaceapps/assistant/agent.py).
 
-## Por que Python, e não Go
+## Por que Python no servidor
 
 O gargalo de um dashboard de análise não é concorrência de servidor: é ler, agregar e desenhar
 dados, e depois esperar a resposta de um modelo.
 
-- **Parte visual.** Quem desenha o gráfico é o navegador. Em Python, Streamlit e Plotly geram a
-  interface a partir do próprio código de análise; em Go seria preciso um front-end separado.
-- **Análise.** Polars, DuckDB e o ecossistema científico não têm par em Go.
+- **Análise.** A carga, o banco e as ferramentas do assistente usam Polars e DuckDB, que não têm par
+  em Go ou Node. A API só serve tabelas já prontas.
+- **Parte visual.** Quem desenha é o navegador: o React cuida da interface e desenha os gráficos em SVG.
+  Com o front-end separado, a tela responde aos filtros sem ida ao servidor.
 - **Desempenho.** O trabalho pesado roda no Polars e no DuckDB, ambos nativos e multinúcleo.
 
 **Quando rever:** se o projeto virar ingestão contínua em tempo real ou um serviço com muitos
-usuários simultâneos, um serviço em Go faz sentido como peça de ingestão ao lado do dashboard.
+usuários simultâneos, um serviço em Go faz sentido como peça de ingestão ao lado da API.

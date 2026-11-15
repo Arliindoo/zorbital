@@ -11,7 +11,6 @@ wheels/
 
 # Segredos
 .env
-.streamlit/secrets.toml
 
 # Conjuntos de dados locais: ficam fora do git (só a pasta é versionada)
 data/*

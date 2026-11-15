@@ -10,16 +10,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import duckdb
 import polars as pl
 import pytest
-from streamlit.testing.v1 import AppTest
+from fastapi.testclient import TestClient
 
 from spaceapps import db
+from spaceapps.api.app import create_app
 from spaceapps.assistant import provider
 from spaceapps.ingest import generic
 from spaceapps.studies import approve, archive, profile, propose, staging
 
 from .conftest import write_dados
 from .test_assistant import sse
-from .test_smoke import ROOT
 
 # --- um envio no formato do PSI-26 (BASS) -------------------------------------------------------
 
@@ -311,47 +311,40 @@ def test_approval_refuses_catalog_studies_and_existing_folders(approved, receive
         approve.approve(received, spec, dados_dir=dados, db_path=path)
 
 
-def test_study_pages_render(approved, monkeypatch):
-    _, path, _ = approved
-    monkeypatch.setattr(db, "DB_PATH", path)
-    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
-    for page in ("views/estudos.py", "views/enviar.py"):
-        app.switch_page(page).run()
-        assert not app.exception, [e.value for e in app.exception]
-    # um estudo enviado abre pela URL (?estudo=PSI-26)
-    app.switch_page("views/estudos.py")
-    app.query_params["estudo"] = "PSI-26"
-    app.run()
-    assert not app.exception, [e.value for e in app.exception]
-    assert app.title[0].value == "BASS — Burning and Suppression of Solids"
+@pytest.fixture
+def approved_api(approved, monkeypatch):
+    """A API sobre o banco que já tem o PSI-26 aprovado."""
+    monkeypatch.setattr(db, "DB_PATH", approved[1])
+    with TestClient(create_app()) as api:
+        yield api
 
 
-def test_studies_hub_lists_every_study_and_filters_by_search(approved, monkeypatch):
-    _, path, _ = approved
-    monkeypatch.setattr(db, "DB_PATH", path)
-    app = (
-        AppTest.from_file(str(ROOT / "app.py"), default_timeout=60)
-        .run()
-        .switch_page("views/estudos.py")
-        .run()
-    )
-    assert app.title[0].value == "Estudos"
+def test_submitted_study_has_its_own_page(approved_api):
+    page = approved_api.get("/api/pages/estudos/PSI-26").json()
 
-    def names() -> set[str]:
-        return {
-            m.value.strip("*")
-            for m in app.markdown
-            if m.value.startswith("**") and "Novo estudo" not in m.value
-        }
-
-    assert len(names()) == 6  # 5 do catálogo + o PSI-26 enviado
-    app.text_input[0].set_value("sibal").run()  # nos dois BASS sintéticos
-    assert names() == {
-        "BASS-II — Burning and Suppression of Solids II",
-        "BASS — Burning and Suppression of Solids",
+    assert page["investigacao"]["nome"] == "BASS — Burning and Suppression of Solids"
+    assert list(page["tabelas"]) == ["psi26_testes"] and len(page["tabelas"]["psi26_testes"]["rows"]) == 3
+    assert {c["coluna"] for c in page["dicionario"]} <= {
+        c["name"] for c in page["tabelas"]["psi26_testes"]["columns"]
     }
-    app.text_input[0].set_value("nada-que-exista").run()
-    assert not names() and "Nenhum estudo" in app.info[0].value
+    assert page["sugestoes"]["rows"][0]["com_investigacao"] == "PSI-25"
+    # estudos do catálogo têm página própria, e um PSI que não existe não tem nenhuma
+    assert approved_api.get("/api/pages/estudos/PSI-25").status_code == 404
+    assert approved_api.get("/api/pages/estudos/PSI-999").status_code == 404
+
+
+def test_studies_hub_lists_every_study_with_its_search_index(approved_api):
+    from spaceapps import search
+
+    cards = approved_api.get("/api/studies").json()["estudos"]
+
+    assert len(cards) == 6  # 5 do catálogo + o PSI-26 enviado
+    assert [c["id"] for c in cards][:2] == ["PSI-25", "PSI-26"]  # ordem numérica: os dois BASS lado a lado
+    assert [c["id"] for c in cards if c["enviado"]] == ["PSI-26"]
+    # a busca roda no navegador sobre o índice que vem em cada cartão (onde, texto)
+    index = [search.Entry(c["id"], [tuple(f) for f in c["busca"]]) for c in cards]
+    assert set(search.search(index, "sibal")) == {"PSI-25", "PSI-26"}  # nos dois BASS sintéticos
+    assert not search.search(index, "nada-que-exista")
 
 
 def test_search_ignores_accents_and_needs_every_word(approved, monkeypatch):

@@ -130,22 +130,17 @@ def test_submitted_units_are_converted_or_kept_when_unknown():
     assert by_column["v"]["unidade"] == "pés/min" and "não convertida" in by_column["v"]["nota"]
 
 
-def test_study_page_shows_the_sheet_and_the_hub_filters_by_range(use_db):
-    from tests.test_smoke import open_page
+def test_study_page_carries_the_sheet_and_the_hub_the_ranges(client):
+    sheet = client.get("/api/pages/flex").json()["investigacao"]["ficha"]
+    assert {"variou", "fixo"} <= {item["situacao"] for item in sheet}
+    assert all(item["evidencia"] for item in sheet if item["origem"] == "dados")  # cada item diz de onde saiu
 
-    app = open_page("views/flex.py")
-    assert not app.exception, [e.value for e in app.exception]
-    assert any(e.label == "Ficha do estudo" for e in app.expander)
-    assert any("Variou entre os testes" in m.value for m in app.markdown)
-
-    app = open_page("views/estudos.py")
-    assert any("atm]" in m.value for m in app.markdown)  # etiqueta de pressão nos cartões
-    before = sum(m.value.startswith("**") and "Novo estudo" not in m.value for m in app.markdown)
-    pressure = next(s for s in app.slider if s.label.startswith("Pressão"))
-    low, high = pressure.value
-    pressure.set_value((high, high)).run()  # só os estudos que chegam à pressão máxima
-    after = sum(m.value.startswith("**") and "Novo estudo" not in m.value for m in app.markdown)
-    assert not app.exception and 0 < after < before
+    cards = {c["id"]: c for c in client.get("/api/studies").json()["estudos"]}
+    pressures = {i: c["pressao"] for i, c in cards.items() if c["pressao"]}
+    assert len(pressures) > 1 and all(lo <= hi for lo, hi in pressures.values())
+    top = max(hi for _, hi in pressures.values())  # só parte dos estudos chega à pressão máxima
+    assert 0 < sum(hi >= top for _, hi in pressures.values()) < len(pressures)
+    assert cards["PSI-69"]["combustiveis"] and cards["PSI-69"]["oxigenio"]
 
 
 # --- etapa 5: fichas lado a lado ------------------------------------------------------------------
@@ -228,14 +223,19 @@ def test_compare_tool_is_locked_to_the_studies_on_screen(use_db):
     assert "não está disponível" in json.loads(tools.execute("comparar_fichas", "{}", flex))["erro"]
 
 
-def test_side_by_side_page_shows_verdicts(use_db):
-    from tests.test_smoke import open_page
+def test_side_by_side_endpoint_gives_verdicts_ranges_and_table(client):
+    listing = client.get("/api/pages/fichas").json()
+    assert listing["disponivel"] and set(listing["padrao"]) <= {s["id"] for s in listing["estudos"]}
 
-    app = open_page("views/fichas.py")
-    assert not app.exception, [e.value for e in app.exception]
-    assert any("×" in m.value and m.value.startswith("**PSI-") for m in app.markdown)
-    app.multiselect[0].set_value(["PSI-69"]).run()
-    assert "pelo menos dois" in app.info[0].value
+    found = client.get("/api/fichas/comparar", params={"ids": ["PSI-69", "PSI-39", "PSI-117"]}).json()
+    assert [(p["a"], p["b"]) for p in found["pares"]] == [("PSI-69", "PSI-39"), ("PSI-69", "PSI-117"),
+                                                          ("PSI-39", "PSI-117")]  # fmt: skip
+    assert all(p["veredito"] for p in found["pares"])
+    assert [c["name"] for c in found["tabela"]["columns"]] == ["atributo", "PSI-69", "PSI-39", "PSI-117"]
+    for band in found["faixas"]:  # cada faixa já vem na unidade de tela, com pelo menos dois estudos
+        assert len(band["estudos"]) >= 2 and all(s["minimo"] <= s["maximo"] for s in band["estudos"])
+    assert client.get("/api/fichas/comparar", params={"ids": ["PSI-69"]}).status_code == 422
+    assert client.get("/api/fichas/comparar", params={"ids": ["PSI-69", "PSI-999"]}).status_code == 404
 
 
 # --- metadados do portal --------------------------------------------------------------------------
@@ -266,11 +266,11 @@ def test_same_hardware_becomes_a_warning_and_a_row(use_db):
     assert result["tabela"]["atributo"][0] == "Equipamento (portal)"
 
 
-def test_metadata_feeds_search_and_the_study_page(use_db):
+def test_metadata_feeds_search_and_the_study_page(client):
     from spaceapps import search
-    from tests.test_smoke import open_page
 
     assert "PSI-69" in search.search(search.build_index(), "extinction droplet")
-    app = open_page("views/flex.py")
-    assert any(e.label == "Objetivo, equipamento e publicações" for e in app.expander)
-    assert any("Paper one" in m.value for m in app.markdown)
+    inv = client.get("/api/pages/flex").json()["investigacao"]
+    assert inv["portal"]["objetivo"].startswith("Map the limits")
+    assert inv["publicacoes"] == [{"titulo": "Paper one", "link": "https://doi.org/10.1/one"},
+                                  {"titulo": "Paper two", "link": "https://ntrs.nasa.gov/citations/2"}]  # fmt: skip

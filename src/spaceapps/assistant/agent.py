@@ -1,4 +1,4 @@
-"""O laço do assistente: pergunta → ferramentas da página → resposta em streaming."""
+"""O laço do assistente: pergunta → estudos envolvidos → ferramentas da página → resposta em streaming."""
 
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ Números
 - Diga qual é a base: as linhas filtradas na tela ou a tabela inteira; amostra ou dados completos.
 
 Rigor
-- Antes de interpretar resultados, consulte as cautelas da investigação: elas valem mais que \
-qualquer padrão aparente.
+- Antes de interpretar resultados, leia a ficha dos estudos envolvidos (abaixo): a pergunta que \
+cada um responde, o tipo de evidência e as cautelas, que valem mais que qualquer padrão aparente.
 - Medição e modelo são evidências diferentes. Investigações diferentes não se comparam diretamente,
 exceto na página de comparação, e mesmo lá diga de onde vem cada número e o que as fontes compartilham.
 - Separe o que os dados mostram do que é hipótese; correlação não prova causa.
@@ -50,15 +50,39 @@ class ToolUse:
 
 
 @dataclass
+class Studies:
+    """Fichas dos estudos envolvidos na página, lidas antes da primeira rodada do modelo."""
+
+    items: list[dict]
+
+
+@dataclass
 class Done:
     usage: dict | None
     rounds: int
 
 
-def system_prompt(screen: Screen) -> str:
+def study_sheet(study: dict) -> str:
+    """A ficha de um estudo como vai no prompt: o que ele pergunta, que evidência traz e o que não concluir."""
+    source = study.get("fonte_carregada") or "nenhuma"
+    sample = " (AMOSTRA, não a investigação completa)" if "amostra" in source.lower() else ""
+    return (
+        f"- {study['id']} · {study['nome']}\n"
+        f"  Categoria: {study['categoria']} · Ambiente: {study['ambiente']} · Evidência: {study['tipo_evidencia']}\n"
+        f"  Fonte carregada: {source}{sample}\n"
+        f"  Pergunta que responde: {study['pergunta']}\n"
+        f"  Cautelas: {study['cautelas']}"
+    )
+
+
+def system_prompt(screen: Screen, studies: list[dict] | None = None) -> str:
     groups = tools.PAGE_GROUPS[screen.pagina]
     active = "\n".join(f"- {g}: {tools.GROUPS[g]}" for g in groups)
-    return f"{SYSTEM}\n\nGrupos de ferramentas ativos nesta página\n{active}\n\nTela agora\n{screen.resumo()}"
+    sheets = "\n".join(study_sheet(s) for s in studies or [])
+    involved = f"\n\nEstudos envolvidos nesta página (ficha)\n{sheets}" if sheets else ""
+    return (
+        f"{SYSTEM}\n\nGrupos de ferramentas ativos nesta página\n{active}{involved}\n\nTela agora\n{screen.resumo()}"
+    )
 
 
 def trim(history: list[dict]) -> list[dict]:
@@ -77,20 +101,24 @@ def answer(
     *,
     api: openai.OpenAI | None = None,
     config: provider.Config | None = None,
-) -> Iterator[str | ToolUse | Done]:
+) -> Iterator[str | Studies | ToolUse | Done]:
     """Responde `question`. Acrescenta em `history` as mensagens do turno (formato OpenAI).
 
-    Rende texto em pedaços, um `ToolUse` por ferramenta executada e um `Done` no fim.
+    Rende primeiro um `Studies` (as fichas dos estudos envolvidos, que entram no prompt), depois texto
+    em pedaços, um `ToolUse` por ferramenta executada e um `Done` no fim.
     """
     config = config or provider.Config.from_env()
     api = api or provider.client(config)
     schemas = [t.schema() for t in tools.tools_for(screen.pagina)]
     provider.check_model(api, config.model)
+    # etapa de estudos: antes de qualquer consulta aos dados, o agente lê a ficha de quem está em jogo
+    studies = tools.studies_in_scope(screen)
+    yield Studies(studies)
     history.append({"role": "user", "content": question})
     usage = None
 
     for round_ in range(1, MAX_TOOL_ROUNDS + 1):
-        messages = [{"role": "system", "content": system_prompt(screen)}, *trim(history)]
+        messages = [{"role": "system", "content": system_prompt(screen, studies)}, *trim(history)]
         turn = None
         for item in provider.stream_turn(api, config.model, messages, schemas):
             if isinstance(item, provider.Turn):

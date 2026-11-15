@@ -175,6 +175,16 @@ def fake_zyria():
     provider._catalog.cache_clear()
 
 
+def test_studies_in_scope_follow_the_page(flex_screen):
+    ids = lambda screen: [s["id"] for s in tools.studies_in_scope(screen)]  # noqa: E731
+    assert ids(flex_screen) == ["PSI-69"]
+    assert ids(Screen(pagina="comparacao", titulo="x", escopo=["PSI-117", "PSI-39"])) == ["PSI-117", "PSI-39"]
+    assert len(ids(Screen(pagina="overview", titulo="x"))) >= 3  # visão geral: todas as investigações
+    assert ids(Screen(pagina="explore", titulo="x")) == []  # o explorador livre não tem estudo associado
+    sheet = agent.study_sheet(tools.studies_in_scope(flex_screen)[0])
+    assert "Pergunta que responde:" in sheet and "Cautelas:" in sheet
+
+
 def test_tool_round_trip_with_the_real_sdk(fake_zyria, flex_screen):
     fake_zyria["replies"] = [(200, tool_call_stream()), (200, answer_stream())]
     history = []
@@ -196,6 +206,11 @@ def test_tool_round_trip_with_the_real_sdk(fake_zyria, flex_screen):
     assert first["zyria_label"] == provider.LABEL and first["stream"] is True
     assert {t["function"]["name"] for t in first["tools"]} == {t.name for t in tools.tools_for("flex")}
     assert "Filtros ativos: desfecho = Extinção" in first["messages"][0]["content"]
+    # a etapa de estudos vem antes de tudo e a ficha (pergunta e cautelas) vai no prompt das duas rodadas
+    assert isinstance(events[0], agent.Studies) and [s["id"] for s in events[0].items] == ["PSI-69"]
+    for body in (first, second):
+        assert "Estudos envolvidos nesta página (ficha)" in body["messages"][0]["content"]
+        assert events[0].items[0]["cautelas"] in body["messages"][0]["content"]
     assert second["messages"][-1]["role"] == "tool" and second["messages"][-1]["tool_call_id"] == "call_1"
 
 
