@@ -149,12 +149,13 @@ the team. This README and the `docs/` folder were drafted the same way and revis
 
 ## Team
 
-<!-- Preencher: nome · papel (ideia e dados, código e revisão, demo, textos) -->
-
 | Member | Role |
 |---|---|
-| Ernesto Mendanha | |
-| Eduardo | |
+| Ernesto Mendanha | Full-stack developer · data structuring · presenter |
+| Alexandre | Full-stack developer · backend · data sourcing |
+| Maria | Front-end developer |
+| Eduardo | Design · front-end |
+| Arlindo Antonio | Software engineer · pitch structure · documentation · project-level decisions |
 
 ## What this project does not claim
 

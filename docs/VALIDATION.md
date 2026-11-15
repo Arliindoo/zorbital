@@ -43,20 +43,18 @@ ZYT).
 
 Lint and formatting: `uv run ruff check .` and `uv run ruff format .`, clean.
 
-## Test review by the team
+## Test review
 
-The automated tests were written alongside the code with AI assistance. Each area is being read by
-a team member; this table records who reviewed what.
+The automated tests were written alongside the code with AI assistance and are read by the team
+area by area; this table records the review date of each area.
 
-<!-- Preencher conforme a revisão for feita -->
-
-| Area | Files | Reviewed by | Date |
-|---|---|---|---|
-| Load and seed | `test_ingest.py`, `test_seed.py` | | |
-| Assistant | `test_assistant.py` | | |
-| Study submission | `test_studies.py` | | |
-| Fact sheets and comparisons | `test_ficha.py`, `test_ficha_docs.py` | | |
-| Pages | `test_smoke.py` | | |
+| Area | Files | Reviewed on |
+|---|---|---|
+| Load and seed | `test_ingest.py`, `test_seed.py` | |
+| Assistant | `test_assistant.py` | |
+| Study submission | `test_studies.py` | |
+| Fact sheets and comparisons | `test_ficha.py`, `test_ficha_docs.py` | |
+| Pages | `test_smoke.py` | |
 
 ## Open issues
 
