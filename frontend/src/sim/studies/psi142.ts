@@ -2,6 +2,7 @@
 
 import type { AlertRow, Psi142Point, Psi142Set } from '@/api/types'
 import { fixed, g } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import { type BurnerRun, burnerScene, type Instrument } from '../scenes/burner'
 import type { Readout, SimRun, SimStudy, StageDef, Tone } from '../types'
 import { groundStage } from './ground'
@@ -48,16 +49,16 @@ function toRun(set: Psi142Set, serie: string, yName: string, points: readonly Ps
   const profile = /distance|location/i.test(xName)
   const id = `${set.conjunto_id}|${yName}|${serie}`
   const progress = (t: number) => (t - x0) / (x1 - x0 || 1)
-  const notes = ['Da fonte: os pontos desta série, digitalizados da figura publicada — a precisão é a da digitalização.']
-  if (suspect) notes.push(`Alerta de qualidade nesta série: ${suspect}`)
+  const notes = [tr('From the source: the points of this series, digitized from the published figure — the precision is that of the digitization.', 'Da fonte: os pontos desta série, digitalizados da figura publicada — a precisão é a da digitalização.')]
+  if (suspect) notes.push(tr(`Quality alert on this series: ${suspect}`, `Alerta de qualidade nesta série: ${suspect}`))
   const conditions: Readout[] = [
-    { label: 'Conjunto', value: `${set.conjunto_id} · ${set.descricao_planilha || set.descricao_csv || ''}` },
-    { label: 'Série', value: serie },
-    { label: 'Pontos', value: g(sorted.length) },
-    { label: 'Eixo x', value: xName },
-    { label: 'Eixo y', value: yName },
+    { label: tr('Set', 'Conjunto'), value: `${set.conjunto_id} · ${set.descricao_planilha || set.descricao_csv || ''}` },
+    { label: tr('Series', 'Série'), value: serie },
+    { label: tr('Points', 'Pontos'), value: g(sorted.length) },
+    { label: tr('x axis', 'Eixo x'), value: xName },
+    { label: tr('y axis', 'Eixo y'), value: yName },
   ]
-  if (set.figura) conditions.push({ label: 'Figura', value: String(set.figura) })
+  if (set.figura) conditions.push({ label: tr('Figure', 'Figura'), value: String(set.figura) })
 
   if (profile) {
     const instrument: Instrument = /plif/i.test(yName) ? 'plif' : /temp/i.test(yName) ? 'sonda' : 'camera'
@@ -70,31 +71,31 @@ function toRun(set: Psi142Set, serie: string, yName: string, points: readonly Ps
     }
     const xPeak = xs[ys.indexOf(yMax)]!
     notes.push(
-      'A curva está desenhada no próprio vão entre os bocais e pinta a faixa sobre o eixo. O vão da cena tem a extensão do perfil (do menor ao maior x): a fonte não traz a geometria do queimador nem diz de que bocal a distância é contada.',
-      'O disco fica onde o sinal é máximo. O queimador, os traçadores e os instrumentos são esquemáticos.',
+      tr('The curve is drawn in the gap between the nozzles itself and paints the band over the axis. The gap in the scene spans the profile (from the lowest to the highest x): the source gives neither the burner geometry nor which nozzle the distance is counted from.', 'A curva está desenhada no próprio vão entre os bocais e pinta a faixa sobre o eixo. O vão da cena tem a extensão do perfil (do menor ao maior x): a fonte não traz a geometria do queimador nem diz de que bocal a distância é contada.'),
+      tr('The disc sits where the signal is highest. The burner, the tracers and the instruments are schematic.', 'O disco fica onde o sinal é máximo. O queimador, os traçadores e os instrumentos são esquemáticos.'),
     )
     return {
       id,
       label: serie,
-      title: `${clean(yName)} ao longo do eixo`,
-      group: `conjunto ${set.conjunto_id}`,
+      title: tr(`${clean(yName)} along the axis`, `${clean(yName)} ao longo do eixo`),
+      group: tr(`set ${set.conjunto_id}`, `conjunto ${set.conjunto_id}`),
       tone: suspect ? 'amber' : tone,
-      toneLabel: suspect ? 'Eixo suspeito na fonte' : instrument === 'plif' ? 'PLIF de CH2O' : instrument === 'sonda' ? 'Termometria' : 'Quimiluminescência',
+      toneLabel: suspect ? tr('Suspect axis in the source', 'Eixo suspeito na fonte') : instrument === 'plif' ? tr('CH2O PLIF', 'PLIF de CH2O') : instrument === 'sonda' ? tr('Thermometry', 'Termometria') : tr('Chemiluminescence', 'Quimiluminescência'),
       level: scale > 0 ? Math.min(1, yMax / scale) : 0.6,
       playable: true,
       start: x0,
       duration: x1,
       wall: 11,
-      clock: { label: `Posição da leitura (${clean(xName)})`, unit: xUnit, digits: 2 },
-      phases: [{ id: 'varredura', label: 'Varredura ao longo do eixo', t0: x0, t1: x1, tone }],
+      clock: { label: tr(`Reading position (${clean(xName)})`, `Posição da leitura (${clean(xName)})`), unit: xUnit, digits: 2 },
+      phases: [{ id: 'varredura', label: tr('Scan along the axis', 'Varredura ao longo do eixo'), t0: x0, t1: x1, tone }],
       conditions,
       telemetry: (t) => [
         { label: clean(yName), value: g(Number(at(xs, ys, t).toPrecision(4))), unit: yUnit, tone },
-        { label: 'Máximo da série', value: g(Number(yMax.toPrecision(4))), unit: yUnit },
-        { label: 'Posição do máximo', value: fixed(xPeak, 2), unit: xUnit },
+        { label: tr('Series maximum', 'Máximo da série'), value: g(Number(yMax.toPrecision(4))), unit: yUnit },
+        { label: tr('Position of the maximum', 'Posição do máximo'), value: fixed(xPeak, 2), unit: xUnit },
       ],
-      phaseAt: (t) => (t >= x1 ? { label: 'Perfil completo', tone } : { label: 'Lendo o perfil', tone }),
-      verdict: { label: 'Máximo do sinal', detail: `${g(Number(yMax.toPrecision(4)))} ${yUnit} em ${fixed(xPeak, 2)} ${xUnit}`.trim(), tone },
+      phaseAt: (t) => (t >= x1 ? { label: tr('Full profile', 'Perfil completo'), tone } : { label: tr('Reading the profile', 'Lendo o perfil'), tone }),
+      verdict: { label: tr('Signal maximum', 'Máximo do sinal'), detail: tr(`${g(Number(yMax.toPrecision(4)))} ${yUnit} at ${fixed(xPeak, 2)} ${xUnit}`, `${g(Number(yMax.toPrecision(4)))} ${yUnit} em ${fixed(xPeak, 2)} ${xUnit}`).trim(), tone },
       chart: { xLabel: xName, yLabel: yName, series: [{ tone, points: thin(xs, ys, 180) }], cursor: (t) => [t, at(xs, ys, t)], yZero: yMin >= 0 },
       notes,
       state: { kind: 'perfil', tone, profile: samples, peak: peak / (SAMPLES - 1), instrument, progress, strain: () => 0.45, power: () => 0.85 },
@@ -110,34 +111,34 @@ function toRun(set: Psi142Set, serie: string, yName: string, points: readonly Ps
   const digits = Math.abs(x1) < 10 ? 3 : 0
   notes.push(
     temperature
-      ? 'A cena percorre a curva: a cada posição, a chama aparece com o vigor proporcional à temperatura máxima informada.'
-      : 'A cena percorre a curva: em cada ponto a chama está no limite em que se apaga, e os traçadores andam no ritmo do estiramento daquele ponto.',
-    'Entre dois pontos digitalizados o valor é interpolado em linha reta (sublinhado em tracejado). O limite é uma taxa de estiramento (1/s): não se compara com o diâmetro de extinção de uma gota.',
-    'O queimador, os traçadores e os instrumentos são esquemáticos: a fonte não traz a geometria do aparato.',
+      ? tr('The scene travels along the curve: at each position, the flame appears with a vigor proportional to the reported maximum temperature.', 'A cena percorre a curva: a cada posição, a chama aparece com o vigor proporcional à temperatura máxima informada.')
+      : tr('The scene travels along the curve: at each point the flame is at the limit where it goes out, and the tracers move at the strain rate of that point.', 'A cena percorre a curva: em cada ponto a chama está no limite em que se apaga, e os traçadores andam no ritmo do estiramento daquele ponto.'),
+    tr('Between two digitized points the value is interpolated in a straight line (dashed underline). The limit is a strain rate (1/s): it is not comparable with the extinction diameter of a droplet.', 'Entre dois pontos digitalizados o valor é interpolado em linha reta (sublinhado em tracejado). O limite é uma taxa de estiramento (1/s): não se compara com o diâmetro de extinção de uma gota.'),
+    tr('The burner, the tracers and the instruments are schematic: the source does not give the geometry of the apparatus.', 'O queimador, os traçadores e os instrumentos são esquemáticos: a fonte não traz a geometria do aparato.'),
   )
   return {
     id,
     label: serie,
     title: `${clean(yName)} × ${clean(xName)}`,
-    group: `conjunto ${set.conjunto_id}`,
+    group: tr(`set ${set.conjunto_id}`, `conjunto ${set.conjunto_id}`),
     tone: suspect ? 'amber' : tone,
-    toneLabel: suspect ? 'Eixo suspeito na fonte' : temperature ? 'Temperatura máxima' : hot ? 'Limite da chama quente' : 'Limite da chama fria',
+    toneLabel: suspect ? tr('Suspect axis in the source', 'Eixo suspeito na fonte') : temperature ? tr('Maximum temperature', 'Temperatura máxima') : hot ? tr('Hot flame limit', 'Limite da chama quente') : tr('Cool flame limit', 'Limite da chama fria'),
     level: scale > 0 ? Math.min(1, yMax / scale) : 0.6,
     playable: true,
     start: x0,
     duration: x1,
     wall: 9,
-    clock: { label: xName === 'a' ? 'Taxa de estiramento a' : `Fração de combustível (${xName})`, unit: xUnit || (strainOnX ? '1/s' : ''), digits },
-    phases: [{ id: 'curva', label: temperature ? 'Chama estabilizada' : 'No limite de extinção', t0: x0, t1: x1, tone }],
+    clock: { label: xName === 'a' ? tr('Strain rate a', 'Taxa de estiramento a') : tr(`Fuel fraction (${xName})`, `Fração de combustível (${xName})`), unit: xUnit || (strainOnX ? '1/s' : ''), digits },
+    phases: [{ id: 'curva', label: temperature ? tr('Stabilized flame', 'Chama estabilizada') : tr('At the extinction limit', 'No limite de extinção'), t0: x0, t1: x1, tone }],
     conditions,
     telemetry: (t) => [
       { label: yName, value: g(Number(at(xs, ys, t).toPrecision(4))), unit: yUnit, tone, soft: !xs.includes(t) },
-      { label: 'Faixa da série', value: `${g(Number(yMin.toPrecision(3)))}–${g(Number(yMax.toPrecision(3)))}`, unit: yUnit },
+      { label: tr('Series range', 'Faixa da série'), value: `${g(Number(yMin.toPrecision(3)))}–${g(Number(yMax.toPrecision(3)))}`, unit: yUnit },
     ],
-    phaseAt: (t) => (t >= x1 ? { label: 'Fim da curva', tone } : { label: temperature ? 'Chama estabilizada' : 'No limite de extinção', tone }),
+    phaseAt: (t) => (t >= x1 ? { label: tr('End of the curve', 'Fim da curva'), tone } : { label: temperature ? tr('Stabilized flame', 'Chama estabilizada') : tr('At the extinction limit', 'No limite de extinção'), tone }),
     verdict: {
-      label: temperature ? 'Faixa de temperatura máxima' : 'Faixa do limite de extinção',
-      detail: `${yName} de ${g(Number(yMin.toPrecision(3)))} a ${g(Number(yMax.toPrecision(3)))} ${yUnit} para ${xName} de ${g(Number(x0.toPrecision(3)))} a ${g(Number(x1.toPrecision(3)))}`.replace(/\s+/g, ' '),
+      label: temperature ? tr('Maximum temperature range', 'Faixa de temperatura máxima') : tr('Extinction limit range', 'Faixa do limite de extinção'),
+      detail: tr(`${yName} from ${g(Number(yMin.toPrecision(3)))} to ${g(Number(yMax.toPrecision(3)))} ${yUnit} for ${xName} from ${g(Number(x0.toPrecision(3)))} to ${g(Number(x1.toPrecision(3)))}`, `${yName} de ${g(Number(yMin.toPrecision(3)))} a ${g(Number(yMax.toPrecision(3)))} ${yUnit} para ${xName} de ${g(Number(x0.toPrecision(3)))} a ${g(Number(x1.toPrecision(3)))}`).replace(/\s+/g, ' '),
       tone,
     },
     chart: { xLabel: xName, yLabel: yName, series: [{ tone, points: thin(xs, ys, 60), dots: true, dashed: true }], cursor: (t) => [t, at(xs, ys, t)] },
@@ -157,14 +158,14 @@ function toRun(set: Psi142Set, serie: string, yName: string, points: readonly Ps
 
 const benchStage: StageDef<BurnerRun> = {
   id: 'bancada',
-  label: 'Bancada',
-  scale: 'laboratório · decímetros',
-  title: 'Queimador de contrafluxo',
-  blurb: 'Dois bocais opostos sopram um contra o outro e a chama fica presa, plana, onde os jatos se encontram. Aumentar a vazão estica a chama até ela se apagar: esse é o limite que se mede.',
+  label: tr('Bench', 'Bancada'),
+  scale: tr('laboratory · decimeters', 'laboratório · decímetros'),
+  title: tr('Counterflow burner', 'Queimador de contrafluxo'),
+  blurb: tr('Two opposed nozzles blow against each other and the flame is held, flat, where the jets meet. Increasing the flow stretches the flame until it goes out: that is the limit being measured.', 'Dois bocais opostos sopram um contra o outro e a chama fica presa, plana, onde os jatos se encontram. Aumentar a vazão estica a chama até ela se apagar: esse é o limite que se mede.'),
   facts: (run) => [
-    { label: 'Escoamento', value: 'contrafluxo' },
-    { label: 'O que se mede', value: 'estiramento de extinção', unit: '1/s' },
-    ...(run?.state.instrument ? [{ label: 'Instrumento desta série', value: { plif: 'laser de PLIF', camera: 'câmera intensificada', sonda: 'termometria' }[run.state.instrument] }] : []),
+    { label: tr('Flow', 'Escoamento'), value: tr('counterflow', 'contrafluxo') },
+    { label: tr('What is measured', 'O que se mede'), value: tr('extinction strain rate', 'estiramento de extinção'), unit: '1/s' },
+    ...(run?.state.instrument ? [{ label: tr('Instrument of this series', 'Instrumento desta série'), value: { plif: tr('PLIF laser', 'laser de PLIF'), camera: tr('intensified camera', 'câmera intensificada'), sonda: tr('thermometry', 'termometria') }[run.state.instrument] }] : []),
   ],
   experiment: false,
   sceneKey: 'contrafluxo',
@@ -173,10 +174,10 @@ const benchStage: StageDef<BurnerRun> = {
 }
 const zoneStage: StageDef<BurnerRun> = {
   id: 'zona',
-  label: 'Zona de reação',
-  scale: 'chama · milímetros',
-  title: 'Entre os bocais',
-  blurb: 'Os traçadores mostram os dois jatos se encontrando e saindo pelos lados; o disco é a zona de reação. Nos perfis, a curva medida aparece no próprio vão; nas curvas de limite, a cena percorre os pontos em que a chama se apaga.',
+  label: tr('Reaction zone', 'Zona de reação'),
+  scale: tr('flame · millimeters', 'chama · milímetros'),
+  title: tr('Between the nozzles', 'Entre os bocais'),
+  blurb: tr('The tracers show the two jets meeting and leaving sideways; the disc is the reaction zone. In the profiles, the measured curve appears in the gap itself; in the limit curves, the scene travels through the points where the flame goes out.', 'Os traçadores mostram os dois jatos se encontrando e saindo pelos lados; o disco é a zona de reação. Nos perfis, a curva medida aparece no próprio vão; nas curvas de limite, a cena percorre os pontos em que a chama se apaga.'),
   facts: () => [],
   experiment: true,
   sceneKey: 'contrafluxo',
@@ -214,16 +215,16 @@ export function psi142Study(set: Psi142Set, points: readonly Psi142Point[], aler
   return {
     id: 'psi142',
     gravity: '1 g',
-    place: 'Bancada em solo · Princeton',
-    noun: ['série', 'séries'],
-    stripMeasure: 'Altura da barra: máximo da série, entre as séries da mesma grandeza',
+    place: tr('Ground bench · Princeton', 'Bancada em solo · Princeton'),
+    noun: tr(['series', 'series'], ['série', 'séries']),
+    stripMeasure: tr('Bar height: series maximum, among the series of the same quantity', 'Altura da barra: máximo da série, entre as séries da mesma grandeza'),
     stages: [
       groundStage<BurnerRun>({
         next: benchStage.id,
         site: { lat: 40.35, lon: -74.66, name: 'Princeton' },
         label: 'Princeton',
-        sub: 'bancada de contrafluxo · entrar no laboratório',
-        blurb: 'Esta investigação não voou: são chamas de contrafluxo medidas em bancada, sob gravidade normal. A órbita da ISS está aí só para comparar com os estudos de voo.',
+        sub: tr('counterflow bench · enter the laboratory', 'bancada de contrafluxo · entrar no laboratório'),
+        blurb: tr('This investigation did not fly: these are counterflow flames measured on a bench, under normal gravity. The ISS orbit is there only for comparison with the flight studies.', 'Esta investigação não voou: são chamas de contrafluxo medidas em bancada, sob gravidade normal. A órbita da ISS está aí só para comparar com os estudos de voo.'),
       }),
       benchStage,
       zoneStage,

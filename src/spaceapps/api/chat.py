@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -63,6 +63,7 @@ class ChatIn(BaseModel):
     screen: ScreenIn
     history: list[dict[str, Any]] = Field(default_factory=list)
     question: str = Field(min_length=1, max_length=4000)
+    lang: Literal["en", "pt"] = "en"  # idioma da interface: é nele que o assistente responde
 
 
 @router.get("/pages")
@@ -75,10 +76,10 @@ def _line(event: dict) -> bytes:
     return (json.dumps(event, ensure_ascii=False, default=str) + "\n").encode()
 
 
-def _events(screen: Screen, history: list[dict], question: str) -> Iterator[bytes]:
+def _events(screen: Screen, history: list[dict], question: str, lang: str) -> Iterator[bytes]:
     cost = None
     try:
-        for item in agent.answer(screen, history, question):
+        for item in agent.answer(screen, history, question, lang=lang):
             if isinstance(item, agent.Studies):
                 yield _line({"type": "studies", "items": item.items})
             elif isinstance(item, agent.ToolUse):
@@ -102,7 +103,12 @@ def _events(screen: Screen, history: list[dict], question: str) -> Iterator[byte
         return
     except Exception as error:  # nenhuma falha pode deixar o painel mudo
         log.exception("Falha inesperada no assistente")
-        message = f"Erro inesperado no assistente ({type(error).__name__}). Detalhes no log do servidor."
+        name = type(error).__name__
+        message = (
+            f"Erro inesperado no assistente ({name}). Detalhes no log do servidor."
+            if lang == "pt"
+            else f"Unexpected assistant error ({name}). Details in the server log."
+        )
         yield _line({"type": "error", "message": message})
         return
     yield _line({"type": "done", "cost": cost, "history": history})
@@ -113,7 +119,7 @@ def chat(body: ChatIn) -> StreamingResponse:
     screen = body.screen.build()
     history = list(body.history)  # `agent.answer` acrescenta o turno; só volta ao front se terminar bem
     return StreamingResponse(
-        _events(screen, history, body.question),
+        _events(screen, history, body.question, body.lang),
         media_type="application/x-ndjson",
         # `identity` impede o GZip de segurar os pedaços no buffer: cada linha sai assim que fica pronta
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Content-Encoding": "identity"},

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { int } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { Frame } from './kit'
 import { delay, type TipData } from './scale'
 
@@ -44,7 +45,7 @@ export function Radial({ items, height = 340, label, centerLabel }: { items: rea
                     className="mark"
                     data-hot={hot?.i === i || undefined}
                     onPointerEnter={() =>
-                      setHot({ i, tip: { x: cx + Math.cos(end) * r, y: cy + Math.sin(end) * r, title: item.label, color: item.color, rows: [['Ocorrências', int(item.value)], ['Do total', `${Math.round((item.value / total) * 100)}%`]] } })
+                      setHot({ i, tip: { x: cx + Math.cos(end) * r, y: cy + Math.sin(end) * r, title: item.label, color: item.color, rows: [[t('Occurrences', 'Ocorrências'), int(item.value)], [t('Of total', 'Do total'), `${Math.round((item.value / total) * 100)}%`]] } })
                     }
                   >
                     <path d={arc(r, start, start + sweep)} fill="none" stroke="rgb(var(--fg-rgb) / 0.055)" strokeWidth={Math.max(3, step - 5)} strokeLinecap="round" />

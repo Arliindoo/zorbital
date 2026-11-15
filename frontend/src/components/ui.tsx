@@ -3,6 +3,7 @@
 import { Children, type CSSProperties, type ReactNode } from 'react'
 import { CountUp } from '@/fx/CountUp'
 import { type Icon, IconCheck, IconChevronRight, IconDanger, IconInfo, IconWarning } from '@/icons'
+import { t } from '@/lib/i18n'
 
 export function Metric({
   label,
@@ -41,7 +42,7 @@ export function Metric({
 
 export function Metrics({ children }: { children: ReactNode }) {
   return (
-    <div className="metrics" data-agent-target data-agent-kind="metric" data-agent-label="Indicadores">
+    <div className="metrics" data-agent-target data-agent-kind="metric" data-agent-label={t('Metrics', 'Indicadores')}>
       {Children.map(children, (child, i) => (
         <div style={{ '--i': i, display: 'contents' } as CSSProperties}>{child}</div>
       ))}

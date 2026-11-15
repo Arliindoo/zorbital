@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { locale } from '@/lib/i18n'
 import { reducedMotion, useInView } from './useInView'
 
 const easeOut = (t: number) => 1 - (1 - t) ** 4
@@ -32,8 +33,8 @@ export function CountUp({
   }, [on, still, duration, delay])
   const shown = still ? value : value * progress
   return (
-    <span ref={ref} className="num" aria-label={value.toLocaleString('pt-BR', { maximumFractionDigits: digits })}>
-      {shown.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })}
+    <span ref={ref} className="num" aria-label={value.toLocaleString(locale, { maximumFractionDigits: digits })}>
+      {shown.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits })}
     </span>
   )
 }

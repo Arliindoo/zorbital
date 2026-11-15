@@ -15,9 +15,19 @@ import { Callout, Expander, Section } from '@/components/ui'
 import { IconClose, IconExplore, IconUpload } from '@/icons'
 import { uniqueSorted } from '@/lib/data'
 import { AGGREGATIONS, type Aggregation, categoryColumns, compare, isOrdered, numericColumns, summarize } from '@/lib/explore'
+import { locale, t } from '@/lib/i18n'
+import { tc } from '@/lib/i18n-data'
 
 const EXAMPLE = 'Exemplo Gapminder'
 const AGG_NAMES = Object.keys(AGGREGATIONS) as Aggregation[]
+// a chave da agregação é estável; só o nome na tela muda com o idioma
+const AGG_LABELS: Record<Aggregation, string> = {
+  média: t('mean', 'média'),
+  soma: t('sum', 'soma'),
+  mediana: t('median', 'mediana'),
+  mínimo: t('minimum', 'mínimo'),
+  máximo: t('maximum', 'máximo'),
+}
 
 /** Escolhas da comparação; quando a tabela muda, valores que não existem mais caem no padrão. */
 function Comparison({ data, sourceName, isUpload, tableName }: { data: Dataset; sourceName: string; isUpload: boolean; tableName: string }) {
@@ -57,41 +67,42 @@ function Comparison({ data, sourceName, isUpload, tableName }: { data: Dataset; 
     () => (measure ? comparisonSeries(table, { x, measure, by, slots, ordered }) : null),
     [table, x, measure, by, slots, ordered],
   )
-  const title = measure ? `${agg[0]!.toUpperCase()}${agg.slice(1)} de ${measure} por ${x}` : ''
+  const aggLabel = `${AGG_LABELS[agg][0]!.toUpperCase()}${AGG_LABELS[agg].slice(1)}`
+  const title = measure ? t(`${aggLabel} of ${tc(measure)} by ${tc(x)}`, `${aggLabel} de ${measure} por ${x}`) : ''
 
   useScreen({
     pagina: 'explore',
-    titulo: 'Explorar',
+    titulo: t('Explore', 'Explorar'),
     filtros: { tabela: sourceName, 'comparar por': by, séries: entities, 'eixo X': x, medida: measure ?? null, agregação: agg },
-    graficos: measure ? [`${title}, uma série por valor de ${by}.`] : [],
+    graficos: measure ? [t(`${title}, one series per value of ${tc(by)}.`, `${title}, uma série por valor de ${by}.`)] : [],
     dados: table,
     tabela_banco: isUpload ? null : tableName,
   })
 
   return (
     <>
-      <SidebarFilters title="Comparação">
-        <Select label="Comparar por" options={categories} value={by} onChange={setBy} />
+      <SidebarFilters title={t('Comparison', 'Comparação')}>
+        <Select label={t('Compare by', 'Comparar por')} options={categories} value={by} onChange={setBy} format={tc} />
         <MultiSelect
-          label={`Séries (até ${MAX_SERIES})`}
+          label={t(`Series (up to ${MAX_SERIES})`, `Séries (até ${MAX_SERIES})`)}
           options={values}
           value={entities}
           max={MAX_SERIES}
           onChange={chooseEntities}
         />
-        <Select label="Eixo X" options={xOptions} value={x} onChange={setX} />
-        {measure && <Select label="Medida" options={measures} value={measure} onChange={setMeasure} />}
-        <Select label="Agregação" options={AGG_NAMES} value={agg} onChange={setAgg} />
+        <Select label={t('X axis', 'Eixo X')} options={xOptions} value={x} onChange={setX} format={tc} />
+        {measure && <Select label={t('Measure', 'Medida')} options={measures} value={measure} onChange={setMeasure} format={tc} />}
+        <Select label={t('Aggregation', 'Agregação')} options={AGG_NAMES.map((a) => AGG_LABELS[a])} value={AGG_LABELS[agg]} onChange={(label) => setAgg(AGG_NAMES.find((a) => AGG_LABELS[a] === label) ?? agg)} />
       </SidebarFilters>
 
       {!measure ? (
-        <Callout tone="warning">Não sobrou coluna numérica para medir: escolha outro eixo X.</Callout>
+        <Callout tone="warning">{t('No numeric column left to measure: choose another X axis.', 'Não sobrou coluna numérica para medir: escolha outro eixo X.')}</Callout>
       ) : !entities.length ? (
-        <Callout>Escolha ao menos uma série na barra lateral.</Callout>
+        <Callout>{t('Choose at least one series in the sidebar.', 'Escolha ao menos uma série na barra lateral.')}</Callout>
       ) : (
-        <Section title={title} kind="chart" icon={IconExplore} tag={ordered ? 'linhas' : 'barras'}>
-          {figure && <XYChart series={figure} xLabel={x} yLabel={measure} zeroY={!ordered} height={440} label={`${title}, uma série por valor de ${by}`} />}
-          <Expander title="Ver como tabela">
+        <Section title={title} kind="chart" icon={IconExplore} tag={ordered ? t('lines', 'linhas') : t('bars', 'barras')}>
+          {figure && <XYChart series={figure} xLabel={tc(x)} yLabel={tc(measure)} zeroY={!ordered} height={440} label={t(`${title}, one series per value of ${tc(by)}`, `${title}, uma série por valor de ${by}`)} />}
+          <Expander title={t('View as table', 'Ver como tabela')}>
             <DataTable rows={summary} filename="resumo" />
             <DataTable rows={table} filename="comparacao" />
           </Expander>
@@ -103,7 +114,7 @@ function Comparison({ data, sourceName, isUpload, tableName }: { data: Dataset; 
 
 /** Sem comparação na tela, o assistente ainda sabe qual tabela está aberta. */
 function BareScreen({ table, dbTable }: { table: string; dbTable: string | null }) {
-  useScreen({ pagina: 'explore', titulo: 'Explorar', filtros: { tabela: table }, tabela_banco: dbTable })
+  useScreen({ pagina: 'explore', titulo: t('Explore', 'Explorar'), filtros: { tabela: table }, tabela_banco: dbTable })
   return null
 }
 
@@ -125,10 +136,10 @@ export default function Explore() {
 
   return (
     <>
-      <SidebarFilters title="Dados">
+      <SidebarFilters title={t('Data', 'Dados')}>
         {sources.data && (
           <Select
-            label="Tabela"
+            label={t('Table', 'Tabela')}
             options={sources.data}
             value={name}
             onChange={(v) => {
@@ -138,7 +149,7 @@ export default function Explore() {
           />
         )}
         <div className="field">
-          <span className="field__label">…ou envie um CSV/Parquet</span>
+          <span className="field__label">{t('…or upload a CSV/Parquet', '…ou envie um CSV/Parquet')}</span>
           <input
             ref={input}
             type="file"
@@ -153,22 +164,25 @@ export default function Explore() {
           {file ? (
             <span className="chip">
               {file.name}
-              <button type="button" aria-label="Voltar para a tabela do banco" onClick={() => setFile(null)}>
+              <button type="button" aria-label={t('Back to the database table', 'Voltar para a tabela do banco')} onClick={() => setFile(null)}>
                 <IconClose size={13} />
               </button>
             </span>
           ) : (
             <button type="button" className="button" onClick={() => input.current?.click()} disabled={upload.isPending}>
-              <IconUpload size={14} /> {upload.isPending ? 'Enviando…' : 'Escolher arquivo'}
+              <IconUpload size={14} /> {upload.isPending ? t('Uploading…', 'Enviando…') : t('Choose file', 'Escolher arquivo')}
             </button>
           )}
         </div>
       </SidebarFilters>
 
-      <PageHeader eyebrow={['Ferramenta', data ? shownName : 'Explorador livre']} title="Explorar">
+      <PageHeader eyebrow={[t('Tool', 'Ferramenta'), data ? shownName : t('Free explorer', 'Explorador livre')]} title={t('Explore', 'Explorar')}>
         {data
-          ? `${data.rows.length.toLocaleString('pt-BR')} linhas · ${data.columns.length} colunas. Escolha o que comparar, o eixo e a medida no painel de filtros.`
-          : 'Compare séries de qualquer tabela do banco, ou envie um CSV/Parquet.'}
+          ? t(
+              `${data.rows.length.toLocaleString(locale)} rows · ${data.columns.length} columns. Choose what to compare, the axis and the measure in the filters panel.`,
+              `${data.rows.length.toLocaleString(locale)} linhas · ${data.columns.length} colunas. Escolha o que comparar, o eixo e a medida no painel de filtros.`,
+            )
+          : t('Compare series from any table in the database, or upload a CSV/Parquet.', 'Compare séries de qualquer tabela do banco, ou envie um CSV/Parquet.')}
       </PageHeader>
 
       {upload.isError && <Callout tone="error">{upload.error.message}</Callout>}
@@ -176,15 +190,15 @@ export default function Explore() {
       {table.isError && !file && <Callout tone="error">{table.error.message}</Callout>}
       {!comparable && <BareScreen table={shownName} dbTable={file ? null : name} />}
       {!data ? (
-        (sources.isPending || table.isPending) && <Loading label="Carregando dados…" />
+        (sources.isPending || table.isPending) && <Loading label={t('Loading data…', 'Carregando dados…')} />
       ) : comparable ? (
         <Comparison key={shownName} data={data} sourceName={shownName} isUpload={!!file} tableName={name} />
       ) : (
         <>
           <Callout tone="warning">
-            Para comparar, a tabela precisa de uma coluna de texto (o que comparar) e uma numérica (a medida).
+            {t('To compare, the table needs a text column (what to compare) and a numeric one (the measure).', 'Para comparar, a tabela precisa de uma coluna de texto (o que comparar) e uma numérica (a medida).')}
           </Callout>
-          <Section title={shownName} kind="table" tag={`${data.rows.length} linhas`} flush>
+          <Section title={shownName} kind="table" tag={t(`${data.rows.length} rows`, `${data.rows.length} linhas`)} flush>
             <DataTable rows={data.rows} columns={data.columns} filename={shownName} />
           </Section>
         </>

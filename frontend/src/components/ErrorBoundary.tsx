@@ -1,5 +1,6 @@
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { t } from '@/lib/i18n'
 import { Callout } from './ui'
 
 interface Props {
@@ -28,7 +29,7 @@ class Boundary extends Component<Props, State> {
     return (
       <Callout tone="error">
         <p>
-          <strong>Não foi possível carregar esta página.</strong> {error.message}
+          <strong>{t('Could not load this page.', 'Não foi possível carregar esta página.')}</strong> {error.message}
         </p>
         <button
           type="button"
@@ -38,7 +39,7 @@ class Boundary extends Component<Props, State> {
             this.setState({ error: null })
           }}
         >
-          Tentar de novo
+          {t('Try again', 'Tentar de novo')}
         </button>
       </Callout>
     )

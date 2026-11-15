@@ -1,6 +1,7 @@
 /** Revisão do envio: o que a tela edita vira o que o servidor grava. Funções puras. */
 
 import type { DocSheet, SheetCondition, SheetSensor, Spec, SpecColumn, SpecTable, Vocabulary } from '@/api/types'
+import { td } from '@/lib/i18n-data'
 
 export function blank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === 'number' && Number.isNaN(value)) || String(value).trim() === ''
@@ -87,7 +88,7 @@ const EMPTY: Option = { value: '', label: '—' }
 export function options(vocabulary: Vocabulary) {
   const attributes = vocabulary.atributos.map(labelled)
   return {
-    natures: vocabulary.naturezas.map((value) => ({ value, label: value })),
+    natures: vocabulary.naturezas.map((value) => ({ value, label: td(value) })),
     types: vocabulary.tipos.map((value) => ({ value, label: value })),
     attributes: [EMPTY, ...attributes],
     conditionAttributes: [EMPTY, ...attributes.filter((a) => vocabulary.atributos_condicao.includes(a.value))],

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AlertRow, BassRow, CfiRow, FlexRow, Psi117Comparison, Psi142Point, Psi142Set } from '@/api/types'
+import { fixed } from '@/lib/format'
 import { bassStudy } from './bass'
 import { cfiStudy } from './cfi'
 import { flexStudy } from './flex'
@@ -37,7 +38,7 @@ describe('FLEX', () => {
     const stage = run!.state.plan.stages[0]!
     expect(stage.estimated).toBe(true)
     expect(stage.dEnd).toBeCloseTo(Math.sqrt(9 - 0.5 * 10))
-    expect(run!.notes.some((n) => n.includes('estimado'))).toBe(true)
+    expect(run!.notes.some((n) => n.includes('estimated'))).toBe(true)
   })
 
   it('sem o diâmetro inicial não inventa nada: o ensaio fica sem reconstrução', () => {
@@ -82,13 +83,13 @@ describe('CFI', () => {
     expect(hot).toMatchObject({ kind: 'hot', dStart: 4.039, dEnd: 3.577 })
     expect(cool!.kind).toBe('cool')
     expect(cool!.t1 - cool!.t0).toBeCloseTo((3.577 ** 2 - 0.497 ** 2) / 0.385)
-    expect(run!.verdict.label).toBe('Extinção da chama fria')
+    expect(run!.verdict.label).toBe('Cool flame extinction')
   })
 
   it('0 na fonte é gota consumida, não diâmetro de 0 mm medido', () => {
     const [run] = cfiStudy([cfi({ dext_fria_mm: null, dext_fria_zero_na_fonte: true })], []).runs
     expect(run!.state.ending).toBe('consumida')
-    expect(run!.verdict.detail).toContain('não é um diâmetro')
+    expect(run!.verdict.detail).toContain('is not a diameter')
   })
 
   it('K da chama fria sem diâmetro de extinção vira um trecho em aberto', () => {
@@ -126,8 +127,8 @@ describe('BASS-II', () => {
     expect(run!.state).toMatchObject({ shape: 'Filme', width: 20, thickness: 0.1 })
     const [o2Start] = run!.telemetry(0)
     const [o2Mid] = run!.telemetry(50)
-    expect(o2Start).toMatchObject({ value: '22,2', soft: false })
-    expect(o2Mid).toMatchObject({ value: '22,0', soft: true })
+    expect(o2Start).toMatchObject({ value: fixed(22.2, 1), soft: false })
+    expect(o2Mid).toMatchObject({ value: fixed(22, 1), soft: true })
   })
 })
 
@@ -138,8 +139,8 @@ describe('PSI-117', () => {
   ]
   it('diz se o modelo cai na faixa, e não julga quando não há faixa', () => {
     const [cool, hot] = psi117Study(rows, null, null).runs
-    expect(cool!.verdict.label).toBe('Modelo dentro da faixa')
-    expect(hot!.verdict.label).toBe('Sem faixa de incerteza')
+    expect(cool!.verdict.label).toBe('Model within the range')
+    expect(hot!.verdict.label).toBe('No uncertainty range')
     expect(hot!.level).toBeCloseTo(1)
   })
 })
@@ -167,6 +168,6 @@ describe('PSI-142', () => {
   it('série com eixo suspeito na fonte fica marcada', () => {
     const alert: AlertRow = { investigacao: 'PSI-142', teste_id: 'conjunto 5 · O3 = 0.0 mol.%', campo: 'x', valor_original: null, tipo: 'eixo_suspeito', detalhe: 'A distância vai longe demais.' }
     const { runs } = psi142Study(set, [point(0, 10), point(1, 300)], [alert])
-    expect(runs[0]!.toneLabel).toBe('Eixo suspeito na fonte')
+    expect(runs[0]!.toneLabel).toBe('Suspect axis in the source')
   })
 })

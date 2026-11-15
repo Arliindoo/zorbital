@@ -1,6 +1,7 @@
 /** Comparação por séries do explorador livre (porte de `spaceapps.data`). */
 
 import type { Cell, Dataset, Row } from '@/api/types'
+import { t } from '@/lib/i18n'
 import { compareCells, groupBy, mean, median, numbers } from './data'
 
 export const AGGREGATIONS = {
@@ -12,6 +13,15 @@ export const AGGREGATIONS = {
 } satisfies Record<string, (values: number[]) => number | null>
 
 export type Aggregation = keyof typeof AGGREGATIONS
+
+/** O nome de cada agregação na tela; a chave continua a mesma nos dois idiomas. */
+export const AGGREGATION_LABELS: Record<Aggregation, string> = {
+  média: t('mean', 'média'),
+  soma: t('sum', 'soma'),
+  mediana: t('median', 'mediana'),
+  mínimo: t('minimum', 'mínimo'),
+  máximo: t('maximum', 'máximo'),
+}
 
 /** Acima disso uma coluna de texto deixa de ser útil como dimensão de comparação. */
 export const MAX_CATEGORIES = 500
@@ -65,12 +75,12 @@ export function summarize(table: readonly Row[], opts: { by: string; x: string; 
     const values = numbers(all)
     out.push({
       [by]: entity,
-      pontos: values.length,
-      mínimo: values.length ? Math.min(...values) : null,
-      máximo: values.length ? Math.max(...values) : null,
-      média: mean(values),
-      primeiro: all[0] ?? null,
-      último: all.at(-1) ?? null,
+      [t('points', 'pontos')]: values.length,
+      [t('minimum', 'mínimo')]: values.length ? Math.min(...values) : null,
+      [t('maximum', 'máximo')]: values.length ? Math.max(...values) : null,
+      [t('mean', 'média')]: mean(values),
+      [t('first', 'primeiro')]: all[0] ?? null,
+      [t('last', 'último')]: all.at(-1) ?? null,
     })
   }
   return out.sort((a, b) => compareCells(a[by] ?? null, b[by] ?? null))

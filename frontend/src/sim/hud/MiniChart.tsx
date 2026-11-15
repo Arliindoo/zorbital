@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { g } from '@/lib/format'
+import { t as tr } from '@/lib/i18n'
 import type { MiniChart as Spec } from '../types'
 
 const W = 232
@@ -47,7 +48,7 @@ export function MiniChart({ spec, t }: { spec: Spec; t: number }) {
   const cursor = spec.cursor(t)
   return (
     <figure className="sim-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${spec.yLabel} em função de ${spec.xLabel}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={tr(`${spec.yLabel} as a function of ${spec.xLabel}`, `${spec.yLabel} em função de ${spec.xLabel}`)}>
         <path d={`M${PAD.l},${PAD.t}V${H - PAD.b}H${W - PAD.r}`} fill="none" stroke="var(--line-2)" />
         <line x1={PAD.l} x2={W - PAD.r} y1={sy(y1)} y2={sy(y1)} stroke="var(--line)" strokeDasharray="2 4" />
         <text x={PAD.l - 5} y={sy(y1) + 3} textAnchor="end">

@@ -9,6 +9,7 @@ import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, u
 import { createPortal } from 'react-dom'
 import { reducedMotion } from '@/fx/useInView'
 import { IconFullScreen, IconInfo, IconQuitFullScreen, IconRotateView, IconRouting, IconTarget, IconWarning, IconZoomIn, IconZoomOut } from '@/icons'
+import { t } from '@/lib/i18n'
 import { session } from '@/lib/storage'
 import { usePageState } from '@/lib/usePageState'
 import { Director, type Overlay } from './director'
@@ -203,8 +204,18 @@ export default function Simulation<S>({ study, runId, onRunId, onReport }: Simul
   // ---------- o que está na tela, para o assistente ---------------------------------------------
   useEffect(() => {
     if (!onReport) return
-    const what = run ? `${study.noun[0]} ${run.label} (${run.title}); desfecho na reprodução: ${run.verdict.label} — ${run.verdict.detail}` : `nenhum ${study.noun[0]} no filtro`
-    onReport(`Simulação do experimento, cena "${stage.label}" (${stage.scale}): ${what}. É uma reconstrução a partir dos valores da fonte, não um vídeo do experimento.`)
+    const what = run
+      ? t(
+          `${study.noun[0]} ${run.label} (${run.title}); outcome in the replay: ${run.verdict.label} — ${run.verdict.detail}`,
+          `${study.noun[0]} ${run.label} (${run.title}); desfecho na reprodução: ${run.verdict.label} — ${run.verdict.detail}`,
+        )
+      : t(`no ${study.noun[0]} in the filter`, `nenhum ${study.noun[0]} no filtro`)
+    onReport(
+      t(
+        `Simulation of the experiment, scene "${stage.label}" (${stage.scale}): ${what}. It is a reconstruction from the source values, not a video of the experiment.`,
+        `Simulação do experimento, cena "${stage.label}" (${stage.scale}): ${what}. É uma reconstrução a partir dos valores da fonte, não um vídeo do experimento.`,
+      ),
+    )
   }, [onReport, run, stage, study.noun])
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -238,7 +249,7 @@ export default function Simulation<S>({ study, runId, onRunId, onReport }: Simul
   const focus = useCallback((tag: string | null) => director.current?.setFocus(tag), [])
 
   const body = (
-    <div className="sim" ref={root} tabIndex={0} onKeyDown={onKey} data-stage={stage.id} data-live={stage.experiment} aria-label={`Simulação: ${stage.title}`}>
+    <div className="sim" ref={root} tabIndex={0} onKeyDown={onKey} data-stage={stage.id} data-live={stage.experiment} aria-label={t(`Simulation: ${stage.title}`, `Simulação: ${stage.title}`)}>
       <canvas ref={canvas} className="sim__canvas" />
       <i className="sim__vignette" aria-hidden />
       <i className="sim__beam" key={stageId} aria-hidden />
@@ -247,8 +258,13 @@ export default function Simulation<S>({ study, runId, onRunId, onReport }: Simul
         <div className="sim-error" role="alert">
           <IconWarning size={22} />
           <p>
-            <b>Não foi possível abrir a cena 3D.</b>
-            <span>Este navegador não ofereceu WebGL2 ({error}). O painel do estudo continua disponível.</span>
+            <b>{t('Could not open the 3D scene.', 'Não foi possível abrir a cena 3D.')}</b>
+            <span>
+              {t(
+                `This browser did not provide WebGL2 (${error}). The study dashboard is still available.`,
+                `Este navegador não ofereceu WebGL2 (${error}). O painel do estudo continua disponível.`,
+              )}
+            </span>
           </p>
         </div>
       ) : (
@@ -275,25 +291,25 @@ export default function Simulation<S>({ study, runId, onRunId, onReport }: Simul
             <div className="sim-tools">
               {touring && (
                 <button type="button" className="sim-pill" onClick={endTour}>
-                  <IconRouting size={15} /> Percurso guiado · parar
+                  <IconRouting size={15} /> {t('Guided tour · stop', 'Percurso guiado · parar')}
                 </button>
               )}
-              <button type="button" className="sim-icon" aria-label="Afastar" title="Afastar (−)" onClick={() => director.current?.zoomBy(1.3)}>
+              <button type="button" className="sim-icon" aria-label={t('Zoom out', 'Afastar')} title={t('Zoom out (−)', 'Afastar (−)')} onClick={() => director.current?.zoomBy(1.3)}>
                 <IconZoomOut size={16} />
               </button>
-              <button type="button" className="sim-icon" aria-label="Aproximar" title="Aproximar (+)" onClick={() => director.current?.zoomBy(0.77)}>
+              <button type="button" className="sim-icon" aria-label={t('Zoom in', 'Aproximar')} title={t('Zoom in (+)', 'Aproximar (+)')} onClick={() => director.current?.zoomBy(0.77)}>
                 <IconZoomIn size={16} />
               </button>
-              <button type="button" className="sim-icon" aria-label="Recentrar a câmera" title="Recentrar (R)" onClick={() => director.current?.resetView()}>
+              <button type="button" className="sim-icon" aria-label={t('Recenter the camera', 'Recentrar a câmera')} title={t('Recenter (R)', 'Recentrar (R)')} onClick={() => director.current?.resetView()}>
                 <IconTarget size={16} />
               </button>
-              <button type="button" className="sim-icon" aria-pressed={auto} aria-label="Giro automático" title="Giro automático" onClick={() => setAuto((v) => !v)}>
+              <button type="button" className="sim-icon" aria-pressed={auto} aria-label={t('Auto-rotate', 'Giro automático')} title={t('Auto-rotate', 'Giro automático')} onClick={() => setAuto((v) => !v)}>
                 <IconRotateView size={16} />
               </button>
-              <button type="button" className="sim-icon" aria-pressed={notes} aria-label="O que é dado e o que é ilustração" title="Dado × ilustração" onClick={() => setNotes((v) => !v)}>
+              <button type="button" className="sim-icon" aria-pressed={notes} aria-label={t('What is data and what is illustration', 'O que é dado e o que é ilustração')} title={t('Data × illustration', 'Dado × ilustração')} onClick={() => setNotes((v) => !v)}>
                 <IconInfo size={16} />
               </button>
-              <button type="button" className="sim-icon" aria-pressed={expanded} aria-label={expanded ? 'Sair da tela cheia' : 'Tela cheia'} title="Tela cheia (F)" onClick={() => setExpanded((v) => !v)}>
+              <button type="button" className="sim-icon" aria-pressed={expanded} aria-label={expanded ? t('Exit full screen', 'Sair da tela cheia') : t('Full screen', 'Tela cheia')} title={t('Full screen (F)', 'Tela cheia (F)')} onClick={() => setExpanded((v) => !v)}>
                 {expanded ? <IconQuitFullScreen size={16} /> : <IconFullScreen size={16} />}
               </button>
             </div>
@@ -315,7 +331,7 @@ export default function Simulation<S>({ study, runId, onRunId, onReport }: Simul
           <footer className="sim__bottom">
             {hint && !touring && (
               <p className="sim-hint">
-                arraste para orbitar · clique e role para aproximar
+                {t('drag to orbit · click and scroll to zoom', 'arraste para orbitar · clique e role para aproximar')}
               </p>
             )}
             <Transport

@@ -1,10 +1,11 @@
 /** Operações pequenas sobre linhas já carregadas: filtros, extremos e agrupamentos das páginas. */
 
 import type { Cell, Row } from '@/api/types'
+import { locale } from '@/lib/i18n'
 
 export type Range = readonly [number, number]
 
-const collator = new Intl.Collator('pt-BR', { numeric: true })
+const collator = new Intl.Collator(locale, { numeric: true })
 
 export function compareCells(a: Cell, b: Cell): number {
   if (a === b) return 0

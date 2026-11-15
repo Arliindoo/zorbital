@@ -24,7 +24,7 @@ describe('compare', () => {
   it('resume cada entidade na ordem de x', () => {
     const table = compare(rows, { by: 'continent', entities: ['Asia'], x: 'year', measure: 'lifeExp', agg: 'máximo' })
     const [asia] = summarize(table, { by: 'continent', x: 'year', measure: 'lifeExp' })
-    expect(asia).toMatchObject({ pontos: 2, mínimo: 70, máximo: 72, primeiro: 70, último: 72 })
+    expect(asia).toMatchObject({ points: 2, minimum: 70, maximum: 72, first: 70, last: 72 })
   })
 })
 

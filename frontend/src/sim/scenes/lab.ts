@@ -7,6 +7,7 @@
  * A posição do rack dentro do módulo é ilustrativa.
  */
 
+import { t } from '@/lib/i18n'
 import type { Fills, Lines, Renderer } from '../engine/renderer'
 import { compose, rotX, rotZ, translate, type V3 } from '../engine/vec'
 import { type Mesh, Wire } from '../engine/wire'
@@ -170,13 +171,13 @@ export function labScene<S>(r: Renderer, o: LabOptions<S>): Scene<S> {
   const cir = o.rack === 'cir'
   const hotspots: Hotspot[] = [
     cir
-      ? { id: 'rack', at: [1.12, 0.22, ZC], label: 'CIR', sub: 'Combustion Integrated Rack · entrar na câmara', to: o.next, tag: 'camara', dx: -40, dy: -110 }
-      : { id: 'rack', at: [1.44, 0.16, ZC], label: 'MSG', sub: 'Microgravity Science Glovebox · entrar no duto', to: o.next, tag: 'duto', dx: -40, dy: -110 },
-    { id: 'casco', at: [0, R_HULL, -2.6], label: 'Destiny', sub: '8,5 m × ⌀ 4,3 m · 24 baias de rack', tag: 'casco', dx: -30, dy: -50, minor: true },
-    { id: 'figura', at: [-0.02, 0.66, ZC - 0.25], label: 'Escala humana', sub: '≈ 1,75 m', tag: 'figura', dx: -70, dy: 20, minor: true },
+      ? { id: 'rack', at: [1.12, 0.22, ZC], label: 'CIR', sub: t('Combustion Integrated Rack · enter the chamber', 'Combustion Integrated Rack · entrar na câmara'), to: o.next, tag: 'camara', dx: -40, dy: -110 }
+      : { id: 'rack', at: [1.44, 0.16, ZC], label: 'MSG', sub: t('Microgravity Science Glovebox · enter the duct', 'Microgravity Science Glovebox · entrar no duto'), to: o.next, tag: 'duto', dx: -40, dy: -110 },
+    { id: 'casco', at: [0, R_HULL, -2.6], label: 'Destiny', sub: t('8.5 m × ⌀ 4.3 m · 24 rack bays', '8,5 m × ⌀ 4,3 m · 24 baias de rack'), tag: 'casco', dx: -30, dy: -50, minor: true },
+    { id: 'figura', at: [-0.02, 0.66, ZC - 0.25], label: t('Human scale', 'Escala humana'), sub: t('≈ 1.75 m', '≈ 1,75 m'), tag: 'figura', dx: -70, dy: 20, minor: true },
     cir
-      ? { id: 'gas', at: [1.4, -0.5, ZC - 0.3], label: 'Gases', sub: 'garrafas de oxidante e diluente', tag: 'gas', dx: -64, dy: 46, minor: true }
-      : { id: 'gas', at: [1.2, 0.1, ZC + 0.22], label: 'Portas de luva', sub: 'o astronauta troca as amostras', tag: 'camara', dx: 40, dy: 60, minor: true },
+      ? { id: 'gas', at: [1.4, -0.5, ZC - 0.3], label: 'Gases', sub: t('oxidizer and diluent bottles', 'garrafas de oxidante e diluente'), tag: 'gas', dx: -64, dy: 46, minor: true }
+      : { id: 'gas', at: [1.2, 0.1, ZC + 0.22], label: t('Glove ports', 'Portas de luva'), sub: t('the astronaut swaps the samples', 'o astronauta troca as amostras'), tag: 'camara', dx: 40, dy: 60, minor: true },
   ]
 
   return {
@@ -211,7 +212,7 @@ export function labScene<S>(r: Renderer, o: LabOptions<S>): Scene<S> {
 
 /** Fatos da cena do laboratório que valem para qualquer estudo de voo. */
 export const LAB_FACTS: readonly Readout[] = [
-  { label: 'Módulo', value: 'Destiny', hint: 'Laboratório dos EUA na ISS' },
-  { label: 'Tamanho', value: '8,5 × ⌀ 4,3', unit: 'm' },
-  { label: 'Baias de rack', value: '24' },
+  { label: t('Module', 'Módulo'), value: 'Destiny', hint: t('US laboratory on the ISS', 'Laboratório dos EUA na ISS') },
+  { label: t('Size', 'Tamanho'), value: t('8.5 × ⌀ 4.3', '8,5 × ⌀ 4,3'), unit: 'm' },
+  { label: t('Rack bays', 'Baias de rack'), value: '24' },
 ]

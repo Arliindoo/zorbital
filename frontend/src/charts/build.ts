@@ -6,12 +6,14 @@
 import type { Cell, Row } from '@/api/types'
 import { compareCells, groupBy, median, uniqueInOrder } from '@/lib/data'
 import { fixed, g } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { DOMAIN_ORDER, type DomainColumn, domainColors, MAX_SERIES, SERIES } from './colors'
 import type { XYPoint, XYSeries } from './XYChart'
+import { td } from '@/lib/i18n-data'
 
 const num = (v: Cell | undefined): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const text = (v: Cell | undefined): string =>
-  v === null || v === undefined ? '—' : typeof v === 'number' ? g(v) : typeof v === 'boolean' ? (v ? 'sim' : 'não') : v
+  v === null || v === undefined ? '—' : typeof v === 'number' ? g(v) : typeof v === 'boolean' ? (v ? t('yes', 'sim') : t('no', 'não')) : td(v)
 const xValue = (v: Cell | undefined): number | string => (typeof v === 'number' ? v : text(v))
 
 /** Dispersão com cor por categoria do domínio; as colunas de `hover` entram no tooltip. */
@@ -58,16 +60,16 @@ export function measuredVsModel(points: readonly Row[], comparison: readonly Row
       'limite_inferior_mm',
       'limite_superior_mm',
     )
-    if (segments.length) out.push({ name: `${flame} · faixa informada`, color, type: 'band', data: segments })
+    if (segments.length) out.push({ name: t(`${td(flame)} · reported range`, `${flame} · faixa informada`), color, type: 'band', data: segments })
     const rows = points
       .filter((r) => r.tipo_chama === flame)
       .sort((a, b) => compareCells(a.pressao_atm ?? null, b.pressao_atm ?? null))
     const toPoint = (r: Row): XYPoint => ({ x: r.pressao_atm as number, y: num(r.diametro_extincao_mm) })
     const model = rows.filter((r) => r.serie === 'Modelo')
     if (model.length)
-      out.push({ name: `${flame} · modelo`, color, type: 'line', dashed: true, markers: true, symbol: 'diamond', data: model.map(toPoint) })
+      out.push({ name: t(`${td(flame)} · model`, `${flame} · modelo`), color, type: 'line', dashed: true, markers: true, symbol: 'diamond', data: model.map(toPoint) })
     const measured = rows.filter((r) => r.serie === 'Medição')
-    if (measured.length) out.push({ name: `${flame} · medição`, color, type: 'points', size: 5, data: measured.map(toPoint) })
+    if (measured.length) out.push({ name: t(`${td(flame)} · measurement`, `${flame} · medição`), color, type: 'points', size: 5, data: measured.map(toPoint) })
   }
   return out
 }
@@ -133,9 +135,9 @@ export function c12Comparison(cfi: readonly Row[], psi: readonly Row[]): { panel
       .sort((a, b) => compareCells(a.pressao_atm ?? null, b.pressao_atm ?? null))
     const segments = band(ref, 'pressao_atm', 'limite_inferior_mm', 'limite_superior_mm')
     const series: XYSeries[] = [
-      { name: 'PSI-117 · faixa informada', color: SERIES[2], type: 'band', data: segments },
+      { name: t('PSI-117 · reported range', 'PSI-117 · faixa informada'), color: SERIES[2], type: 'band', data: segments },
       {
-        name: 'CFI · ensaio (ISS)',
+        name: t('CFI · test (ISS)', 'CFI · ensaio (ISS)'),
         color: SERIES[3],
         type: 'points',
         size: 3.5,
@@ -144,7 +146,7 @@ export function c12Comparison(cfi: readonly Row[], psi: readonly Row[]): { panel
           x: r.pressao_atm as number,
           y: r.dext_mm as number,
           tip: [
-            ['Ensaio', text(r.teste_id)],
+            [t('Test', 'Ensaio'), text(r.teste_id)],
             ['D0', `${fixed(num(r.d0_mm), 2)} mm`],
           ] as const,
         })),
@@ -152,7 +154,7 @@ export function c12Comparison(cfi: readonly Row[], psi: readonly Row[]): { panel
       // só marcadores: as pressões são condições separadas, e com poucos ensaios uma linha sugeriria
       // uma tendência que os dados não sustentam. O n de cada mediana vai no tooltip.
       {
-        name: 'CFI · mediana',
+        name: t('CFI · median', 'CFI · mediana'),
         color: SERIES[3],
         type: 'points',
         symbol: 'square',
@@ -160,11 +162,11 @@ export function c12Comparison(cfi: readonly Row[], psi: readonly Row[]): { panel
         data: byPressure.map(([p, list]) => ({
           x: p,
           y: median(list.map((r) => r.dext_mm as number)),
-          tip: [['Ensaios', String(list.length)]] as const,
+          tip: [[t('Tests', 'Ensaios'), String(list.length)]] as const,
         })),
       },
       {
-        name: 'PSI-117 · medição',
+        name: t('PSI-117 · measurement', 'PSI-117 · medição'),
         color: SERIES[2],
         type: 'points',
         symbol: 'diamond',
@@ -172,7 +174,7 @@ export function c12Comparison(cfi: readonly Row[], psi: readonly Row[]): { panel
         data: ref.map((r) => ({ x: r.pressao_atm as number, y: num(r.medido_mm) })),
       },
       {
-        name: 'PSI-117 · modelo',
+        name: t('PSI-117 · model', 'PSI-117 · modelo'),
         color: SERIES[0],
         type: 'line',
         dashed: true,
@@ -199,8 +201,8 @@ export function measuredModelByFuel(rows: readonly Row[], opts: { x: string; y: 
     const toPoint = (r: Row): XYPoint => ({ x: r[x] as number, y: r[y] as number })
     const model = part.filter((r) => r.serie === 'Modelo').sort((a, b) => compareCells(a[x] ?? null, b[x] ?? null))
     const measured = part.filter((r) => r.serie === 'Medição')
-    if (model.length) out.push({ name: `${fuel} · modelo`, color: colors[fuel]!, type: 'line', dashed: true, data: model.map(toPoint) })
-    if (measured.length) out.push({ name: `${fuel} · medição`, color: colors[fuel]!, type: 'points', data: measured.map(toPoint) })
+    if (model.length) out.push({ name: t(`${fuel} · model`, `${fuel} · modelo`), color: colors[fuel]!, type: 'line', dashed: true, data: model.map(toPoint) })
+    if (measured.length) out.push({ name: t(`${fuel} · measurement`, `${fuel} · medição`), color: colors[fuel]!, type: 'points', data: measured.map(toPoint) })
   }
   return out
 }

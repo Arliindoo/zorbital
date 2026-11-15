@@ -13,8 +13,10 @@ import { CountUp } from '@/fx/CountUp'
 import { IconAdd, IconArrowRightUp, IconCheck, IconClose, IconSearch, IconUpload, IconWarning } from '@/icons'
 import type { Range } from '@/lib/data'
 import { int } from '@/lib/format'
+import { locale, t } from '@/lib/i18n'
 import { clip, overlaps, rangeText, searchStudies, shortName, studyPath } from '@/lib/studies'
 import { usePageState } from '@/lib/usePageState'
+import { td } from '@/lib/i18n-data'
 
 const NOT_WRITTEN = 'não escrito na fonte'
 const MAX_HITS = 3
@@ -39,7 +41,7 @@ function Tags({ card }: { card: StudyCard }) {
     <span className="meta-row">
       {fuels.length > 0 && (
         <Badge tone="violet">
-          {fuels.slice(0, 2).join(', ')}
+          {fuels.slice(0, 2).map(td).join(', ')}
           {fuels.length > 2 && ' …'}
         </Badge>
       )}
@@ -70,33 +72,33 @@ function Card({ card, hits, i }: { card: StudyCard; hits: string[]; i: number })
       <span className="caption">{card.categoria}</span>
       <span className="inv-card__value">
         <CountUp value={card.linhas} delay={120 + i * 60} />
-        <small>registros</small>
+        <small>{t('records', 'registros')}</small>
       </span>
-      <span className="inv-card__meter" title={`${card.alertas} alertas em ${int(card.linhas)} registros`}>
+      <span className="inv-card__meter" title={t(`${card.alertas} alerts in ${int(card.linhas)} records`, `${card.alertas} alertas em ${int(card.linhas)} registros`)}>
         <i style={{ '--w': `${Math.max(2, share * 100)}%` } as CSSProperties} />
       </span>
       <span className="meta-row">
         {card.enviado && (
           <Badge tone="blue" icon={IconUpload}>
-            Enviado
+            {t('Uploaded', 'Enviado')}
           </Badge>
         )}
         {card.amostra ? (
           <Badge tone="orange" icon={IconWarning}>
-            Amostra
+            {t('Sample', 'Amostra')}
           </Badge>
         ) : (
           <Badge tone="green" icon={IconCheck}>
-            Completo
+            {t('Complete', 'Completo')}
           </Badge>
         )}
-        <Badge>{card.alertas} alertas</Badge>
+        <Badge>{t(`${card.alertas} alerts`, `${card.alertas} alertas`)}</Badge>
       </span>
       <Tags card={card} />
       <span className="inv-card__question">{clip(card.pergunta ?? '')}</span>
       {hits.length > 0 && (
         <span className="inv-card__hits">
-          <IconSearch size={13} /> encontrado em {hits.slice(0, MAX_HITS).join('; ')}
+          <IconSearch size={13} /> {t('found in', 'encontrado em')} {hits.slice(0, MAX_HITS).map(td).join('; ')}
         </span>
       )}
     </Link>
@@ -112,8 +114,8 @@ export default function Estudos() {
   const [pressure, setPressure] = usePageState<Range | null>('estudos:atm', null)
   const [shapes, setShapes] = usePageState<string[]>('estudos:formas', [])
 
-  const allCategories = useMemo(() => [...new Set(cards.map((c) => c.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [cards])
-  const allShapes = useMemo(() => [...new Set(cards.flatMap((c) => c.formas))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [cards])
+  const allCategories = useMemo(() => [...new Set(cards.map((c) => c.categoria))].sort((a, b) => a.localeCompare(b, locale)), [cards])
+  const allShapes = useMemo(() => [...new Set(cards.flatMap((c) => c.formas))].sort((a, b) => a.localeCompare(b, locale)), [cards])
   const oxygenBounds = useMemo(() => bounds(cards, 'oxigenio', 100), [cards])
   const pressureBounds = useMemo(() => bounds(cards, 'pressao', 1), [cards])
   const found = useMemo(() => searchStudies(cards, query), [cards, query])
@@ -139,32 +141,35 @@ export default function Estudos() {
 
   useScreen({
     pagina: 'estudos',
-    titulo: 'Estudos',
+    titulo: t('Studies', 'Estudos'),
     filtros: { busca: query || null, categorias: categories, 'oxigênio (%)': oxygen, 'pressão (atm)': pressure, formato: shapes },
-    graficos: [`Cartões dos estudos: ${rows.length} de ${cards.length} no filtro.`],
+    graficos: [t(`Study cards: ${rows.length} of ${cards.length} in the filter.`, `Cartões dos estudos: ${rows.length} de ${cards.length} no filtro.`)],
     dados: rows.map((c) => ({ id: c.id, nome: c.nome, categoria: c.categoria, ambiente: c.ambiente, registros: c.linhas, alertas: c.alertas })),
   })
 
   return (
     <>
-      <SidebarFilters title="Condição de teste">
-        <Caption>Um estudo entra se a faixa dele cruza a faixa escolhida. Valores da ficha de cada estudo.</Caption>
-        <RangeFilter label="Oxigênio (%)" bounds={oxygenBounds} value={oxygen} onChange={setOxygen} digits={1} />
-        <RangeFilter label="Pressão (atm)" bounds={pressureBounds} value={pressure} onChange={setPressure} digits={2} />
+      <SidebarFilters title={t('Test condition', 'Condição de teste')}>
+        <Caption>{t("A study is included if its range overlaps the chosen range. Values from each study's sheet.", 'Um estudo entra se a faixa dele cruza a faixa escolhida. Valores da ficha de cada estudo.')}</Caption>
+        <RangeFilter label={t('Oxygen (%)', 'Oxigênio (%)')} bounds={oxygenBounds} value={oxygen} onChange={setOxygen} digits={1} />
+        <RangeFilter label={t('Pressure (atm)', 'Pressão (atm)')} bounds={pressureBounds} value={pressure} onChange={setPressure} digits={2} />
         {/* nada marcado = todos os formatos */}
-        {allShapes.length > 0 && <CheckboxGroup label="Formato da amostra ou chama" options={allShapes} value={shapes} onChange={setShapes} />}
+        {allShapes.length > 0 && <CheckboxGroup label={t('Sample or flame shape', 'Formato da amostra ou chama')} options={allShapes} value={shapes} onChange={setShapes} />}
       </SidebarFilters>
 
-      <PageHeader eyebrow={['Centro de comando', `${cards.length} estudos`]} title="Estudos">
-        Busque por nome, PSI, combustível, material, coluna ou condição — sem diferenciar acentos. Os filtros por faixa de O₂, pressão e formato ficam no painel ao lado.
+      <PageHeader eyebrow={[t('Command center', 'Centro de comando'), t(`${cards.length} studies`, `${cards.length} estudos`)]} title={t('Studies', 'Estudos')}>
+        {t(
+          'Search by name, PSI, fuel, material, column or condition — accents are ignored. The O₂ range, pressure and shape filters are in the side panel.',
+          'Busque por nome, PSI, combustível, material, coluna ou condição — sem diferenciar acentos. Os filtros por faixa de O₂, pressão e formato ficam no painel ao lado.',
+        )}
       </PageHeader>
 
       <div className="finder">
         <label className="search finder__search">
           <IconSearch size={18} />
-          <input type="search" value={query} placeholder="ex.: n-dodecano, PMMA, chama fria, PSI-39, pressão" aria-label="Buscar estudos" onChange={(e) => setQuery(e.target.value)} />
+          <input type="search" value={query} placeholder={t('e.g. n-dodecane, PMMA, cool flame, PSI-39, pressure', 'ex.: n-dodecano, PMMA, chama fria, PSI-39, pressão')} aria-label={t('Search studies', 'Buscar estudos')} onChange={(e) => setQuery(e.target.value)} />
         </label>
-        <div className="pills" role="group" aria-label="Categoria">
+        <div className="pills" role="group" aria-label={t('Category', 'Categoria')}>
           {allCategories.map((category) => {
             const on = categories.includes(category)
             return (
@@ -175,16 +180,16 @@ export default function Estudos() {
           })}
           {filtering && (
             <button type="button" className="pill pill--clear" onClick={clear}>
-              <IconClose size={13} /> limpar
+              <IconClose size={13} /> {t('clear', 'limpar')}
             </button>
           )}
         </div>
         <p className="finder__count label" role="status">
-          {rows.length} de {cards.length} estudos
+          {t(`${rows.length} of ${cards.length} studies`, `${rows.length} de ${cards.length} estudos`)}
         </p>
       </div>
 
-      {!rows.length && <Callout icon={IconSearch}>{query.trim() ? `Nenhum estudo com “${query.trim()}” e esses filtros.` : 'Nenhum estudo com esses filtros.'}</Callout>}
+      {!rows.length && <Callout icon={IconSearch}>{query.trim() ? t(`No study matches “${query.trim()}” with these filters.`, `Nenhum estudo com “${query.trim()}” e esses filtros.`) : t('No study matches these filters.', 'Nenhum estudo com esses filtros.')}</Callout>}
 
       <div className="grid">
         {rows.map((card, i) => (
@@ -193,12 +198,17 @@ export default function Estudos() {
         {/* o último cartão é o de enviar um estudo novo */}
         <Link to="/enviar" className="inv-card inv-card--new" style={{ '--span': 4, '--span-md': 6, '--accent': 'var(--signal)', '--i': rows.length } as CSSProperties}>
           <span className="inv-card__top">
-            <span className="label">Novo estudo</span>
+            <span className="label">{t('New study', 'Novo estudo')}</span>
             <IconArrowRightUp size={18} />
           </span>
           <IconAdd size={34} className="inv-card__plus" />
-          <strong>Enviar estudo</strong>
-          <span className="inv-card__question">Envie as tabelas e o documento de outra investigação do PSI. A IA propõe como ler cada coluna; nada é gravado sem a sua revisão.</span>
+          <strong>{t('Upload study', 'Enviar estudo')}</strong>
+          <span className="inv-card__question">
+            {t(
+              'Upload the tables and the document of another PSI investigation. The AI proposes how to read each column; nothing is saved without your review.',
+              'Envie as tabelas e o documento de outra investigação do PSI. A IA propõe como ler cada coluna; nada é gravado sem a sua revisão.',
+            )}
+          </span>
         </Link>
       </div>
     </>

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useInView } from '@/fx/useInView'
 import { int } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { delay, useSvgId } from './scale'
 import { Orb } from './Orb'
 
@@ -30,8 +31,8 @@ const W = 1240
 const H = 540
 const CORE = { x: 668, y: 270, r: 84 }
 const ENV = {
-  iss: { label: 'Microgravidade · ISS', color: 'var(--signal)' },
-  solo: { label: 'Investigação em solo', color: 'var(--violet)' },
+  iss: { label: t('Microgravity · ISS', 'Microgravidade · ISS'), color: 'var(--signal)' },
+  solo: { label: t('Ground investigation', 'Investigação em solo'), color: 'var(--violet)' },
 } as const
 
 const short = (name: string) => (name.length > 27 ? `${name.slice(0, 26)}…` : name)
@@ -86,7 +87,10 @@ export function CommandFlow({
 
   return (
     <div ref={view} className="chart flow" data-on={on} data-focus={hot !== null || undefined}>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Fluxo dos dados: ${sources.length} arquivos carregados, ${int(totalRows)} linhas, ${investigations.length} investigações`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t(
+          `Data flow: ${sources.length} files loaded, ${int(totalRows)} rows, ${investigations.length} investigations`,
+          `Fluxo dos dados: ${sources.length} arquivos carregados, ${int(totalRows)} linhas, ${investigations.length} investigações`,
+        )}>
         <defs>
           <linearGradient id={`${id}-in`} x1={SRC_X} x2={MERGE_X} gradientUnits="userSpaceOnUse">
             <stop offset="0" style={{ stopColor: 'var(--ink)' }} stopOpacity="0.5" />
@@ -103,7 +107,7 @@ export function CommandFlow({
 
         {/* ---------- arquivos ---------- */}
         <text className="t-title" x={SRC_X - 14} y={24} textAnchor="end">
-          Arquivos em dados/
+          {t('Files in dados/', 'Arquivos em dados/')}
         </text>
         {left.map((s, i) => (
           <g key={s.name} className="mark" data-hot={hot === null || hot === s.investigation || undefined}>
@@ -115,7 +119,7 @@ export function CommandFlow({
                 {short(s.name)}
               </text>
               <text x={SRC_X - 14} y={s.y + 11} textAnchor="end">
-                {s.investigation} · {int(s.rows)} linhas
+                {s.investigation} · {int(s.rows)} {t('rows', 'linhas')}
               </text>
             </g>
             {on && (
@@ -131,7 +135,7 @@ export function CommandFlow({
           <g className="a-fade" style={delay(sources.length * 70)}>
             <circle cx={SRC_X} cy={otherY} r={3.5} fill="none" stroke="var(--ink-4)" strokeDasharray="2 2" />
             <text x={SRC_X - 14} y={otherY + 4} textAnchor="end">
-              +{otherFiles} fora do banco
+              +{otherFiles} {t('outside the database', 'fora do banco')}
             </text>
           </g>
         )}
@@ -142,7 +146,7 @@ export function CommandFlow({
             {int(totalRows)}
           </text>
           <text className="t-title" x={MERGE_X + 14} y={CORE.y + 22}>
-            Linhas
+            {t('Rows', 'Linhas')}
           </text>
           <circle cx={MERGE_X} cy={CORE.y} r={3} fill="var(--signal)" />
         </g>
@@ -150,7 +154,7 @@ export function CommandFlow({
         <g className="a-fade" style={delay(1100)}>
           <circle cx={CORE.x - 34} cy={CORE.y + CORE.r * 1.62 + 22} r={3} fill="var(--magenta)" />
           <text className="t-ink2" x={CORE.x - 24} y={CORE.y + CORE.r * 1.62 + 26}>
-            {int(totalAlerts)} alertas de qualidade
+            {int(totalAlerts)} {t('quality alerts', 'alertas de qualidade')}
           </text>
         </g>
 
@@ -180,7 +184,7 @@ export function CommandFlow({
                     data-hot={active || undefined}
                     role={e.to ? 'link' : undefined}
                     tabIndex={e.to ? 0 : undefined}
-                    aria-label={`${e.name}: ${int(e.rows)} ${e.unit.toLowerCase()}, ${e.alerts} alertas`}
+                    aria-label={t(`${e.name}: ${int(e.rows)} ${e.unit.toLowerCase()}, ${e.alerts} alerts`, `${e.name}: ${int(e.rows)} ${e.unit.toLowerCase()}, ${e.alerts} alertas`)}
                     onPointerEnter={() => setHot(e.id)}
                     onPointerLeave={() => setHot(null)}
                     onFocus={() => setHot(e.id)}
@@ -213,7 +217,7 @@ export function CommandFlow({
                         {e.to && <tspan fill="var(--signal)"> ↗</tspan>}
                       </text>
                       <text x={END_X + 16} y={e.y + 36}>
-                        {e.id} · {e.alerts} alertas
+                        {e.id} · {e.alerts} {t('alerts', 'alertas')}
                       </text>
                     </g>
                   </g>

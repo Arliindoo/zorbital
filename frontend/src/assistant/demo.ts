@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 import type { ApiMessage, ChatEvent, PageKey, Screen, Study } from './types'
 
 /**
@@ -53,8 +54,14 @@ function studiesFor(screen: Screen): Study[] {
       categoria: 'Demonstração',
       ambiente,
       tipo_evidencia: tipo,
-      pergunta: 'Ficha encenada do modo de demonstração: no uso real, aqui vem a pergunta que a investigação responde.',
-      cautelas: 'Não comparar com outras investigações. Conferir os valores com o portal NASA PSI. Medição e modelo são evidências diferentes.',
+      pergunta: t(
+        'Staged study sheet from demo mode: in real use, the question the investigation answers goes here.',
+        'Ficha encenada do modo de demonstração: no uso real, aqui vem a pergunta que a investigação responde.',
+      ),
+      cautelas: t(
+        'Do not compare with other investigations. Check the values against the NASA PSI portal. Measurement and model are different kinds of evidence.',
+        'Não comparar com outras investigações. Conferir os valores com o portal NASA PSI. Medição e modelo são evidências diferentes.',
+      ),
       url_nasa: `https://psi.nasa.gov/physci/repo/data/investigations/${id}`,
       relatorio: null,
       doi: null,
@@ -65,8 +72,27 @@ function studiesFor(screen: Screen): Study[] {
 
 function answerFor(screen: Screen, question: string): string {
   const linhas = screen.dados?.length ?? 0
-  const grafico = screen.graficos?.[0]?.split(':')[0] ?? 'gráfico principal'
-  return [
+  const grafico = screen.graficos?.[0]?.split(':')[0] ?? t('main chart', 'gráfico principal')
+  const en = [
+    `**Summary.** In *${screen.titulo}*, the ${grafico.toLowerCase()} shows where the flame is sustained and where it goes out, considering the ${linhas || 'few'} records on screen with the current filters.`,
+    '',
+    '### What the data says',
+    '',
+    '- Most tests fall between **0.5 and 1.0 atm**, with an oxygen fraction of 0.15 to 0.21.',
+    '- **Radiative extinction** dominates in the larger droplets; **diffusive extinction** appears once the droplet has shrunk.',
+    '- Cool flames only show up after visible extinction and do not appear in the second chart.',
+    '',
+    '| Outcome | Tests | Median pressure |',
+    '| --- | ---: | ---: |',
+    '| Radiative extinction | 41 | 760 mmHg |',
+    '| Diffusive extinction | 23 | 570 mmHg |',
+    '| Complete burn | 12 | 380 mmHg |',
+    '',
+    `> Caution: ${linhas ? 'some' : 'the'} tests with no measured diameter are left out of the second scatter plot, and the legend says so.`,
+    '',
+    `About your question (“${question}”): the reading above holds for the filtered subset; change the pressure filter to see the limit shift. Use \`flex_agrupar\` to repeat the count.`,
+  ]
+  const pt = [
     `**Resumo.** Em *${screen.titulo}*, o ${grafico.toLowerCase()} mostra onde a chama se sustenta e onde ela se extingue, considerando os ${linhas || 'poucos'} registros que estão na tela com os filtros atuais.`,
     '',
     '### O que os dados dizem',
@@ -84,7 +110,8 @@ function answerFor(screen: Screen, question: string): string {
     `> Cautela: ${linhas ? 'alguns' : 'os'} ensaios sem diâmetro medido ficam fora da segunda dispersão, e isso é indicado na legenda.`,
     '',
     `Sobre a sua pergunta (“${question}”): a leitura acima vale para o recorte filtrado; mude o filtro de pressão para ver o limite se deslocar. Use \`flex_agrupar\` para repetir a contagem.`,
-  ].join('\n')
+  ]
+  return t(en, pt).join('\n')
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -136,7 +163,7 @@ export async function* askDemo(
       if (variant === 'erro' && i === 0) {
         yield { type: 'tool', label: `${tools[1] ?? 'tela_resumo()'} · erro` }
         await sleep(700 * pace, signal)
-        yield { type: 'error', message: 'O provedor do modelo recusou a chamada (429: limite de créditos atingido).' }
+        yield { type: 'error', message: t('The model provider refused the call (429: credit limit reached).', 'O provedor do modelo recusou a chamada (429: limite de créditos atingido).') }
         return
       }
     }

@@ -8,6 +8,7 @@
  * queimador, a bancada e os instrumentos — a fonte não traz a geometria do aparato.
  */
 
+import { t } from '@/lib/i18n'
 import type { Lines, Renderer } from '../engine/renderer'
 import { clamp, lerp, scaling, translate, type V3 } from '../engine/vec'
 import { type Mesh, type Tone, Wire } from '../engine/wire'
@@ -117,14 +118,14 @@ export function burnerScene(r: Renderer, next: string): Scene<BurnerRun> {
   }
 
   const far: Hotspot[] = [
-    { id: 'queimador', at: [0, L + 40, 0], label: 'Queimador de contrafluxo', sub: 'dois bocais opostos · entrar na zona de reação', to: next, tag: 'queimador', dx: -50, dy: -70 },
-    { id: 'plif', at: [-150, 12, 0], label: 'Laser de PLIF', sub: 'folha de luz que faz o formaldeído (CH2O) fluorescer', tag: 'plif', dx: -30, dy: -50, minor: true },
-    { id: 'camera', at: [0, 18, 150], label: 'Câmera intensificada', sub: 'registra a quimiluminescência', tag: 'camera', dx: 40, dy: -44, minor: true },
-    { id: 'mesa', at: [150, TABLE, 150], label: 'Mesa óptica', sub: 'bancada em solo, sob 1 g', tag: 'mesa', dx: 30, dy: 30, minor: true },
+    { id: 'queimador', at: [0, L + 40, 0], label: t('Counterflow burner', 'Queimador de contrafluxo'), sub: t('two opposed nozzles · enter the reaction zone', 'dois bocais opostos · entrar na zona de reação'), to: next, tag: 'queimador', dx: -50, dy: -70 },
+    { id: 'plif', at: [-150, 12, 0], label: t('PLIF laser', 'Laser de PLIF'), sub: t('light sheet that makes formaldehyde (CH2O) fluoresce', 'folha de luz que faz o formaldeído (CH2O) fluorescer'), tag: 'plif', dx: -30, dy: -50, minor: true },
+    { id: 'camera', at: [0, 18, 150], label: t('Intensified camera', 'Câmera intensificada'), sub: t('records the chemiluminescence', 'registra a quimiluminescência'), tag: 'camera', dx: 40, dy: -44, minor: true },
+    { id: 'mesa', at: [150, TABLE, 150], label: t('Optical table', 'Mesa óptica'), sub: t('ground bench, under 1 g', 'bancada em solo, sob 1 g'), tag: 'mesa', dx: 30, dy: 30, minor: true },
   ]
   const near: Hotspot[] = [
-    { id: 'oxidante', at: [0, L + 6, 0], label: 'Oxidante', sub: 'entra por cima', dx: -44, dy: -40, minor: true },
-    { id: 'combustivel', at: [0, -L - 6, 0], label: 'Combustível', sub: 'entra por baixo, diluído', dx: -44, dy: 40, minor: true },
+    { id: 'oxidante', at: [0, L + 6, 0], label: t('Oxidizer', 'Oxidante'), sub: t('enters from above', 'entra por cima'), dx: -44, dy: -40, minor: true },
+    { id: 'combustivel', at: [0, -L - 6, 0], label: t('Fuel', 'Combustível'), sub: t('enters from below, diluted', 'entra por baixo, diluído'), dx: -44, dy: 40, minor: true },
   ]
 
   return {

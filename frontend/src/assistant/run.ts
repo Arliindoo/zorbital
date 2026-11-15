@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { t } from '@/lib/i18n'
 import { askDemo, DEMO_MODE } from './demo'
 import { useAssistant } from './store'
 import { ask } from './stream'
@@ -9,11 +10,11 @@ import type { ApiMessage, PageKey, Screen, ScreenDigest, Source, Study, ViewMess
 export type StageId = 'ler' | 'estudos' | 'consultar' | 'compor' | 'concluido'
 
 export const STAGES: readonly { id: StageId; n: string; label: string; doing: string }[] = [
-  { id: 'ler', n: '01', label: 'Ler a tela', doing: 'Lendo a tela' },
-  { id: 'estudos', n: '02', label: 'Estudos', doing: 'Consultando os estudos' },
-  { id: 'consultar', n: '03', label: 'Consultar', doing: 'Consultando o banco' },
-  { id: 'compor', n: '04', label: 'Compor', doing: 'Compondo a resposta' },
-  { id: 'concluido', n: '05', label: 'Concluído', doing: 'Concluído' },
+  { id: 'ler', n: '01', label: t('Read the screen', 'Ler a tela'), doing: t('Reading the screen', 'Lendo a tela') },
+  { id: 'estudos', n: '02', label: t('Studies', 'Estudos'), doing: t('Checking the studies', 'Consultando os estudos') },
+  { id: 'consultar', n: '03', label: t('Query', 'Consultar'), doing: t('Querying the database', 'Consultando o banco') },
+  { id: 'compor', n: '04', label: t('Compose', 'Compor'), doing: t('Composing the answer', 'Compondo a resposta') },
+  { id: 'concluido', n: '05', label: t('Done', 'Concluído'), doing: t('Done', 'Concluído') },
 ]
 export const STAGE_COUNT = STAGES.length
 export const LAST_N = STAGES[STAGE_COUNT - 1]!.n
@@ -388,7 +389,7 @@ export function useAgentRun(): AgentRun {
           }
           // o fluxo acabou sem "done": o erro já explicado fica na tela até a próxima pergunta
           draft.ms = Date.now() - startedAt
-          ending = { kind: 'error', message: error ?? 'A resposta foi interrompida antes do fim.' }
+          ending = { kind: 'error', message: error ?? t('The answer was cut off before the end.', 'A resposta foi interrompida antes do fim.') }
         } catch (error) {
           if (controller.signal.aborted) {
             // "Parar" mantém o que já apareceu; troca de página já limpou tudo
@@ -396,7 +397,7 @@ export function useAgentRun(): AgentRun {
             return
           }
           draft.ms = Date.now() - startedAt
-          ending = { kind: 'error', message: `Sem resposta do servidor (${String(error)}).` }
+          ending = { kind: 'error', message: t(`No response from the server (${String(error)}).`, `Sem resposta do servidor (${String(error)}).`) }
         }
       })()
     },

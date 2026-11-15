@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useInView } from '@/fx/useInView'
 import { type LegendItem, type TipData, useWidth } from './scale'
+import { td } from '@/lib/i18n-data'
 
 export function Tip({ tip, width }: { tip: TipData | null; width: number }) {
   if (!tip) return null
@@ -49,12 +50,12 @@ export function Legend({
         return onToggle ? (
           <button key={name} type="button" aria-pressed={!off} data-off={off} onClick={() => onToggle(name)}>
             {swatch}
-            {name}
+            {td(name)}
           </button>
         ) : (
           <span key={name}>
             {swatch}
-            {name}
+            {td(name)}
           </span>
         )
       })}

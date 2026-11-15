@@ -13,6 +13,7 @@ import type { Lines, Renderer } from '../engine/renderer'
 import { clamp, compose, lerp, rotX, rotY, scaling, translate, type V3 } from '../engine/vec'
 import { type Mesh, type Tone, Wire } from '../engine/wire'
 import { fixed } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { d2 } from '../replay/droplet'
 import type { Dim, Hotspot, Scene } from '../types'
 
@@ -95,7 +96,7 @@ export function modelScene(r: Renderer): Scene<ModelRun> {
   }
   const shells = { hot: r.lines([unitShell(w, 'hot')]), cool: r.lines([unitShell(w, 'cool')]), drop: r.lines([unitShell(w, 'ink')]) }
 
-  const hotspots: Hotspot[] = [{ id: 'dominio', at: [-24, -9, 18], label: 'Domínio do modelo', sub: 'régua de 1 mm no piso', tag: 'dominio', dx: 30, dy: 36, minor: true }]
+  const hotspots: Hotspot[] = [{ id: 'dominio', at: [-24, -9, 18], label: t('Model domain', 'Domínio do modelo'), sub: t('1 mm ruler on the floor', 'régua de 1 mm no piso'), tag: 'dominio', dx: 30, dy: 36, minor: true }]
   const dims: Dim[] = []
   const left: V3 = [-GAP, 0, 0]
   const right: V3 = [GAP, 0, 0]
@@ -145,8 +146,8 @@ export function modelScene(r: Renderer): Scene<ModelRun> {
           if (s.band) for (const edge of s.band) if (edge > 0.01) r.drawLines(rings.band, { model: r.billboard(at, edge / 2), alpha: a * 0.7 })
         }
         if (s.model > 0.01) r.drawLines(rings.model, { model: r.billboard(right, s.model / 2), alpha: a })
-        dims.push({ at: left, width: Math.max(s.measured, 0.02), text: `medido ⌀ ${fixed(s.measured, 2)} mm`, tone: 'ink', clear: s.d0 / 2 })
-        dims.push({ at: right, width: Math.max(s.model, 0.02), text: `modelo ⌀ ${fixed(s.model, 2)} mm`, tone: 'magenta', clear: s.d0 / 2 })
+        dims.push({ at: left, width: Math.max(s.measured, 0.02), text: t(`measured ⌀ ${fixed(s.measured, 2)} mm`, `medido ⌀ ${fixed(s.measured, 2)} mm`), tone: 'ink', clear: s.d0 / 2 })
+        dims.push({ at: right, width: Math.max(s.model, 0.02), text: t(`model ⌀ ${fixed(s.model, 2)} mm`, `modelo ⌀ ${fixed(s.model, 2)} mm`), tone: 'magenta', clear: s.d0 / 2 })
         return
       }
 
@@ -165,8 +166,8 @@ export function modelScene(r: Renderer): Scene<ModelRun> {
       droplet(origin, d / 2, kind, a, now)
       r.particles({ mode: 0, p0: [d / 2, dT / 2, 0, 0], p1: [0.5, 0, 0, 0], color: 'dim', alpha: a * 0.45, size: 1.6, count: 220 })
       if (f.live) {
-        dims.push({ at: origin, width: dT, text: `T máx em ⌀ ${fixed(dT, 2)} mm`, tone: kind === 'hot' ? 'hot' : 'cool' })
-        dims.push({ at: origin, width: Math.max(d, 0.02), text: `gota ⌀ ${fixed(d, 3)} mm`, tone: 'ink', above: true, clear: dT / 2 })
+        dims.push({ at: origin, width: dT, text: t(`T max at ⌀ ${fixed(dT, 2)} mm`, `T máx em ⌀ ${fixed(dT, 2)} mm`), tone: kind === 'hot' ? 'hot' : 'cool' })
+        dims.push({ at: origin, width: Math.max(d, 0.02), text: t(`droplet ⌀ ${fixed(d, 3)} mm`, `gota ⌀ ${fixed(d, 3)} mm`), tone: 'ink', above: true, clear: dT / 2 })
       }
     },
     dims: () => dims,

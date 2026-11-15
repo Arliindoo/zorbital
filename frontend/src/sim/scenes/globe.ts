@@ -6,6 +6,7 @@
  * escala; o contorno dos continentes é estilizado.
  */
 
+import { t } from '@/lib/i18n'
 import type { Lines, Renderer } from '../engine/renderer'
 import { dot, IDENTITY, sub, type V3 } from '../engine/vec'
 import { Wire } from '../engine/wire'
@@ -67,7 +68,7 @@ export function globeScene<S>(r: Renderer, o: GlobeOptions): Scene<S> {
       dy: 84,
       shown: () => !o.site || dot(site, sub(r.eye, site)) > 0,
     },
-    { id: 'iss', at: station, label: 'ISS · ≈ 400 km', sub: 'microgravidade: onde voaram FLEX, CFI e BASS-II', dx: 40, dy: -40, minor: true, shown: () => clear(station) },
+    { id: 'iss', at: station, label: 'ISS · ≈ 400 km', sub: t('microgravity: where FLEX, CFI and BASS-II flew', 'microgravidade: onde voaram FLEX, CFI e BASS-II'), dx: 40, dy: -40, minor: true, shown: () => clear(station) },
   ]
   // a câmera começa de frente para o laboratório (ou para o Atlântico, se a fonte não diz onde)
   const face = o.site ?? { lat: 20, lon: -40 }

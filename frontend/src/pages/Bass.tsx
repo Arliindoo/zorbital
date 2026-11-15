@@ -16,18 +16,30 @@ import { Callout, Grid, Metric, Metrics, Section } from '@/components/ui'
 import { IconLayers, IconPulse, IconScatter } from '@/icons'
 import { extent, groupBy, inRange, omit, type Range, uniqueSorted } from '@/lib/data'
 import { span } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { usePageState } from '@/lib/usePageState'
 import { useStudyView } from '@/lib/useStudyView'
 
-const LABELS: Record<string, string> = {
-  teste_id: 'Teste',
-  pesquisador: 'Pesquisador',
-  material_original: 'Material (fonte)',
-  geometria: 'Geometria',
-  o2_inicial_pct: 'O2 inicial (% vol)',
-  delta_co2_pp: 'ΔCO2 (pontos percentuais)',
-  material_categoria: 'Material',
-}
+const LABELS: Record<string, string> = t(
+  {
+    teste_id: 'Test',
+    pesquisador: 'Investigator',
+    material_original: 'Material (source)',
+    geometria: 'Geometry',
+    o2_inicial_pct: 'Initial O2 (% vol)',
+    delta_co2_pp: 'ΔCO2 (percentage points)',
+    material_categoria: 'Material',
+  },
+  {
+    teste_id: 'Teste',
+    pesquisador: 'Pesquisador',
+    material_original: 'Material (fonte)',
+    geometria: 'Geometria',
+    o2_inicial_pct: 'O2 inicial (% vol)',
+    delta_co2_pp: 'ΔCO2 (pontos percentuais)',
+    material_categoria: 'Material',
+  },
+)
 
 // a cena 3D só é baixada quando alguém abre a vista de simulação
 const BassSim = lazy(() => import('@/sim/views/BassSim'))
@@ -98,7 +110,7 @@ export default function Bass() {
         color: colors[name] ?? 'var(--s1)',
         points: view
           .filter((r) => r.material_categoria === name && r.o2_inicial_pct !== null)
-          .map((r) => ({ value: r.o2_inicial_pct as number, title: `Teste ${r.teste_id}`, tip: [['Geometria', r.geometria]] as const })),
+          .map((r) => ({ value: r.o2_inicial_pct as number, title: t(`Test ${r.teste_id}`, `Teste ${r.teste_id}`), tip: [[t('Geometry', 'Geometria'), r.geometria]] as const })),
       }))
       .filter((group) => group.points.length > 0)
   }, [view, materials])
@@ -108,14 +120,28 @@ export default function Bass() {
     pagina: 'bass',
     titulo: inv.nome,
     investigacao: 'PSI-25',
-    filtros: { pesquisador: pi, material, geometria: shape, 'O2 inicial (%)': oxygen },
+    filtros: {
+      [t('investigator', 'pesquisador')]: pi,
+      material,
+      [t('geometry', 'geometria')]: shape,
+      [t('Initial O2 (%)', 'O2 inicial (%)')]: oxygen,
+    },
     graficos:
       mode === 'simulacao'
         ? [simText]
         : [
-            'O que foi testado: barras horizontais com a contagem de testes por material · geometria.',
-            'Em que oxigênio cada material foi testado: um ponto por teste ao longo do O2 inicial (x), uma faixa por material, mediana marcada.',
-            'Oxigênio inicial × CO2 produzido: dispersão O2 inicial (x) × ΔCO2 em pontos percentuais (y), cor por material. Não é ranking de risco.',
+            t(
+              'What was tested: horizontal bars with the number of tests per material · geometry.',
+              'O que foi testado: barras horizontais com a contagem de testes por material · geometria.',
+            ),
+            t(
+              'At which oxygen level each material was tested: one point per test along initial O2 (x), one band per material, median marked.',
+              'Em que oxigênio cada material foi testado: um ponto por teste ao longo do O2 inicial (x), uma faixa por material, mediana marcada.',
+            ),
+            t(
+              'Initial oxygen × CO2 produced: scatter of initial O2 (x) × ΔCO2 in percentage points (y), colored by material. Not a risk ranking.',
+              'Oxigênio inicial × CO2 produzido: dispersão O2 inicial (x) × ΔCO2 em pontos percentuais (y), cor por material. Não é ranking de risco.',
+            ),
           ],
     dados: omit(view, ['fonte_arquivo']),
     tabela_banco: 'bass_ensaios',
@@ -124,14 +150,14 @@ export default function Bass() {
   const dashboard = (
     <>
       <Metrics>
-        <Metric label="Testes no filtro" value={view.length} />
-        <Metric label="Materiais × geometrias" value={combos} />
-        <Metric label="O2 inicial (% vol)" value={view.length ? span(extent(view.map((r) => r.o2_inicial_pct))) : '—'} />
-        <Metric label="Testes com alerta" value={view.filter((r) => withAlerts.has(r.teste_id)).length} />
+        <Metric label={t('Tests in filter', 'Testes no filtro')} value={view.length} />
+        <Metric label={t('Materials × geometries', 'Materiais × geometrias')} value={combos} />
+        <Metric label={t('Initial O2 (% vol)', 'O2 inicial (% vol)')} value={view.length ? span(extent(view.map((r) => r.o2_inicial_pct))) : '—'} />
+        <Metric label={t('Tests with an alert', 'Testes com alerta')} value={view.filter((r) => withAlerts.has(r.teste_id)).length} />
       </Metrics>
 
       {view.length === 0 ? (
-        <Callout>Nenhum teste com esses filtros.</Callout>
+        <Callout>{t('No tests match these filters.', 'Nenhum teste com esses filtros.')}</Callout>
       ) : (
         <>
           <Grid>
@@ -140,36 +166,40 @@ export default function Bass() {
               spanMd={12}
               kind="chart"
               icon={IconLayers}
-              tag="contagem"
-              title="O que foi testado"
-              caption="Testes por material e geometria. Contagem de ensaios, não medida de desempenho."
+              tag={t('count', 'contagem')}
+              title={t('What was tested', 'O que foi testado')}
+              caption={t('Tests by material and geometry. A count of tests, not a measure of performance.', 'Testes por material e geometria. Contagem de ensaios, não medida de desempenho.')}
             >
-              <BarList items={tested} label="Contagem de testes por material e geometria" />
+              <BarList items={tested} label={t('Number of tests by material and geometry', 'Contagem de testes por material e geometria')} />
             </Section>
             <Section
               span={7}
               spanMd={12}
               kind="chart"
               icon={IconScatter}
-              tag="dispersão"
-              title="Oxigênio inicial × CO2 produzido"
-              caption={
+              tag={t('scatter', 'dispersão')}
+              title={t('Initial oxygen × CO2 produced', 'Oxigênio inicial × CO2 produzido')}
+              caption={t(
+                <>
+                  ΔCO2 = final − initial in the chamber. It depends on the duration and protocol of each test:{' '}
+                  <strong>it is not a risk ranking of the materials</strong>.
+                </>,
                 <>
                   ΔCO2 = final − inicial na câmara. Depende da duração e do protocolo de cada teste:{' '}
                   <strong>não é um ranking de risco dos materiais</strong>.
-                </>
-              }
+                </>,
+              )}
             >
-              <XYChart series={co2} xLabel="O2 inicial (% vol)" yLabel="ΔCO2 (pontos percentuais)" label="O2 inicial por variação de CO2, cor por material" />
+              <XYChart series={co2} xLabel={t('Initial O2 (% vol)', 'O2 inicial (% vol)')} yLabel={t('ΔCO2 (percentage points)', 'ΔCO2 (pontos percentuais)')} label={t('Initial O2 by change in CO2, colored by material', 'O2 inicial por variação de CO2, cor por material')} />
             </Section>
             <Section
               kind="chart"
               icon={IconPulse}
-              tag="um ponto por teste"
-              title="Em que oxigênio cada material foi testado"
-              caption="O traço vertical é a mediana. Mostra a cobertura do experimento, não o limite de queima do material."
+              tag={t('one point per test', 'um ponto por teste')}
+              title={t('At which oxygen level each material was tested', 'Em que oxigênio cada material foi testado')}
+              caption={t('The vertical mark is the median. It shows the coverage of the experiment, not the burning limit of the material.', 'O traço vertical é a mediana. Mostra a cobertura do experimento, não o limite de queima do material.')}
             >
-              <Strip groups={oxygenByMaterial} xLabel="O2 inicial (% vol)" height={Math.max(220, oxygenByMaterial.length * 64 + 50)} label="O2 inicial de cada teste, por material" />
+              <Strip groups={oxygenByMaterial} xLabel={t('Initial O2 (% vol)', 'O2 inicial (% vol)')} height={Math.max(220, oxygenByMaterial.length * 64 + 50)} label={t('Initial O2 of each test, by material', 'O2 inicial de cada teste, por material')} />
             </Section>
           </Grid>
 
@@ -177,8 +207,8 @@ export default function Bass() {
             kind="table"
             tag="bass_ensaios"
             flush
-            title="Testes"
-            caption="Ventilador e ar: o texto é o que foi anotado no painel, com os ajustes feitos durante o teste. Não são velocidades calibradas."
+            title={t('Tests', 'Testes')}
+            caption={t('Fan and air: the text is what was noted on the panel, with the adjustments made during the test. These are not calibrated speeds.', 'Ventilador e ar: o texto é o que foi anotado no painel, com os ajustes feitos durante o teste. Não são velocidades calibradas.')}
           >
             <DataTable
               rows={view}
@@ -186,12 +216,12 @@ export default function Bass() {
               hide={['fonte_arquivo']}
               filename="bass_ensaios"
               config={{
-                material_original: 'Material (texto da fonte)',
+                material_original: t('Material (source text)', 'Material (texto da fonte)'),
                 material_categoria: 'Material',
-                ajustes_durante_teste: 'Ajustes no teste',
+                ajustes_durante_teste: t('Adjustments during test', 'Ajustes no teste'),
                 ventilador_display_unico: {
-                  label: 'Ventilador (valor único)',
-                  help: 'Preenchido só quando a célula tinha um único número.',
+                  label: t('Fan (single value)', 'Ventilador (valor único)'),
+                  help: t('Filled in only when the cell had a single number.', 'Preenchido só quando a célula tinha um único número.'),
                 },
               }}
             />
@@ -207,11 +237,11 @@ export default function Bass() {
       <InvestigationHeader inv={inv} rows={rows.length} compact={mode === 'simulacao'}>
         <ViewSwitch view={mode} onChange={setMode} />
       </InvestigationHeader>
-      <SidebarFilters title="Filtros">
-        <CheckboxGroup label="Pesquisador" options={pis} value={pi} onChange={setPi} />
+      <SidebarFilters title={t('Filters', 'Filtros')}>
+        <CheckboxGroup label={t('Investigator', 'Pesquisador')} options={pis} value={pi} onChange={setPi} />
         <CheckboxGroup label="Material" options={materials} value={material} onChange={setMaterial} />
-        <CheckboxGroup label="Geometria" options={shapes} value={shape} onChange={setShape} />
-        <RangeFilter label="O2 inicial (% vol)" bounds={oxygenBounds} value={oxygen} onChange={setOxygen} digits={1} />
+        <CheckboxGroup label={t('Geometry', 'Geometria')} options={shapes} value={shape} onChange={setShape} />
+        <RangeFilter label={t('Initial O2 (% vol)', 'O2 inicial (% vol)')} bounds={oxygenBounds} value={oxygen} onChange={setOxygen} digits={1} />
       </SidebarFilters>
 
       {mode === 'simulacao' ? (

@@ -4,6 +4,11 @@ import { IconClose, IconSearch } from '@/icons'
 import { type ReactNode, useId, useMemo, useState } from 'react'
 import type { Range } from '@/lib/data'
 import { g } from '@/lib/format'
+import { t } from '@/lib/i18n'
+import { td } from '@/lib/i18n-data'
+
+/** Como uma opção aparece quando a página não diz: valores do banco saem no idioma da interface. */
+const shown = (option: unknown) => td(String(option))
 
 function Field({ label, children, id }: { label: string; children: ReactNode; id?: string }) {
   return (
@@ -34,7 +39,7 @@ export function CheckboxGroup<T extends string | number>({
   options,
   value,
   onChange,
-  format = String,
+  format = shown,
 }: {
   label: string
   options: readonly T[]
@@ -51,7 +56,7 @@ export function CheckboxGroup<T extends string | number>({
       actions={
         options.length > 2 && (
           <button type="button" className="link-button" onClick={() => onChange(all ? [] : [...options])}>
-            {all ? 'nenhum' : 'todos'}
+            {all ? t('none', 'nenhum') : t('all', 'todos')}
           </button>
         )
       }
@@ -89,7 +94,7 @@ export function RangeFilter({
   if (lo === hi) {
     return (
       <p className="caption">
-        {label}: {fmt(lo)} em todos os registros
+        {label}: {fmt(lo)} {t('in every record', 'em todos os registros')}
       </p>
     )
   }
@@ -105,7 +110,7 @@ export function RangeFilter({
           max={hi}
           step={step}
           value={a}
-          aria-label={`${label}: mínimo`}
+          aria-label={t(`${label}: minimum`, `${label}: mínimo`)}
           onChange={(e) => onChange([Math.min(Number(e.target.value), b), b])}
         />
         <input
@@ -114,7 +119,7 @@ export function RangeFilter({
           max={hi}
           step={step}
           value={b}
-          aria-label={`${label}: máximo`}
+          aria-label={t(`${label}: maximum`, `${label}: máximo`)}
           onChange={(e) => onChange([a, Math.max(Number(e.target.value), a)])}
         />
       </div>
@@ -141,11 +146,13 @@ export function Select<T extends string>({
   options,
   value,
   onChange,
+  format = shown,
 }: {
   label: string
   options: readonly T[]
   value: T
   onChange: (value: T) => void
+  format?: (option: T) => string
 }) {
   const id = useId()
   return (
@@ -153,7 +160,7 @@ export function Select<T extends string>({
       <select id={id} className="select" value={value} onChange={(e) => onChange(e.target.value as T)}>
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {format(o)}
           </option>
         ))}
       </select>
@@ -167,17 +174,19 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  format = shown,
 }: {
   label: string
   options: readonly T[]
   value: T
   onChange: (value: T) => void
+  format?: (option: T) => string
 }) {
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={o} type="button" role="radio" aria-checked={o === value} onClick={() => onChange(o)}>
-          {o}
+          {format(o)}
         </button>
       ))}
     </div>
@@ -190,7 +199,7 @@ export function RadioList<T extends string | number>({
   options,
   value,
   onChange,
-  format = String,
+  format = shown,
 }: {
   label: string
   options: readonly T[]
@@ -241,7 +250,7 @@ export function MultiSelect({
           {value.map((v) => (
             <span key={v} className="chip">
               {v}
-              <button type="button" aria-label={`Tirar ${v}`} onClick={() => onChange(value.filter((x) => x !== v))}>
+              <button type="button" aria-label={t(`Remove ${v}`, `Tirar ${v}`)} onClick={() => onChange(value.filter((x) => x !== v))}>
                 <IconClose size={13} />
               </button>
             </span>
@@ -253,7 +262,7 @@ export function MultiSelect({
         <input
           id={id}
           type="search"
-          placeholder={full ? `Máximo de ${max}` : 'Buscar…'}
+          placeholder={full ? t(`Maximum of ${max}`, `Máximo de ${max}`) : t('Search…', 'Buscar…')}
           disabled={full}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -276,7 +285,7 @@ export function MultiSelect({
               </button>
             </li>
           ))}
-          {!matches.length && <li className="caption">Nada encontrado.</li>}
+          {!matches.length && <li className="caption">{t('Nothing found.', 'Nada encontrado.')}</li>}
         </ul>
       )}
     </Field>

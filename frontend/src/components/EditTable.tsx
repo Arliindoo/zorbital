@@ -2,6 +2,7 @@
 
 import { type ReactNode, useState } from 'react'
 import { IconAdd, IconTrash } from '@/icons'
+import { t } from '@/lib/i18n'
 
 export interface EditColumn<T> {
   key: keyof T & string
@@ -58,10 +59,10 @@ function NumberCell({ value, label, onChange }: { value: number | null; label: s
   )
 }
 
-export function EditTable<T extends object>({ label, rows, columns, onChange, onAdd, onRemove, flagged, empty = 'Nenhuma linha.' }: EditTableProps<T>) {
+export function EditTable<T extends object>({ label, rows, columns, onChange, onAdd, onRemove, flagged, empty = t('No rows.', 'Nenhuma linha.') }: EditTableProps<T>) {
   const cell = (row: T, index: number, column: EditColumn<T>) => {
     const value = row[column.key] as unknown
-    const name = `${column.label}, linha ${index + 1}`
+    const name = t(`${column.label}, row ${index + 1}`, `${column.label}, linha ${index + 1}`)
     const set = (next: unknown) => onChange(index, { [column.key]: next } as Partial<T>)
     switch (column.kind) {
       case 'static':
@@ -100,7 +101,7 @@ export function EditTable<T extends object>({ label, rows, columns, onChange, on
                   <span>{column.label}</span>
                 </th>
               ))}
-              {onRemove && <th aria-label="Remover" />}
+              {onRemove && <th aria-label={t('Remove', 'Remover')} />}
             </tr>
           </thead>
           <tbody>
@@ -114,7 +115,7 @@ export function EditTable<T extends object>({ label, rows, columns, onChange, on
                 ))}
                 {onRemove && (
                   <td className="td--check">
-                    <button type="button" className="icon-button edit__remove" aria-label={`Remover a linha ${index + 1}`} onClick={() => onRemove(index)}>
+                    <button type="button" className="icon-button edit__remove" aria-label={t(`Remove row ${index + 1}`, `Remover a linha ${index + 1}`)} onClick={() => onRemove(index)}>
                       <IconTrash size={15} />
                     </button>
                   </td>
@@ -134,10 +135,10 @@ export function EditTable<T extends object>({ label, rows, columns, onChange, on
       {onAdd && (
         <div className="table__footer">
           <span>
-            {rows.length} {rows.length === 1 ? 'linha' : 'linhas'}
+            {rows.length} {rows.length === 1 ? t('row', 'linha') : t('rows', 'linhas')}
           </span>
           <button type="button" className="button button--ghost" onClick={onAdd}>
-            <IconAdd size={14} /> Acrescentar linha
+            <IconAdd size={14} /> {t('Add row', 'Acrescentar linha')}
           </button>
         </div>
       )}

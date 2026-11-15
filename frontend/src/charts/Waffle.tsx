@@ -1,8 +1,10 @@
 /** Mosaico: um quadrado por unidade (um arquivo, um ensaio), colorido pela categoria. */
 
 import { useState } from 'react'
+import { t } from '@/lib/i18n'
 import { Frame, Legend } from './kit'
 import { delay, type TipData } from './scale'
+import { td } from '@/lib/i18n-data'
 
 export interface WaffleCell {
   title: string
@@ -31,7 +33,7 @@ export function Waffle({
       height={height}
       tip={hot?.tip}
       focus={hot !== null}
-      legend={<Legend items={categories.map((name) => ({ name: `${name} · ${cells.filter((c) => c.category === name).length}`, color: colors[name] ?? 'var(--ink-3)', mark: 'square' }))} />}
+      legend={<Legend items={categories.map((name) => ({ name: `${td(name)} · ${cells.filter((c) => c.category === name).length}`, color: colors[name] ?? 'var(--ink-3)', mark: 'square' }))} />}
     >
       {(width) => {
         const cols = columns ?? Math.max(4, Math.min(cells.length, Math.floor(width / 34)))
@@ -45,7 +47,7 @@ export function Waffle({
               const y = Math.floor(i / cols) * size
               const color = colors[cell.category] ?? 'var(--ink-3)'
               return (
-                <g key={i} className="mark" data-hot={hot?.i === i || undefined} onPointerEnter={() => setHot({ i, tip: { x: x + size / 2, y: y + size / 2, title: cell.title, color, rows: [['Situação', cell.category], ...(cell.rows ?? [])] } })}>
+                <g key={i} className="mark" data-hot={hot?.i === i || undefined} onPointerEnter={() => setHot({ i, tip: { x: x + size / 2, y: y + size / 2, title: cell.title, color, rows: [[t('Status', 'Situação'), cell.category], ...(cell.rows ?? [])] } })}>
                   <rect className="a-pop" style={delay(i * 28)} x={x + 2} y={y + 2} width={size - 4} height={size - 4} rx={Math.min(6, size / 5)} fill={color} fillOpacity={0.85} />
                 </g>
               )

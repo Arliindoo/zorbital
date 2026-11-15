@@ -7,6 +7,7 @@
  * A Terra está em escala (raio 6 371 km, estação a ~408 km): a curvatura do horizonte é a real.
  */
 
+import { t } from '@/lib/i18n'
 import type { Fills, Lines, Renderer } from '../engine/renderer'
 import { compose, type Mat, rotX, rotZ, translate, type V3 } from '../engine/vec'
 import { type Mesh, Wire } from '../engine/wire'
@@ -145,10 +146,10 @@ export function orbitScene<S>(r: Renderer, o: { next: string; sub: string }): Sc
 
   const hotspots: Hotspot[] = [
     { id: 'destiny', at: DESTINY_AT, label: 'Destiny', sub: o.sub, to: o.next, tag: 'destiny', dx: -44, dy: 92 },
-    { id: 'trelica', at: [-30, TY + 1.5, TZ], label: 'Treliça principal', sub: '≈ 109 m de ponta a ponta', tag: 'trelica', dx: -30, dy: -56, minor: true },
-    { id: 'solar', at: [48.5, TY, TZ + 22], label: 'Painéis solares', sub: '8 asas de ≈ 35 m', tag: 'solar', dx: 30, dy: -46, minor: true },
-    { id: 'russo', at: [0, 0, -22], label: 'Segmento russo', sub: 'Zarya · Zvezda · Nauka', tag: 'russo', dx: 44, dy: 50, minor: true },
-    { id: 'voo', at: [0, 0, 44], label: 'Sentido do voo', sub: '≈ 7,66 km/s', tag: 'voo', dx: -40, dy: -50, minor: true },
+    { id: 'trelica', at: [-30, TY + 1.5, TZ], label: t('Main truss', 'Treliça principal'), sub: t('≈ 109 m end to end', '≈ 109 m de ponta a ponta'), tag: 'trelica', dx: -30, dy: -56, minor: true },
+    { id: 'solar', at: [48.5, TY, TZ + 22], label: t('Solar arrays', 'Painéis solares'), sub: t('8 wings of ≈ 35 m', '8 asas de ≈ 35 m'), tag: 'solar', dx: 30, dy: -46, minor: true },
+    { id: 'russo', at: [0, 0, -22], label: t('Russian segment', 'Segmento russo'), sub: 'Zarya · Zvezda · Nauka', tag: 'russo', dx: 44, dy: 50, minor: true },
+    { id: 'voo', at: [0, 0, 44], label: t('Direction of flight', 'Sentido do voo'), sub: t('≈ 7.66 km/s', '≈ 7,66 km/s'), tag: 'voo', dx: -40, dy: -50, minor: true },
   ]
 
   return {
