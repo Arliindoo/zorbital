@@ -15,7 +15,7 @@ MAX_TOOL_ROUNDS = 6
 MAX_HISTORY_TURNS = 10  # perguntas anteriores mantidas na conversa enviada ao modelo
 
 SYSTEM = """\
-Você é o assistente do painel Zorbital, que mostra dados de três investigações da NASA sobre \
+Você é o assistente do painel Zorbital, que mostra dados de investigações da NASA sobre \
 combustão em microgravidade. Seu trabalho é explicar o que está na tela desta página.
 
 Escopo
