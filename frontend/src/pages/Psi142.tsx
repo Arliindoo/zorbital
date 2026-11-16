@@ -1,25 +1,25 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useMemo, useState } from 'react'
-import { queries } from '@/api/client'
-import type { Psi142Point, Psi142Set } from '@/api/types'
-import { useScreen } from '@/assistant/store'
-import { xyLines } from '@/charts/build'
-import { XYChart } from '@/charts/XYChart'
-import { DataTable } from '@/components/DataTable'
-import { RadioList, Toggle } from '@/components/filters'
-import { AlertsTable, InvestigationHeader } from '@/components/investigation'
-import { SidebarFilters } from '@/components/Layout'
-import { Loading } from '@/components/Loading'
-import { SimFrame, ViewSwitch } from '@/components/StudyView'
-import { Badge, Callout, Caption, Code, Expander, Grid, Section } from '@/components/ui'
-import { IconCounterflow, IconDocument } from '@/icons'
-import { compareCells, omit, uniqueInOrder } from '@/lib/data'
-import { t } from '@/lib/i18n'
-import { usePageState } from '@/lib/usePageState'
-import { useStudyView } from '@/lib/useStudyView'
+import { queries } from '@/shared/api/client'
+import type { Psi142Point, Psi142Set } from '@/shared/api/types'
+import { useScreen } from '@/features/assistant/store'
+import { xyLines } from '@/shared/charts/build'
+import { XYChart } from '@/shared/charts/XYChart'
+import { DataTable } from '@/shared/ui/DataTable'
+import { RadioList, Toggle } from '@/shared/ui/filters'
+import { AlertsTable, InvestigationHeader } from '@/features/studies/components/investigation'
+import { SidebarFilters } from '@/app/Layout'
+import { Loading } from '@/shared/ui/Loading'
+import { SimFrame, ViewSwitch } from '@/features/studies/components/StudyView'
+import { Badge, Callout, Caption, Code, Expander, Grid, Section } from '@/shared/ui/ui'
+import { IconCounterflow, IconDocument } from '@/shared/icons/index'
+import { compareCells, omit, uniqueInOrder } from '@/shared/lib/data'
+import { t } from '@/shared/lib/i18n'
+import { usePageState } from '@/shared/lib/usePageState'
+import { useStudyView } from '@/features/studies/useStudyView'
 
 // a cena 3D só é baixada quando alguém abre a vista de simulação
-const Psi142Sim = lazy(() => import('@/sim/views/Psi142Sim'))
+const Psi142Sim = lazy(() => import('@/visualization/views/Psi142Sim'))
 
 const label = (s: Psi142Set) => `${s.conjunto_id} · ${s.descricao_planilha || s.descricao_csv || ''}`
 

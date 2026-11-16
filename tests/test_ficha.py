@@ -172,7 +172,7 @@ INVS = pl.DataFrame({"id": ["A", "B", "C"], "ambiente": ["ISS", "ISS", "solo"],
 
 
 def test_pair_verdicts_use_overlap_quantity_and_fuel():
-    from spaceapps import fichas
+    from spaceapps.evidence import fichas
 
     result = fichas.compare(SHEET, pl.DataFrame(), INVS, ["A", "B", "C"])
     pairs = {(p.a, p.b): p for p in result["pares"]}
@@ -194,7 +194,7 @@ def test_pair_verdicts_use_overlap_quantity_and_fuel():
 
 
 def test_side_by_side_table_has_one_column_per_study():
-    from spaceapps import fichas
+    from spaceapps.evidence import fichas
 
     table = fichas.side_by_side(SHEET, ["A", "B"])
     rows = {r["atributo"]: r for r in table.iter_rows(named=True)}
@@ -258,7 +258,8 @@ def test_portal_metadata_is_read_without_people(built_db):
 
 
 def test_same_hardware_becomes_a_warning_and_a_row(use_db):
-    from spaceapps import db, fichas
+    from spaceapps import db
+    from spaceapps.evidence import fichas
 
     result = fichas.compare(db.query("SELECT * FROM ficha"), pl.DataFrame(), db.query("SELECT * FROM investigacoes"),
                             ["PSI-69", "PSI-39"], db.query("SELECT * FROM metadados"))  # fmt: skip
@@ -267,7 +268,7 @@ def test_same_hardware_becomes_a_warning_and_a_row(use_db):
 
 
 def test_metadata_feeds_search_and_the_study_page(client):
-    from spaceapps import search
+    from spaceapps.evidence import search
 
     assert "PSI-69" in search.search(search.build_index(), "extinction droplet")
     inv = client.get("/api/pages/flex").json()["investigacao"]

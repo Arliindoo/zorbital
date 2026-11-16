@@ -13,8 +13,9 @@ from typing import Annotated
 import polars as pl
 from fastapi import APIRouter, HTTPException, Query
 
-from .. import db, fichas, search
-from ..ingest.ficha import ATRIBUTOS
+from .. import db
+from ..datasets.vocabulary import ATRIBUTOS
+from ..evidence import fichas, search
 from .frames import dataset
 
 router = APIRouter(prefix="/api")

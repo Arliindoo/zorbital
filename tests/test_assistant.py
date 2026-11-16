@@ -8,8 +8,9 @@ import polars as pl
 import pytest
 
 from spaceapps import db
-from spaceapps.assistant import agent, provider, tools
+from spaceapps.assistant import agent, tools
 from spaceapps.assistant.screen import Screen
+from spaceapps.integrations import provider
 
 
 @pytest.fixture

@@ -11,19 +11,16 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 
 import duckdb
 import polars as pl
 
+from ..config import DADOS, DB_PATH, ROOT
+from ..datasets import sheets
 from . import bass, cfi, ficha, flex, generic, links, metadados, psi117, psi117_more, psi142
 from .catalog import DOC_SUFFIXES, GERAL, INVESTIGACOES, KNOWN_FILES, canonical_name
-
-ROOT = Path(__file__).resolve().parents[3]
-DADOS = Path(os.environ.get("SPACEAPPS_DADOS", ROOT / "dados"))
-DB_PATH = Path(os.environ.get("SPACEAPPS_DB", ROOT / "data" / "zorbital.duckdb"))
 
 
 def _single(name, loader):
@@ -138,7 +135,7 @@ def inventory(dados: Path) -> list[dict]:
         md5 = hashlib.md5(content).hexdigest()  # noqa: S324 — identificação de duplicata, não segurança
         known = KNOWN_FILES.get(canonical_name(path.name))
         entry = {
-            "caminho": str(path.relative_to(dados)),
+            "caminho": path.relative_to(dados).as_posix(),
             "nome": path.name,
             "investigacao": known.investigacao if known else None,
             "papel": known.papel
@@ -291,22 +288,21 @@ def build(dados: Path = DADOS, db_path: Path = DB_PATH) -> dict[str, int]:
 def _load_document_sheets(files) -> dict[str, list[dict]]:
     """Fichas aprovadas a partir dos documentos: o bloco `ficha` de cada `estudo.json` e cada
     `dados/<PSI>/ficha.json` (estudos do catálogo). Sem IA: o que foi aprovado na revisão."""
-    from ..studies import ficha_docs  # aqui dentro: o módulo usa o banco, que importa a carga
 
     out: dict[str, list[dict]] = {}
     for f in files:
         if f["nome"] == "estudo.json" and f["status"] == "Carregado":
             spec = json.loads(f["_path"].read_text(encoding="utf-8"))
             if spec.get("ficha"):
-                out.setdefault(spec["investigacao"]["id"], []).append(ficha_docs.accepted(spec["ficha"]))
-        elif f["nome"] == ficha_docs.FICHA_FILE and not f["duplicata_de"]:
+                out.setdefault(spec["investigacao"]["id"], []).append(sheets.accepted(spec["ficha"]))
+        elif f["nome"] == sheets.FICHA_FILE and not f["duplicata_de"]:
             try:
                 sheet = json.loads(f["_path"].read_text(encoding="utf-8"))
                 psi = sheet["investigacao"]
             except (json.JSONDecodeError, KeyError, TypeError) as error:
                 f.update(status="Não carregado", motivo=f"Ficha ilegível: {error}")
                 continue
-            if problems := ficha_docs.validate(sheet, stored=True):
+            if problems := sheets.validate(sheet, stored=True):
                 f.update(status="Não carregado", motivo="Ficha com problemas: " + "; ".join(problems))
                 continue
             out.setdefault(psi, []).append(sheet)
@@ -327,7 +323,7 @@ def _load_submitted_studies(files, dados, tables, alerts, table_source):
             spec_file.update(status="Não carregado", motivo=f"Especificação não aplicável: {error}")
             continue
         psi = spec["investigacao"]["id"]
-        prefix = str(folder.relative_to(dados))
+        prefix = folder.relative_to(dados).as_posix()
         for name, table in loaded.items():
             tables[name] = table.with_columns(fonte_arquivo=pl.lit(prefix) + "/" + pl.col("fonte_arquivo"))
             table_source.setdefault(name, f"{prefix}/{spec['tabelas'][0]['fontes'][0]['arquivo']}")

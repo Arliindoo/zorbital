@@ -21,3 +21,7 @@ data/*
 .ruff_cache/
 
 /dados/
+
+# Frontend dependencies and build metadata
+node_modules/
+*.tsbuildinfo

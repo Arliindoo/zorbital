@@ -7,7 +7,8 @@ from typing import Annotated
 import polars as pl
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from .. import data, db
+from .. import db
+from ..datasets import explore as data
 from .frames import dataset
 from .studies import header
 

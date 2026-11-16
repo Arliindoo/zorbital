@@ -19,21 +19,18 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 
 from .. import db
-from ..assistant import provider
+from ..datasets.vocabulary import ATRIBUTOS, GRANDEZAS
 from ..ingest import build, generic
-from ..ingest.ficha import ATRIBUTOS, GRANDEZAS
-from ..studies import approve, documents, ficha_docs, propose, staging
+from ..integrations import provider
+from ..studies import approve, documents, ficha_docs, propose, review, staging
 from .frames import dataset
 
 router = APIRouter(prefix="/api")
 
 UPLOAD_ID = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{8}$")  # o formato que `staging.receive` gera; nada de caminho
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024
-PREVIEW_ROWS = 50
 SPEC_DRAFT = "especificacao_em_revisao.json"
 SHEET_DRAFT = "ficha_em_revisao.json"
-# sem os arquivos ou o cabeçalho certos, não há o que pré-visualizar
-BLOCKS_PREVIEW = ("não encontrad", "não existe", "linha_cabecalho")
 
 
 def _load(upload_id: str) -> staging.Upload:
@@ -113,31 +110,14 @@ def _spec(upload: staging.Upload, proposal: propose.Proposal) -> dict:
 
 
 def _check_spec(upload: staging.Upload, spec: dict) -> dict:
-    """Os problemas que impedem aprovar e, se der para ler, a prévia das tabelas e dos alertas."""
-    try:
-        problems = generic.validate(spec, upload.files_dir)
-    except (KeyError, TypeError, AttributeError) as error:
-        return {
-            "problemas": [f"Especificação malformada ({error})."],
-            "previa": None,
-            "previa_erro": str(error),
-        }
-    preview, failure = None, None
-    try:
-        if any(mark in p for p in problems for mark in BLOCKS_PREVIEW):
-            raise generic.SpecError("corrija primeiro os pontos de arquivo, aba ou cabeçalho acima.")
-        tables, alerts, _ = generic.apply(spec, upload.files_dir)
-    except (generic.SpecError, KeyError, ValueError, TypeError, OSError) as error:
-        failure = str(error)
-    else:
-        preview = {
-            "tabelas": [
-                {"nome": name, "linhas": frame.height, "dados": dataset(frame.head(PREVIEW_ROWS))}
-                for name, frame in tables.items()
-            ],
-            "alertas": dataset(alerts.drop("investigacao", strict=False)) if alerts.height else None,
-        }
-    return {"problemas": problems, "previa": preview, "previa_erro": failure}
+    result = review.check_spec(upload, spec)
+    if result["previa"] is not None:
+        preview = result["previa"]
+        for table in preview["tabelas"]:
+            table["dados"] = dataset(table["dados"])
+        if preview["alertas"] is not None:
+            preview["alertas"] = dataset(preview["alertas"])
+    return result
 
 
 def _study_state(upload: staging.Upload) -> dict:
@@ -221,14 +201,6 @@ def discard(upload_id: str) -> dict:
 # --- documentos de um estudo que já está no sistema -----------------------------------------------
 
 
-def _check_sheet(sheet: dict) -> dict:
-    kept = len(ficha_docs.items(ficha_docs.accepted(sheet)))
-    problems = ficha_docs.validate(sheet)
-    if not kept:
-        problems = ["A ficha está vazia: não há o que gravar.", *problems]
-    return {"problemas": problems, "itens": kept, "desmarcados": ficha_docs.pending(sheet)}
-
-
 def _docs_state(upload: staging.Upload) -> dict:
     found = db.query("SELECT id, nome, origem FROM investigacoes WHERE id = ?", [upload.psi])
     study = found.row(0, named=True) if found.height else {"id": upload.psi, "nome": "", "origem": None}
@@ -257,7 +229,7 @@ def _docs_state(upload: staging.Upload) -> dict:
             "custo_zyt": _usage_cost(proposal.uso),
         },
         "ficha": sheet,
-        "conferencia": _check_sheet(sheet),
+        "conferencia": review.check_sheet(sheet),
     }
 
 
@@ -290,7 +262,7 @@ def save_sheet(upload_id: str, sheet: Annotated[dict[str, Any], Body()]) -> dict
     (upload.folder / SHEET_DRAFT).write_text(
         json.dumps(sheet, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    return _check_sheet(sheet)
+    return review.check_sheet(sheet)
 
 
 @router.post("/documentos/{upload_id}/aprovar")

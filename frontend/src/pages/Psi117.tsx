@@ -1,25 +1,25 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { queries } from '@/api/client'
-import type { Dataset } from '@/api/types'
-import { useScreen } from '@/assistant/store'
-import { measuredModelByFuel, measuredVsModel, xyLines } from '@/charts/build'
-import { domainColors } from '@/charts/colors'
-import { Dumbbell } from '@/charts/Dumbbell'
-import { Gauge } from '@/charts/Gauge'
-import { XYChart } from '@/charts/XYChart'
-import { DataTable } from '@/components/DataTable'
-import { Segmented } from '@/components/filters'
-import { AlertsTable, InvestigationHeader } from '@/components/investigation'
-import { SimFrame, ViewSwitch } from '@/components/StudyView'
-import { Caption, Code, Expander, Grid, Section } from '@/components/ui'
-import { IconArrowRightUp, IconDocument, IconFlame, IconGraph, IconPulse, IconRuler } from '@/icons'
-import { omit, uniqueSorted } from '@/lib/data'
-import { g } from '@/lib/format'
-import { t } from '@/lib/i18n'
-import { usePageState } from '@/lib/usePageState'
-import { useStudyView } from '@/lib/useStudyView'
+import { queries } from '@/shared/api/client'
+import type { Dataset } from '@/shared/api/types'
+import { useScreen } from '@/features/assistant/store'
+import { measuredModelByFuel, measuredVsModel, xyLines } from '@/shared/charts/build'
+import { domainColors } from '@/shared/charts/colors'
+import { Dumbbell } from '@/shared/charts/Dumbbell'
+import { Gauge } from '@/shared/charts/Gauge'
+import { XYChart } from '@/shared/charts/XYChart'
+import { DataTable } from '@/shared/ui/DataTable'
+import { Segmented } from '@/shared/ui/filters'
+import { AlertsTable, InvestigationHeader } from '@/features/studies/components/investigation'
+import { SimFrame, ViewSwitch } from '@/features/studies/components/StudyView'
+import { Caption, Code, Expander, Grid, Section } from '@/shared/ui/ui'
+import { IconArrowRightUp, IconDocument, IconFlame, IconGraph, IconPulse, IconRuler } from '@/shared/icons/index'
+import { omit, uniqueSorted } from '@/shared/lib/data'
+import { g } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { usePageState } from '@/shared/lib/usePageState'
+import { useStudyView } from '@/features/studies/useStudyView'
 
 // a chave é a coluna (estável, vai para o estado da página); o valor é o rótulo no idioma em uso
 const VARIABLES = {
@@ -105,7 +105,7 @@ function ModelSeries({ data, variable, onChange }: { data: Dataset; variable: Va
 }
 
 // a cena 3D só é baixada quando alguém abre a vista de simulação
-const Psi117Sim = lazy(() => import('@/sim/views/Psi117Sim'))
+const Psi117Sim = lazy(() => import('@/visualization/views/Psi117Sim'))
 
 export default function Psi117() {
   const { data } = useSuspenseQuery(queries.psi117())

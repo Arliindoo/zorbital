@@ -16,7 +16,7 @@ import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 
-from ..ingest.build import DB_PATH
+from ..config import DB_PATH
 from . import archive
 
 UPLOADS_DIR = DB_PATH.parent / "uploads"

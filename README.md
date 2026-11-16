@@ -107,11 +107,12 @@ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/DATA.md](docs/DAT
 | `src/spaceapps/api/` | FastAPI: page data (`pages.py`), studies, sheets and search (`studies.py`), study and document submission (`uploads.py`), streaming assistant (`chat.py`), production server (`app.py`) |
 | `src/spaceapps/ingest/` | the load: catalog, readers, fact sheets, database, seed |
 | `src/spaceapps/studies/` | study submission and document fact sheets |
-| `src/spaceapps/assistant/` | the assistant: screen state, tools, loop, gateway client |
-| `src/spaceapps/` (`fichas`, `search`, `db`) | side-by-side comparison, search index, read-only database access |
+| `src/spaceapps/assistant/` | the assistant: screen state, tools and conversation loop |
+| `src/spaceapps/evidence/`, `datasets/`, `integrations/` | comparison and search; shared data definitions/readers; model gateway client |
+| `src/spaceapps/config.py`, `db.py` | filesystem configuration and read-only database access |
 | `frontend/src/pages/` | one page per investigation, overview, studies hub and the generic page of submitted studies, side-by-side sheets, PSI-117 × CFI, submission, documents, explore |
-| `frontend/src/sim/` | the WebGL2 simulation: line-drawing engine, scenes, burn replay, per-study data binding, HUD |
-| `frontend/src/charts/`, `components/`, `assistant/`, `styles/` | hand-drawn SVG charts and fixed category colors, screen pieces, the assistant panel, the visual system |
+| `frontend/src/visualization/` | the WebGL2 simulation: line-drawing engine, scenes, burn replay, per-study data binding, HUD |
+| `frontend/src/app/`, `features/`, `shared/` | application shell; studies, submissions, evidence and assistant features; shared UI, charts, API client, styles and utilities |
 | `tests/` | synthetic `dados/` and the Python tests (load, seed, API, assistant, submission, sheets) |
 | `seed/` | the normalized tables, as Parquet |
 

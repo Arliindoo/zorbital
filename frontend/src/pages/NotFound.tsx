@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
-import { useScreen } from '@/assistant/store'
-import { t } from '@/lib/i18n'
+import { useScreen } from '@/features/assistant/store'
+import { t } from '@/shared/lib/i18n'
 
 export default function NotFound() {
   useScreen({ pagina: 'overview', titulo: t('Page not found', 'Página não encontrada') })

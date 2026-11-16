@@ -22,8 +22,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from ..assistant import agent, provider, tools
+from ..assistant import agent, tools
 from ..assistant.screen import Screen
+from ..integrations import provider
 from .frames import frame_from_rows
 
 log = logging.getLogger(__name__)

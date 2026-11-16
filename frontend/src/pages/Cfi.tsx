@@ -1,25 +1,25 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useMemo, useState } from 'react'
-import { queries } from '@/api/client'
-import { useScreen } from '@/assistant/store'
-import { scatterBy } from '@/charts/build'
-import { DOMAIN_ORDER } from '@/charts/colors'
-import { Heatmap } from '@/charts/Heatmap'
-import { Ridge } from '@/charts/Ridge'
-import { XYChart } from '@/charts/XYChart'
-import { DataTable } from '@/components/DataTable'
-import { CheckboxGroup, RangeFilter, Toggle } from '@/components/filters'
-import { AlertsTable, InvestigationHeader } from '@/components/investigation'
-import { SidebarFilters } from '@/components/Layout'
-import { SimFrame, ViewSwitch } from '@/components/StudyView'
-import { Callout, Expander, Grid, Metric, Metrics, Section } from '@/components/ui'
-import { IconDrop, IconFlame, IconPulse, IconScan } from '@/icons'
-import { extent, groupBy, inRangeOrNull, omit, type Range, uniqueSorted } from '@/lib/data'
-import { flamesLong } from '@/lib/flames'
-import { g } from '@/lib/format'
-import { t } from '@/lib/i18n'
-import { usePageState } from '@/lib/usePageState'
-import { useStudyView } from '@/lib/useStudyView'
+import { queries } from '@/shared/api/client'
+import { useScreen } from '@/features/assistant/store'
+import { scatterBy } from '@/shared/charts/build'
+import { DOMAIN_ORDER } from '@/shared/charts/colors'
+import { Heatmap } from '@/shared/charts/Heatmap'
+import { Ridge } from '@/shared/charts/Ridge'
+import { XYChart } from '@/shared/charts/XYChart'
+import { DataTable } from '@/shared/ui/DataTable'
+import { CheckboxGroup, RangeFilter, Toggle } from '@/shared/ui/filters'
+import { AlertsTable, InvestigationHeader } from '@/features/studies/components/investigation'
+import { SidebarFilters } from '@/app/Layout'
+import { SimFrame, ViewSwitch } from '@/features/studies/components/StudyView'
+import { Callout, Expander, Grid, Metric, Metrics, Section } from '@/shared/ui/ui'
+import { IconDrop, IconFlame, IconPulse, IconScan } from '@/shared/icons/index'
+import { extent, groupBy, inRangeOrNull, omit, type Range, uniqueSorted } from '@/shared/lib/data'
+import { flamesLong } from '@/shared/lib/flames'
+import { g } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { usePageState } from '@/shared/lib/usePageState'
+import { useStudyView } from '@/features/studies/useStudyView'
 
 const LABELS: Record<string, string> = t(
   {
@@ -43,7 +43,7 @@ const LABELS: Record<string, string> = t(
 )
 
 // a cena 3D só é baixada quando alguém abre a vista de simulação
-const CfiSim = lazy(() => import('@/sim/views/CfiSim'))
+const CfiSim = lazy(() => import('@/visualization/views/CfiSim'))
 
 export default function Cfi() {
   const { data } = useSuspenseQuery(queries.cfi())

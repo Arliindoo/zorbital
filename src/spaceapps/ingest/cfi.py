@@ -13,7 +13,7 @@ from pathlib import Path
 import polars as pl
 from openpyxl import load_workbook
 
-from .common import Alerts, is_blank, numeric_or_alert, to_date, to_number, to_text
+from ..datasets.common import Alerts, is_blank, numeric_or_alert, to_date, to_number, to_text
 
 INVESTIGACAO = "PSI-39"
 

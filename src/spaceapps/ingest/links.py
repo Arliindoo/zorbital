@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import polars as pl
 
-from .common import Alerts
+from ..datasets.common import Alerts
 
 TOLERANCE_MM = 0.005  # metade do último dígito publicado nas tabelas do PSI-117 (duas casas)
 
