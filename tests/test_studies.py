@@ -14,8 +14,8 @@ from fastapi.testclient import TestClient
 
 from spaceapps import db
 from spaceapps.api.app import create_app
-from spaceapps.assistant import provider
 from spaceapps.ingest import generic
+from spaceapps.integrations import provider
 from spaceapps.studies import approve, archive, profile, propose, staging
 
 from .conftest import write_dados
@@ -334,7 +334,7 @@ def test_submitted_study_has_its_own_page(approved_api):
 
 
 def test_studies_hub_lists_every_study_with_its_search_index(approved_api):
-    from spaceapps import search
+    from spaceapps.evidence import search
 
     cards = approved_api.get("/api/studies").json()["estudos"]
 
@@ -348,7 +348,7 @@ def test_studies_hub_lists_every_study_with_its_search_index(approved_api):
 
 
 def test_search_ignores_accents_and_needs_every_word(approved, monkeypatch):
-    from spaceapps import search
+    from spaceapps.evidence import search
 
     _, path, _ = approved
     monkeypatch.setattr(db, "DB_PATH", path)

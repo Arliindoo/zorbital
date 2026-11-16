@@ -99,12 +99,12 @@ dependem do modelo; a escolha entre navegador e servidor ainda não foi feita.
 
 ## Aproveitamento da implementação atual
 
-- `frontend/src/sim/Simulation.tsx`: controles, seleção, tela cheia e integração com o assistente.
-- `frontend/src/sim/director.ts`: câmera, transições e relógio da reprodução.
-- `frontend/src/sim/engine/` e `scenes/`: renderização e representação do aparato.
-- `frontend/src/sim/types.ts`: estrutura atual de estudos e reproduções, a adaptar para resultados
+- `frontend/src/visualization/Simulation.tsx`: controles, seleção, tela cheia e integração com o assistente.
+- `frontend/src/visualization/director.ts`: câmera, transições e relógio da reprodução.
+- `frontend/src/visualization/engine/` e `scenes/`: renderização e representação do aparato.
+- `frontend/src/visualization/types.ts`: estrutura atual de estudos e reproduções, a adaptar para resultados
   de cenários com procedência.
-- `frontend/src/sim/replay/droplet.ts`: reconstrução existente; não constitui um motor capaz de
+- `frontend/src/visualization/replay/droplet.ts`: reconstrução existente; não constitui um motor capaz de
   prever alterações de gravidade e pressão.
 
 As partes novas são a preparação pelo agente, a configuração de cenários, o contrato do motor,

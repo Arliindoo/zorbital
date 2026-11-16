@@ -16,9 +16,9 @@ from dataclasses import dataclass, field
 import openai
 
 from .. import db
-from ..assistant import provider
+from ..datasets.vocabulary import ATRIBUTOS, GRANDEZAS
 from ..ingest import generic
-from ..ingest.ficha import ATRIBUTOS, GRANDEZAS
+from ..integrations import provider
 from . import documents, ficha_docs, profile
 from .staging import Upload
 
@@ -243,7 +243,7 @@ def propose(
     proposal = Proposal(especificacao=spec, problemas=generic.validate(spec, upload.files_dir), modelo=model(),
                         uso=usage, tentativas=attempt)  # fmt: skip
     (upload.folder / "proposta.json").write_text(
-        json.dumps(proposal.__dict__, ensure_ascii=False, indent=2, default=str)
+        json.dumps(proposal.__dict__, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
     upload.estado = "proposto"
     upload.save()

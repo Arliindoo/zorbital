@@ -18,7 +18,7 @@ from pathlib import Path
 
 import polars as pl
 
-from .common import Alerts
+from ..datasets.common import Alerts
 
 MAX_ZIP = 5 * 1024 * 1024  # um zip de metadados tem ~10–25 KB
 MAX_TEXT = 2 * 1024 * 1024
@@ -69,11 +69,6 @@ def _clean(text: str | None) -> str | None:
         return None
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     return "\n".join(line for line in lines if line) or None
-
-
-def acronyms(hardware: str | None) -> set[str]:
-    """Siglas do equipamento entre parênteses: 'Multi-User Droplet Combustion Apparatus (MDCA)' → {'MDCA'}."""
-    return set(re.findall(r"\(([A-Z][A-Za-z0-9-]{1,10})\)", hardware or ""))
 
 
 def read_entries(path: Path) -> list[tuple[str, str]]:

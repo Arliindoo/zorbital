@@ -16,8 +16,9 @@ from dataclasses import dataclass
 
 import polars as pl
 
-from .. import db, fichas
-from . import dictionary
+from .. import db
+from ..datasets import dictionary
+from ..evidence import fichas
 from .screen import Screen
 
 MAX_ROWS = 50

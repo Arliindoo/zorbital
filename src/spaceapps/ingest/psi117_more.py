@@ -14,7 +14,7 @@ from pathlib import Path
 import polars as pl
 from openpyxl import load_workbook
 
-from .common import Alerts, read_csv_rows, to_number, to_text
+from ..datasets.common import Alerts, read_csv_rows, to_number, to_text
 
 INVESTIGACAO = "PSI-117"
 FUEL_CODES = {"C7": "n-heptano", "C10": "n-decano", "C12": "n-dodecano"}

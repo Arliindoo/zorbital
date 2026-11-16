@@ -1,24 +1,24 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useMemo, useState } from 'react'
-import { queries } from '@/api/client'
-import { useScreen } from '@/assistant/store'
-import { BarList } from '@/charts/BarList'
-import { scatterBy } from '@/charts/build'
-import { DOMAIN_ORDER, domainColors } from '@/charts/colors'
-import { Strip } from '@/charts/Strip'
-import { XYChart } from '@/charts/XYChart'
-import { DataTable } from '@/components/DataTable'
-import { CheckboxGroup, RangeFilter } from '@/components/filters'
-import { AlertsTable, InvestigationHeader } from '@/components/investigation'
-import { SidebarFilters } from '@/components/Layout'
-import { SimFrame, ViewSwitch } from '@/components/StudyView'
-import { Callout, Grid, Metric, Metrics, Section } from '@/components/ui'
-import { IconLayers, IconPulse, IconScatter } from '@/icons'
-import { extent, groupBy, inRange, omit, type Range, uniqueSorted } from '@/lib/data'
-import { span } from '@/lib/format'
-import { t } from '@/lib/i18n'
-import { usePageState } from '@/lib/usePageState'
-import { useStudyView } from '@/lib/useStudyView'
+import { queries } from '@/shared/api/client'
+import { useScreen } from '@/features/assistant/store'
+import { BarList } from '@/shared/charts/BarList'
+import { scatterBy } from '@/shared/charts/build'
+import { DOMAIN_ORDER, domainColors } from '@/shared/charts/colors'
+import { Strip } from '@/shared/charts/Strip'
+import { XYChart } from '@/shared/charts/XYChart'
+import { DataTable } from '@/shared/ui/DataTable'
+import { CheckboxGroup, RangeFilter } from '@/shared/ui/filters'
+import { AlertsTable, InvestigationHeader } from '@/features/studies/components/investigation'
+import { SidebarFilters } from '@/app/Layout'
+import { SimFrame, ViewSwitch } from '@/features/studies/components/StudyView'
+import { Callout, Grid, Metric, Metrics, Section } from '@/shared/ui/ui'
+import { IconLayers, IconPulse, IconScatter } from '@/shared/icons/index'
+import { extent, groupBy, inRange, omit, type Range, uniqueSorted } from '@/shared/lib/data'
+import { span } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { usePageState } from '@/shared/lib/usePageState'
+import { useStudyView } from '@/features/studies/useStudyView'
 
 const LABELS: Record<string, string> = t(
   {
@@ -42,7 +42,7 @@ const LABELS: Record<string, string> = t(
 )
 
 // a cena 3D só é baixada quando alguém abre a vista de simulação
-const BassSim = lazy(() => import('@/sim/views/BassSim'))
+const BassSim = lazy(() => import('@/visualization/views/BassSim'))
 
 export default function Bass() {
   const { data } = useSuspenseQuery(queries.bass())

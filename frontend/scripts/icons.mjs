@@ -1,4 +1,4 @@
-// Gera src/icons/index.tsx a partir do conjunto Solar (Iconify), via CLI `better-icons`.
+// Gera src/shared/icons/index.tsx a partir do conjunto Solar (Iconify), via CLI `better-icons`.
 // Uso: node scripts/icons.mjs   (requer `npm i -g better-icons`)
 import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
@@ -117,5 +117,5 @@ for (const [name, id] of Object.entries(ICONS)) {
     .replace(/\s([a-z]+(?:-[a-z]+)+)=/g, (_, attr) => ` ${camel(attr)}=`)
   out += `\nexport const Icon${name}: Icon = (p) => <Svg {...p}>${inner}</Svg>\n`
 }
-writeFileSync(new URL('../src/icons/index.tsx', import.meta.url), out)
+writeFileSync(new URL('../src/shared/icons/index.tsx', import.meta.url), out)
 console.log('ok')

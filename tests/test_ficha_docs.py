@@ -6,9 +6,9 @@ import duckdb
 import polars as pl
 import pytest
 
-from spaceapps import fichas
-from spaceapps.assistant import provider
+from spaceapps.evidence import fichas
 from spaceapps.ingest import build, generic
+from spaceapps.integrations import provider
 from spaceapps.studies import ficha_docs, propose, staging
 from tests.conftest import write_dados
 from tests.test_studies import fake_zyria_proposals, received, spec_for, sse, tool_call  # noqa: F401

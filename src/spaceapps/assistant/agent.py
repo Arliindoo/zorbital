@@ -8,7 +8,8 @@ from dataclasses import dataclass
 
 import openai
 
-from . import provider, tools
+from ..integrations import provider
+from . import tools
 from .screen import Screen
 
 MAX_TOOL_ROUNDS = 6

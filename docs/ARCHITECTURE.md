@@ -65,15 +65,15 @@ flowchart TB
     subgraph Local["Local machine"]
         subgraph BR["Browser — React + Vite (frontend/)"]
             PG["pages/ — one page per screen"]
-            CH["charts/ — hand-drawn SVG"]
-            SIM["sim/ — WebGL2 simulation"]
-            AW["assistant/ — chat panel"]
+            CH["shared/charts/ — hand-drawn SVG"]
+            SIM["visualization/ — WebGL2 simulation"]
+            AW["features/assistant/ — chat panel"]
         end
         subgraph ST["Python process — FastAPI (spaceapps.api)"]
             PAPI["pages, studies, uploads, chat routers"]
-            AS["spaceapps.assistant — loop, tools, provider"]
+            AS["spaceapps.assistant — loop, tools; integrations.provider"]
             STU["spaceapps.studies — submission and document sheet"]
-            FI["spaceapps.fichas — side-by-side comparison"]
+            FI["spaceapps.evidence.fichas — side-by-side comparison"]
             DB["spaceapps.db — read-only access"]
         end
         subgraph CLI["Command line"]
@@ -244,7 +244,7 @@ person.
 - **One source of truth per concept.** Data: the files in `dados/`. What an investigation is: the
   catalog (`ingest/catalog.py`) or its approved `estudo.json`. What a column means: the data
   dictionary or `estudo_colunas`. Common vocabulary of attributes and measured quantities:
-  `ingest/ficha.py`. Everything else is derived.
+  `datasets/vocabulary.py`. Everything else is derived.
 - **Nature and evidence.** Every data column has a nature (`IDENTIFICADOR`, `CONDICAO`, `MEDIDO`,
   `SIMULADO`, `INCERTEZA`, `DERIVADO`, `TEXTO`, `IGNORAR`) and every interpretation an evidence type
   (`documento` with file/page/quote, `cabecalho`, `inferido`). Both are shown on screen.
@@ -266,13 +266,42 @@ person.
 | Path | Responsibility |
 |---|---|
 | `src/spaceapps/api/` | `app.py` (FastAPI app, database bootstrap from the seed, production server), `pages.py` (one payload per page, explore sources), `studies.py` (hub, generic study page, side-by-side), `uploads.py` (study and document submission: receive, analyze, review, approve), `chat.py` (assistant as NDJSON stream), `frames.py` (tables → JSON with column types) |
-| `frontend/src/` | `pages/` (one per screen: overview, study hub and generic study page, FLEX, CFI, PSI-117, BASS-II, PSI-142, side-by-side sheets, PSI-117 × CFI, submit study, add documents, explore), `charts/` (SVG charts, fixed category colors, pure series builders), `sim/` (WebGL2 engine, scenes, burn replay, per-study binding, HUD), `assistant/` (panel, stream client, screen state), `components/`, `styles/`, `api/` (client and types), `lib/` |
-| `src/spaceapps/ingest/` | `catalog.py` (what each investigation and file is), `build.py` (the load), one reader per format, `generic.py` (reader for submitted studies), `ficha.py` (fact sheets, linked conditions, vocabulary), `links.py` (PSI-117 × CFI match), `metadados.py` (PSI metadata), `seed.py` |
-| `src/spaceapps/studies/` | `archive.py` (safe extraction), `staging.py` (receive), `profile.py`, `documents.py`, `propose.py` (reading-spec proposal), `ficha_docs.py` (document sheet: proposal, quote check, approval), `approve.py` |
-| `src/spaceapps/assistant/` | `screen.py`, `tools.py` (24 tools in 11 groups; scope enforcement), `agent.py` (the loop), `provider.py` (gateway client, errors, model check), `dictionary.py` |
-| `src/spaceapps/` | `db.py` (read-only), `fichas.py` (side-by-side), `search.py`, `data.py` (explore sources) |
-| `tests/` | synthetic `dados/` folder and 114 Python tests (load, seed, API, uploads API, assistant, submission, sheets); a local HTTP server stands in for the gateway. Front-end tests: 7 Vitest files (48 tests) under `frontend/src/**/*.test.ts` |
+| `frontend/src/` | `app/` (routing and shell), `pages/` (screen composition), `features/` (studies, submissions, evidence, assistant), `visualization/` (WebGL renderer, scenes, replay and HUD), `shared/` (UI, charts, HTTP client/types, translation, styles and utilities) |
+| `src/spaceapps/ingest/` | `catalog.py` (what each investigation and file is), `build.py` (the load), one reader per format, `generic.py` (reader for submitted studies), `ficha.py` (fact sheets and linked conditions), `links.py` (PSI-117 × CFI match), `metadados.py` (PSI metadata), `seed.py` |
+| `src/spaceapps/studies/` | `archive.py` (safe extraction), `staging.py` (receive), `profile.py`, `documents.py`, `propose.py` (reading-spec proposal), `ficha_docs.py` (document sheet: proposal, quote check, approval), `approve.py`, `review.py` (deterministic review checks and raw table previews) |
+| `src/spaceapps/assistant/` | `screen.py`, `tools.py` (scope enforcement and tool implementations), `agent.py` (conversation loop) |
+| `src/spaceapps/` | `config.py` (shared filesystem paths), `db.py` (read-only access) |
+| `src/spaceapps/datasets/` | Raw tabular reading, conversions, dictionary, vocabulary, text normalization document-sheet validation and Explore file loading |
+| `src/spaceapps/evidence/` | `search.py` (local search), `fichas.py` (side-by-side comparison) |
+| `src/spaceapps/integrations/` | `provider.py` (shared model gateway client, errors and model checks) |
+| `tests/` | synthetic `dados/` folder and 118 Python tests (load, seed, API, uploads API, assistant, submission, sheets); a local HTTP server stands in for the gateway. Front-end tests: 7 Vitest files (48 tests) under `frontend/src/**/*.test.ts` |
 | `seed/` | 21 Parquet files and a manifest |
+
+## Module boundaries
+
+The repository is a modular monolith. Python packaging and CLI names remain `spaceapps`;
+frontend routes and API payloads retain their existing contracts.
+
+- `config` supplies paths without importing the ingestion pipeline.
+- `datasets` owns shared data definitions and reading primitives. It does not depend on
+  API routes, studies, ingestion, evidence, the assistant or model integrations.
+- `ingest` builds deterministic data from files using `datasets`; it does not import
+  study workflows, HTTP handlers, the assistant or model integrations.
+- `studies` coordinates reviewed submissions and calls ingestion on approval. Its `review`
+  module returns validation results and raw table previews; API handlers serialize those
+  tables and translate failures into HTTP responses.
+- `evidence` queries the database and uses shared data definitions for search and comparison.
+- `assistant` and study proposers share `integrations.provider`; local search gets its
+  dictionary from `datasets`, independently of the assistant.
+- Frontend `app` composes routes and providers; `pages` assembles features. `shared` does not
+  import features, pages, the app shell or visualization. Feature-specific hooks and review
+  components live alongside their feature. Tests move with their corresponding modules.
+- `visualization` retains its renderer, director, replay and study bindings. These are
+  presentation contracts, not a predictive scientific engine.
+
+The current routers still assemble page payloads and submission responses. This reorganization
+extracts reusable review checks without introducing a generic service/repository framework.
+Scientific execution, project identity and NASA discovery remain future capabilities.
 
 ## Known limitations
 

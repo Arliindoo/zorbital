@@ -7,7 +7,7 @@ import json
 import duckdb
 import polars as pl
 
-from .ingest.build import DB_PATH
+from .config import DB_PATH
 
 
 def exists() -> bool:

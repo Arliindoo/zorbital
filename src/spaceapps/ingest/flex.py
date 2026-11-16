@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 
-from .common import Alerts, numeric_or_alert, read_csv_rows, to_date, to_text
+from ..datasets.common import Alerts, numeric_or_alert, read_csv_rows, to_date, to_text
 
 INVESTIGACAO = "PSI-69"
 COLUMNS = 15

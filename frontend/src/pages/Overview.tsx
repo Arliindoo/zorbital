@@ -1,17 +1,17 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
-import { queries } from '@/api/client'
-import { useScreen } from '@/assistant/store'
-import { BarList } from '@/charts/BarList'
-import { STATUS } from '@/charts/colors'
-import { CommandFlow } from '@/charts/CommandFlow'
-import { Waffle } from '@/charts/Waffle'
-import { DataTable } from '@/components/DataTable'
-import { Markdown } from '@/components/Markdown'
-import { Badge, Callout, Caption, Code, Grid, Panel } from '@/components/ui'
-import { CountUp } from '@/fx/CountUp'
-import { Decrypt } from '@/fx/Decrypt'
+import { queries } from '@/shared/api/client'
+import { useScreen } from '@/features/assistant/store'
+import { BarList } from '@/shared/charts/BarList'
+import { STATUS } from '@/shared/charts/colors'
+import { CommandFlow } from '@/shared/charts/CommandFlow'
+import { Waffle } from '@/shared/charts/Waffle'
+import { DataTable } from '@/shared/ui/DataTable'
+import { Markdown } from '@/shared/ui/Markdown'
+import { Badge, Callout, Caption, Code, Grid, Panel } from '@/shared/ui/ui'
+import { CountUp } from '@/shared/fx/CountUp'
+import { Decrypt } from '@/shared/fx/Decrypt'
 import {
   IconArrowRightUp,
   IconChecklist,
@@ -22,12 +22,12 @@ import {
   IconListAdd,
   IconScale,
   IconWarning,
-} from '@/icons'
-import { groupBy } from '@/lib/data'
-import { int } from '@/lib/format'
-import { t } from '@/lib/i18n'
-import { studyPath } from '@/lib/studies'
-import { td } from '@/lib/i18n-data'
+} from '@/shared/icons/index'
+import { groupBy } from '@/shared/lib/data'
+import { int } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { studyPath } from '@/features/studies/studies'
+import { td } from '@/shared/lib/i18n-data'
 
 const ACCENT: Record<string, string> = {
   'PSI-69': 'var(--s1)',

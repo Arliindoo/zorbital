@@ -1,8 +1,38 @@
 # Validation
 
-Historical validation reported for the current prototype. Numbers below were recorded as measured
-on 2026-11-15. They cover the dashboard, imports and replay, not the full
-[product vision](PRODUCT-VISION.md). Documentation updates do not rerun these checks.
+Validation of the current prototype, including historical measurements and the repository
+reorganization checks below, recorded on 2026-11-15. These cover the dashboard, imports and replay,
+not the full [product vision](PRODUCT-VISION.md). Historical real-data and model-call measurements
+were not rerun during the reorganization.
+
+## Repository reorganization checks (Windows)
+
+Work proceeded in stages: environment and baseline, backend boundaries, frontend feature grouping,
+then documentation and final integration checks. Python dependencies were synchronized with
+`uv sync --locked`; frontend dependencies were installed with `npm ci`. Lockfiles and the
+versioned seed were unchanged.
+
+The initial backend run found five existing Windows failures: proposal files written using the
+system encoding but read as UTF-8, and catalog paths containing backslashes. Explicit UTF-8 writes
+and POSIX-style catalog paths fixed all five before the structural changes. The first backend
+reorganization passed 113 tests with one skip; focused review checks passed 32 tests. Four added
+architecture checks enforce backend dependency boundaries and frontend shared-module boundaries.
+They also caught two deferred ingestion imports of study workflows; deterministic sheet validation
+now lives in `datasets/sheets.py`.
+
+| Final check | Result |
+|---|---|
+| `python -m pytest -q -rs` | 117 passed, 1 skipped (7-Zip unavailable; archive test) |
+| `ruff check src tests` | Passed |
+| `npm test` | 48 passed across 7 files |
+| `npm run lint` | Passed |
+| `npm run build` (includes TypeScript checking) | Passed; emitted asset names/hashes matched the pre-move build |
+| FastAPI TestClient with the real bundled seed and production frontend build | Fresh temporary database bootstrapped; 11 API responses, 6 SPA routes and 5 entry assets returned successfully; unknown API route returned 404 |
+| `git diff --check` | Passed |
+
+The integration smoke check used a temporary database and did not call a live model provider.
+Browser interaction, WebGL rendering on hardware and live model behavior were not revalidated in
+this pass. The missing 7-Zip check remains an explicit gap, rather than a passing result.
 
 ## Evaluation still required for the product direction
 

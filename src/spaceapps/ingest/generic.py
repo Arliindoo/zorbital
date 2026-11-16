@@ -17,9 +17,10 @@ from pathlib import Path
 
 import polars as pl
 
-from ..studies.profile import read_rows, sheet_names
-from .common import Alerts, is_blank, to_date, to_number, to_text
-from .ficha import ATRIBUTOS, GRANDEZAS
+from ..datasets import sheets
+from ..datasets.common import Alerts, is_blank, to_date, to_number, to_text
+from ..datasets.tabular import read_rows, sheet_names
+from ..datasets.vocabulary import ATRIBUTOS, GRANDEZAS
 
 LAYOUTS = ("simples", "empilhado")
 NATUREZAS = ("IDENTIFICADOR", "CONDICAO", "MEDIDO", "SIMULADO", "INCERTEZA", "DERIVADO", "TEXTO", "IGNORAR")
@@ -114,9 +115,8 @@ def validate(spec: dict, files_dir: Path) -> list[str]:
             problems.append(f"{label}: nenhuma coluna de dado (identificador, condição ou medida).")
         for s in sources:
             problems += _check_source(t, s, files_dir)
-    from ..studies import ficha_docs  # aqui dentro: o módulo usa o banco, que importa a carga
 
-    return problems + ficha_docs.validate(spec.get("ficha"))
+    return problems + sheets.validate(spec.get("ficha"))
 
 
 def _check_source(table: dict, source: dict, files_dir: Path) -> list[str]:

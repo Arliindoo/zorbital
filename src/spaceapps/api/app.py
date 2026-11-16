@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .. import db
-from ..ingest.build import ROOT
+from ..config import ROOT
 from . import chat, pages, studies, uploads
 
 log = logging.getLogger(__name__)
