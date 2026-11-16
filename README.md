@@ -1,17 +1,38 @@
-# Zorbital — fire safety insights from NASA microgravity combustion data
+# Zorbital — AI-assisted research and simulation
 
 **NASA Space Apps Challenge 2026 · Flame in Freefall**
 
-Zorbital is an interactive dashboard that brings together NASA's public microgravity combustion
-experiments (the PSI repository), normalizes them into comparable tables, keeps the provenance of
-every number, states what each experiment can and cannot tell you, and adds an AI assistant that
-only speaks from the data on screen.
+Zorbital's product direction is a research platform centered on the user's own experiments.
+Researchers bring their data, documents and questions; the platform is intended to help them find
+related NASA research, connect evidence and explore changes such as gravity or pressure through
+predictive simulation and 3D visualization. AI helps investigate and interpret evidence; the
+researcher develops the scientific conclusion.
+
+The planned simulation agent helps turn a research question into an executable scenario: it
+proposes suitable scientific models, prepares parameters from research data and identified
+references, asks for essential missing information and conducts calculations through scientific
+tools. Results and their evaluation then feed the comparison views and 3D experience.
+
+**Implementation status:** the current repository provides a local NASA PSI dashboard, reviewed
+study imports, comparisons, a page-scoped assistant and 3D reconstructions. Independent research
+projects, live NASA discovery, the specialized simulation agent and predictive simulation of
+changed conditions are not yet implemented. The six included investigations are the demonstration
+and reference collection.
+
+The [product vision](docs/PRODUCT-VISION.md) presents the research journey and the ambition beyond
+the current demonstration. The [simulation proposal](docs/SIMULATION.md) details
+the first scenario workflow; the [Space Apps presentation draft](docs/SUBMISSION.md) summarizes
+the vision and current demonstration in English.
 
 *Também em português: [README.pt-BR.md](README.pt-BR.md).*
 
 ## The problem
 
-NASA has decades of data on how flames behave without gravity. It is hard to use:
+Researchers need to connect their own experiments with relevant external evidence, understand
+similarities and differences, and investigate what may happen under changed conditions. Zorbital
+aims to support that journey while keeping evidence and hypotheses distinguishable.
+
+The current prototype addresses part of this problem through NASA combustion data:
 
 - Every investigation published its data differently: one sheet per researcher, pairs of columns
   side by side, categories written as free text (`3/8" clear rod`), units in the header or nowhere.
@@ -26,7 +47,7 @@ NASA has decades of data on how flames behave without gravity. It is hard to use
 Fire safety on the Moon and Mars depends on reading these results right. Zorbital is built so that
 the screen does not invite the wrong conclusion.
 
-## What it does
+## What the current prototype does
 
 | | |
 |---|---|
@@ -34,17 +55,18 @@ the screen does not invite the wrong conclusion.
 | **A fact sheet per study, computed from the data** | fuels, sample shape and size, test conditions (O₂, pressure, helium, flow) in common units, what was measured, what varied between tests and what stayed fixed, and the conditions that varied together and therefore cannot be separated |
 | **Fact sheet from documents** | the AI reads the study's PDFs and proposes objective, sensors and fixed conditions, each with page and quote; code checks that the quote exists on that page; a person decides what enters |
 | **Comparisons with rules** | PSI-117 × CFI with a point-by-point match (4 of 4 droplets in the 1 atm table are CFI flights, so it is not an independent validation); and *Side-by-side sheets*, which tells for 2–4 studies where ranges overlap and gives a verdict per pair |
-| **A simulation view per study** | a 3D reconstruction (WebGL2, drawn in lines) that descends from the ISS or the laboratory to the experiment and replays the chosen test from the source values — droplet diameters, gas composition, sample dimensions, digitized points. What is data and what is illustration is marked on screen, test by test; when the data to reconstruct is missing, the test is shown as "no reconstruction", with the reason |
-| **An assistant per page** | explains what is on screen using only fixed queries to that page's data; before any query it reads the fact sheets of the studies involved (question, evidence, cautions); cites the basis of every number and shows the cost of each question. Opens with ⌘K |
-| **Submitting a new study** | upload tables and a document; the AI proposes how to read each column with the evidence for every interpretation; a person reviews and approves; from then on code loads the study deterministically on every run |
+| **3D reconstruction for supported studies** | WebGL2 scenes replay source values and reconstructed or estimated segments with explanatory notes. Tests without sufficient supported inputs are blocked. The view does not calculate predictions for user-modified gravity or pressure, and generic uploads do not automatically acquire a 3D model |
+| **An assistant per page** | uses fixed queries available on the page and receives the studies' question, evidence type and cautions before answering. It is instructed to identify the basis of numeric claims; generated text has no final factual verifier. Opens with ⌘K |
+| **Submitting a new study** | upload tables and a document under a PSI identifier; the AI proposes how to read each column; a person reviews and approves; code loads the study deterministically. This extends the shared local catalog rather than creating an independent research project |
 
-The rule that runs through everything: **the AI proposes, code applies, a person approves.** No number
-on screen comes from the AI. Every interpretation has evidence (document and page, header, or
-"inferred, confirmed by a reviewer"). Measured, simulated and uncertainty never enter the same
-average. Investigations are only crossed on the comparison pages, and there the page says what the
-sources share.
+The rule for adopting data interpretations is: **the AI proposes, code validates and applies, a
+person reviews and approves.** The assistant is instructed to ground numbers in tool results;
+its generated text is not independently verified. Measurements, model outputs and uncertainty
+must remain distinguishable; the Explore page has a known aggregation limitation. Current
+assistant tools cross investigations only in designated comparison flows. These page limits
+describe the prototype, not the intended scope of research assistance.
 
-## How it works
+## How the current prototype works
 
 ```
 dados/   NASA PSI files, downloaded by hand, never modified (outside git)
@@ -60,7 +82,8 @@ FastAPI API (Python) ──JSON──► React front end (filters, charts and ta
    └── study submission: AI proposes a reading spec → code validates → person approves → loaded by code
 ```
 
-Three independent uses of a language model, none of them able to write to the database:
+Three current uses of a language model, without direct database-writing tools. The planned
+simulation agent is an additional capability described in the product vision:
 
 1. **The assistant.** A tool-using agent whose tools are fixed queries with closed parameter lists
    (no SQL, no file paths, no web). Each page enables only its own tool groups, and the scope is
@@ -132,8 +155,8 @@ npm --prefix frontend run typecheck  # TypeScript
 
 ## NASA data and resources used
 
-All data comes from NASA's **Physical Sciences Informatics (PSI)** repository, downloaded manually
-and loaded unchanged. What is loaded, how, and each investigation's cautions are in
+The bundled reference collection comes from NASA's **Physical Sciences Informatics (PSI)**
+repository, downloaded manually and loaded unchanged. What is loaded, how, and each investigation's cautions are in
 [docs/DATA.md](docs/DATA.md).
 
 | Investigation | NASA page | Report / DOI |
@@ -180,16 +203,18 @@ audio were generated by AI.
 
 AI was used in two distinct ways, and we want to be precise about both.
 
-**Inside the product.** The assistant, the study-submission analysis and the document fact sheet call
-a language model (Anthropic Claude through the Zyria gateway). Every output of the model is a
-proposal: it is validated by deterministic code and approved by a person before anything is stored,
-and the model never writes to the database. The dashboard discloses each call and its cost.
+**Inside the current prototype.** The assistant, the study-submission analysis and the document
+fact sheet call a language model through the Zyria gateway. Reading specifications and document
+sheets go through code checks and human review before adoption. Assistant replies are generated
+text subject to instructions and tool restrictions, without a final factual verifier or formal
+human approval step. The model has no direct database-writing tool. Calls and costs are disclosed.
 
-**Building the product.** The idea, the choice of investigations, the download and inspection of the
-data, the scientific cautions (what each experiment does and does not show), every design decision,
-the end-to-end tests with real data and the demo are the team's work. The source code was written
-in pair-programming with an AI coding assistant (Anthropic Claude), directed, reviewed and tested by
-the team. This README and the `docs/` folder were drafted the same way and revised by the team.
+**Building the product.** The product direction and research goals come from the team. Earlier
+implementation and documentation used an AI coding assistant (Anthropic Claude) under the team's
+direction. The current product vision, simulation proposal and presentation text were organized
+with OpenAI Codex. Implemented behavior, recorded checks and remaining review work are documented
+separately in [docs/VALIDATION.md](docs/VALIDATION.md); proposed capabilities do not imply completed
+implementation or scientific validation.
 
 ## Team
 
@@ -208,6 +233,8 @@ NASA's data usage terms.
 
 ## What this project does not claim
 
-Zorbital shows evidence and its limits; it does not predict fires or give operational safety advice.
-It has no affiliation with or endorsement from NASA. The list of what these data can and cannot
-support is in [docs/DATA.md](docs/DATA.md#what-the-data-can-and-cannot-support).
+The current prototype shows evidence and reconstructs recorded experiments; predictive simulation
+of modified conditions is a product objective awaiting model selection and scientific evaluation.
+It does not provide operational safety advice and has no affiliation with or endorsement from NASA.
+The list of what the bundled data can and cannot support is in
+[docs/DATA.md](docs/DATA.md#what-the-data-can-and-cannot-support).

@@ -1,13 +1,32 @@
 # Design decisions
 
-The choices that shape the project, with what they cost and what would make us revisit them.
+The choices that shaped the current prototype, with their costs and reasons. The confirmed
+[product vision](PRODUCT-VISION.md) changes several assumptions. Entries below explain existing
+code; they do not override the user-owned research journey or rule out predictive simulation.
+
+## Current decisions and planned evolution (2026-11-15)
+
+| Decision area | Status and consequence |
+|---|---|
+| Provenance, originals, units, evidence types, alerts and reviewed interpretations | Preserve as principles across the research workflow |
+| Deterministic ingestion | Preserve; add external discovery as a separate operation with recorded sources |
+| Fixed tool interfaces | Preserve controlled execution; revisit page-only scope to support project evidence, search and scenarios |
+| Specialized simulation agent | Product direction agreed; model selection, parameter preparation, execution tools and evaluation workflow remain to be designed |
+| PSI identity and approval into the global catalog | Revisit for independent research projects and dataset versions |
+| Global database rebuild and export to the seed | Revisit lifecycle boundaries so research data is not automatically prepared for distribution |
+| 3D reconstruction | Keep as an existing capability; predictive simulation requires a separate model and scientific evaluation |
+| One page per catalog investigation | Revisit the primary navigation around user research; existing study pages remain reference views |
+| Local deployment, browser-only history, no accounts or queue | Current implementation choices; future project persistence and execution requirements remain to be designed |
+| Python, React, DuckDB, SVG and WebGL2 | Existing technologies; the product correction alone does not establish a need to replace them |
+
+The [product vision](PRODUCT-VISION.md) explains the research journey behind these design needs.
+The predictive solver, NASA integration interface and future infrastructure remain to be selected.
 
 ## Python on the server, React in the browser
 
-The bottleneck of an analysis dashboard is reading, aggregating and drawing data and then waiting
-for a model, not server concurrency. Polars and DuckDB have no equivalent in Go or Node, so the load,
-the database and the assistant's tools stay in Python, behind a small FastAPI API that only serves
-ready tables. The first version drew the screen with Streamlit from the same Python code; it was
+The prototype uses Python for data loading, aggregation and the assistant's tools, with Polars and
+DuckDB behind a FastAPI API that serves prepared tables. The first version drew the screen with
+Streamlit from the same Python code; it was
 replaced by a React + Vite + TypeScript front end so that filters, charts and counts run in the
 browser (moving a filter never goes to the server), each page is one API call cached by TanStack
 Query, and the simulation could be drawn in WebGL2. Cost: two processes in development and a build
@@ -43,7 +62,10 @@ that passes through the measured ends. Flame position and glow, tracer flow, nee
 choreography and the mock-ups (ISS, Destiny, racks, burner) are schematic illustration. On screen,
 reconstructed or estimated values are underlined with a dashed line, an ⓘ button lists test by test
 what each element is, and when the data to reconstruct is missing the test is shown as "no
-reconstruction" with the reason. Nothing is invented to fill a gap.
+reconstruction" with the reason. Some missing quantities are estimated from available source
+values under explicit assumptions: FLEX can estimate an extinction diameter assuming the ambiguous
+burning-rate unit is mm²/s. Such reconstructions are not validation of predictions for changed
+gravity or pressure; their assumptions need evaluation before reuse in a predictive model.
 
 ## English by default, Portuguese in the settings
 

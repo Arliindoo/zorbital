@@ -1,22 +1,43 @@
-# Zorbital — combustão em microgravidade
+# Zorbital — pesquisa assistida por IA e simulação
 
 **NASA Space Apps Challenge 2026 · Flame in Freefall** · *English version: [README.md](README.md)*
 
-Painel interativo que reúne os experimentos públicos da NASA sobre combustão em microgravidade
-(repositório PSI), normaliza os dados em tabelas comparáveis, guarda a origem de cada número, diz o
-que cada experimento pode e não pode afirmar, e acrescenta um assistente de IA que só fala do que
-está na tela.
+O Zorbital tem como direção uma plataforma centrada na pesquisa do próprio usuário. Cientistas,
+engenheiros e outros pesquisadores trazem dados, documentos e perguntas; a plataforma deve ajudar
+a buscar trabalhos relacionados na NASA, relacionar evidências e explorar condições alteradas,
+como gravidade e pressão, por simulação preditiva com visualização 3D. A IA auxilia a investigação;
+o pesquisador constrói a conclusão científica.
+
+O agente de simulação planejado deve transformar a pergunta em um cenário executável: propor
+modelos científicos adequados, preparar parâmetros a partir da pesquisa e de referências
+identificadas, solicitar informações essenciais ausentes e conduzir cálculos por ferramentas
+científicas. Os resultados e sua avaliação alimentam a comparação e a experiência 3D.
+
+**Estado atual:** este repositório implementa um painel local do acervo NASA PSI, importação com
+revisão, comparações, assistente por página e reconstruções 3D. Projetos de pesquisa independentes,
+busca ativa na NASA, agente especializado de simulação e cálculo preditivo de novas condições
+ainda não estão implementados. As seis investigações incluídas formam o acervo de demonstração
+e referência.
+
+A [visão do produto](docs/PRODUCT-VISION.md) apresenta a jornada de pesquisa e a ambição além da
+demonstração atual. A [proposta de simulação](docs/SIMULATION.md) detalha a primeira experiência;
+o [texto de apresentação ao Space Apps](docs/SUBMISSION.md) resume a visão e a demonstração em inglês.
 
 ## O problema
 
-O acervo é rico e difícil de usar: cada investigação publicou os dados do seu jeito (uma aba por
-pesquisador, pares de colunas lado a lado, categorias em texto livre, unidades no cabeçalho ou em
-lugar nenhum); medição e simulação ficam na mesma tabela; parte das "medições" de um estudo são os
+O pesquisador precisa relacionar seu experimento com evidências externas, entender semelhanças e
+diferenças e investigar o que pode acontecer quando muda uma condição. A jornada deve preservar
+a origem dos resultados e distinguir evidências, hipóteses e previsões.
+
+O protótipo atual resolve uma parte desse problema com o acervo NASA: cada investigação publicou
+os dados do seu jeito (uma aba por pesquisador, pares de colunas lado a lado, categorias em texto
+livre, unidades no cabeçalho ou em lugar nenhum); medição e simulação ficam na mesma tabela;
+parte das "medições" de um estudo são os
 voos de outro; e as armadilhas de cada experimento (um `0` que quer dizer "não houve extinção", uma
 leitura de painel que não é velocidade) estão nos relatórios, não nas tabelas. Um chat genérico de
 IA responde com fluência sobre números que não existem.
 
-## O que o painel faz
+## O que o protótipo atual faz
 
 - **Seis investigações prontas para explorar**: FLEX (PSI-69), CFI (PSI-39), PSI-117, BASS-II
   (PSI-25), PSI-142 e BASS (PSI-26), cada uma com a pergunta que responde, a fonte, a completude, os
@@ -24,18 +45,21 @@ IA responde com fluência sobre números que não existem.
 - **Ficha de cada estudo**, calculada dos dados: combustíveis, amostras, condições na mesma unidade,
   o que se mediu, o que variou e o que ficou fixo, e as condições que variaram juntas. Com os
   documentos do estudo, a ficha ganha objetivo, sensores e condições fixas, com a página de origem.
-- **Simulação 3D por estudo**: uma reconstrução em WebGL2 que desce da ISS ou do laboratório até o
-  experimento e reproduz o ensaio escolhido a partir dos valores da fonte; a tela diz, ensaio a
-  ensaio, o que é dado e o que é ilustração, e nada é inventado quando falta o dado.
+- **Reconstrução 3D dos estudos suportados**: cenas WebGL2 reproduzem dados e trechos reconstruídos
+  ou estimados, com notas sobre as hipóteses usadas. Ensaios sem entradas suficientes são bloqueados.
+  Não há cálculo preditivo de gravidade/pressão alteradas nem geração automática de 3D para qualquer envio.
 - **Comparações com regras**: PSI-117 × CFI com correspondência ponto a ponto (não é validação
   independente), e **Fichas lado a lado**, com veredito por par.
 - **Assistente por página**, que só usa consultas prontas aos dados daquela página e mostra o custo
   de cada pergunta.
-- **Envio de estudos novos**: a IA propõe como ler cada coluna, com evidência; uma pessoa revisa e
-  aprova; o código passa a carregar o estudo igual em toda carga.
+- **Envio de estudos novos**: exige identificação PSI, tabelas e documento; a IA propõe como ler
+  as colunas, uma pessoa revisa e aprova, e o código passa a carregar o estudo no catálogo local.
+  Ainda não cria um projeto de pesquisa independente.
 
-A regra que atravessa tudo: **a IA propõe, o código aplica, uma pessoa aprova.** Nenhum número na
-tela vem da IA; medido, simulado e incerteza nunca entram na mesma conta.
+A regra para adotar interpretações de dados é: **a IA propõe, o código valida e aplica, uma pessoa
+revisa e aprova.** O assistente recebe instruções para fundamentar números nas ferramentas, mas seu
+texto não possui verificação factual final. Medições, resultados de modelos e incertezas devem
+permanecer distinguíveis; a página Explorar ainda tem uma limitação conhecida de agregação.
 
 ## Rodar
 
@@ -58,8 +82,10 @@ roda os testes do Python e `npm --prefix frontend test` os do front-end.
 
 ## Dados da NASA, referências, uso de IA e equipe
 
-Estão no [README.md](README.md), em inglês, que é a versão enviada ao Space Apps. A documentação
+Estão no [README.md](README.md), em inglês. O rascunho de apresentação está em
+[docs/SUBMISSION.md](docs/SUBMISSION.md). A documentação
 técnica (arquitetura, dados, decisões, validação) está em [`docs/`](docs/README.md).
 
-O projeto mostra evidências e seus limites; não prevê incêndios nem dá orientação operacional de
-segurança, e não tem vínculo nem endosso da NASA.
+O protótipo mostra evidências e reconstrói experimentos registrados. A simulação de novas condições
+é um objetivo que ainda exige seleção de modelo e avaliação científica. O produto não oferece
+orientação operacional de segurança e não tem vínculo nem endosso da NASA.

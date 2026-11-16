@@ -1,22 +1,30 @@
 # Architecture
 
-Zorbital is a local application in two parts — a Python API over a deterministic data pipeline, and
+**Scope: current prototype.** The [product vision](PRODUCT-VISION.md) centers on user-owned
+research, NASA discovery and predictive simulation prepared by a specialized agent. The architecture below describes what exists;
+its local catalog, page-scoped assistant and 3D replay are not the full target architecture.
+The final section identifies the capabilities needed to support that research journey.
+
+The current prototype is a local application in two parts — a Python API over a deterministic data pipeline, and
 a React front end that does the drawing in the browser — plus three narrowly scoped uses of a
-language model, each gated by code and by a person. This page describes the pieces, how they talk,
+language model. Reading specifications and document sheets have human review gates; chat replies
+are generated text constrained by instructions and tools. This page describes the pieces, how they talk,
 and the principles that hold across all of them.
 
 ## Quality goals, in order
 
 When two conflict, the one above wins.
 
-1. **Traceability.** Every number on screen and every interpretation has a named origin: file, sheet
-   and line; document and page; or "inferred" with the reviewer's confirmation.
+1. **Traceability.** Structured data and adopted interpretations should have named origins: source
+   file (also sheet and line for submitted studies), document and page, or reviewed inference.
+   Chat text has no final factual verifier; reconstruction assumptions are described in the 3D notes.
 2. **Reproducibility.** The same input folder produces the same database and the same seed, with no
    AI in the path.
-3. **Separation of evidence.** Measured, simulated and uncertainty never enter the same average;
-   investigations are only crossed on the comparison pages.
-4. **Contained AI.** The model proposes; deterministic code validates and applies; a person approves.
-   The assistant's scope is enforced in code, not in the prompt.
+3. **Separation of evidence.** Measurements, model outputs and uncertainty must remain
+   distinguishable. Dedicated comparisons preserve this distinction; Explore has a known
+   aggregation limitation. Current assistant cross-study tools belong to comparison pages.
+4. **Contained AI.** Code checks reading and document proposals, and a person reviews their adoption.
+   Assistant tool scope is enforced in code; generated chat text has no final factual verifier.
 5. **Honesty about the data.** A cell that cannot be read becomes an alert carrying the original
    value, never a silent correction.
 6. **Hostile input handled as such.** Uploaded archives and document contents are data, never
@@ -213,7 +221,7 @@ flowchart TB
 
 | Use | Input | Output | Who checks the output | Who may write |
 |---|---|---|---|---|
-| Assistant | question + screen summary | text | nobody, but every number comes from a tool, and tools are fixed queries | nobody: the database is opened read-only |
+| Assistant | question + screen summary | text | no final factual verifier; instructed to ground numbers in fixed-query tool results | nobody: the database is opened read-only |
 | Reading-spec proposer | sheet profiles (12 sample rows each) + documents (≤ 120k chars) | JSON spec | the validator (structure, headers, units, evidence), then the reviewer | only `approve`, after review |
 | Document-sheet proposer | documents + the data-derived sheet | JSON sheet | the quote checker (quote found on page ±1), then the reviewer | only the reviewer's approval |
 
@@ -277,3 +285,27 @@ person.
 - Submission layouts supported: a simple table, and several sheets with the same columns stacked.
   Side-by-side blocks and key-linked sheets still need a hand-written reader.
 - Comparisons suggested by the model during a submission are stored but not verified by rules.
+
+## Architectural gaps relative to the product vision
+
+These are required areas of design, not implemented components or selected technologies:
+
+- **Research projects:** identity independent of PSI, questions, experiments, dataset versions,
+  hypotheses, selected references and conclusions that persist beyond a browser tab.
+- **External discovery:** NASA search and evidence acquisition triggered by research context,
+  recording coverage and provenance. The present local search does not implement this; actual
+  source interfaces and access still need investigation.
+- **Research assistance:** tools scoped to a project and its accessible evidence, with explicit
+  comparison criteria. Preserve code-enforced boundaries while revisiting page-only scope.
+- **Simulation agent:** prepare grounded model proposals, trace parameter sources, ask for essential
+  missing inputs, invoke scientific tools and organize evaluation. This planned specialization is
+  distinct from the current page assistant and from the mathematical model it configures. Its
+  deployment as one service or several components remains open.
+- **Predictive computation:** an identified model with supported inputs, outputs, assumptions and
+  scientific evaluation. The existing WebGL renderer and replay are visualization components;
+  neither computes new gravity/pressure scenarios.
+- **Data lifecycle:** own research, external reference collections and computed results need
+  distinct ownership and provenance. Current catalog rebuilds and seed exports do not implement
+  that separation. Import approval must not imply inclusion in a distributable demonstration seed.
+
+Deployment, collaboration, storage technology and simulation infrastructure remain open decisions.

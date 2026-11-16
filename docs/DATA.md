@@ -1,6 +1,10 @@
 # Data
 
-Everything in Zorbital comes from NASA's Physical Sciences Informatics (PSI) repository. Files were
+**Scope: bundled reference data.** The [product vision](PRODUCT-VISION.md) starts with the user's
+own research and relates it to external evidence. The inventory below describes the current NASA
+collection; it is not an eligibility rule for research that the platform should accept.
+
+The bundled collection comes from NASA's Physical Sciences Informatics (PSI) repository. Files were
 downloaded by hand from each investigation's page, placed in `dados/` and never modified. This page
 says what is loaded, how it was read, and what each investigation can and cannot support.
 
@@ -124,6 +128,28 @@ diameter by pressure between PSI-117 and CFI, and it carries its own caution.
 | A BASS-II fan display reading is a velocity in cm/s | **No**: it is a panel reading |
 | Larger CO/CO₂ variation in a BASS-II test means a more dangerous material | **No**: it depends on duration, volume and protocol |
 | The dashboard predicts fires or gives operational guidance | **No** |
+
+## Data requirements for the research workflow
+
+The future workflow must distinguish original user data, acquired external evidence, reviewed
+interpretations and computed scenario results. Research identity must be independent of PSI;
+external identifiers and references belong to the source links when applicable.
+
+Each scenario needs links to the dataset versions, model version, inputs, units, results and
+limitations used in its execution. Observations, reconstructions, predictions and uncertainty must
+remain distinguishable. Source overlap and shared experimental provenance matter when assessing
+comparisons and evaluating models.
+
+The current shared catalog and seed do not implement project ownership or separation of user data
+from distributable reference data. The NASA acquisition mechanism and the complete project data
+model remain to be designed; see [PRODUCT-VISION.md](PRODUCT-VISION.md).
+
+For the planned simulation agent, each parameter must record whether it came from the user's
+experiment, an external reference, a model default, an explicit assumption or an estimation method.
+Record its unit, source/version, applicability and review status where relevant. Conflicting values
+and essential missing inputs remain visible. Numerical settings belong to the execution record;
+they must not be presented as experimental observations. Automatic preparation does not remove
+the need to identify what the calculation actually used.
 
 ## Sources
 
