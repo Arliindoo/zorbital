@@ -1,6 +1,32 @@
 # Validation
 
-What was verified, how, and what is still open. Numbers are as measured on 2026-11-15.
+Historical validation reported for the current prototype. Numbers below were recorded as measured
+on 2026-11-15. They cover the dashboard, imports and replay, not the full
+[product vision](PRODUCT-VISION.md). Documentation updates do not rerun these checks.
+
+## Evaluation still required for the product direction
+
+The following are proposed evaluation areas, not checks already performed:
+
+- A user starts and resumes an independent research project without a PSI identifier; versions,
+  reviewed interpretations and evidence remain linked to it.
+- NASA discovery retrieves relevant, traceable references and distinguishes unavailable data,
+  incomplete coverage and service failures from an absence of related research.
+- Research assistance grounds factual statements and comparisons in evidence, identifies
+  incompatible conditions and source dependencies, and supports the user's own conclusions.
+- The simulation agent selects an approach with traceable justification, preserves parameter
+  sources and units, identifies unsupported conditions and asks for essential missing inputs.
+  Evaluate incorrect model choices, conflicting source values and proposed code adaptations as
+  well as successful preparation; a successful execution alone is not scientific validation.
+- Each predictive model is evaluated for its defined phenomenon, inputs and domain, with explicit
+  separation between data used for adjustment and data used for evaluation, and recorded errors
+  and uncertainty as appropriate to the method.
+- A supported scenario changes model inputs, records its computation and displays consistent
+  outputs in charts and 3D. Unsupported scenarios and insufficient inputs are explained.
+- User research remains separate from the distributable reference collection.
+
+Passing replay unit tests or rendering a 3D scene does not establish the scientific validity of
+new gravity or pressure scenarios. The model and its evaluation protocol are still undecided.
 
 ## With real data and real model calls
 

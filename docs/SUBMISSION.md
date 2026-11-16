@@ -1,133 +1,132 @@
-# Space Apps 2026 — submission form texts
+﻿# Space Apps 2026 — project presentation draft
 
-Ready-to-paste texts for the project page fields. Keep them in sync with the root README.
+English presentation text aligned with [PRODUCT-VISION.md](PRODUCT-VISION.md). It distinguishes
+what the current prototype demonstrates from the intended research workflow and planned simulation
+agent. The first simulation proposal is detailed in [SIMULATION.md](SIMULATION.md). Recorded
+validation and remaining evaluation needs are in [VALIDATION.md](VALIDATION.md).
 
 ## Project Name
 
-Zorbital — fire safety insights from NASA microgravity combustion data
+Zorbital — AI-assisted research and simulation
 
 ## High-Level Project Summary
 
-Zorbital is an interactive dashboard that brings NASA's public microgravity combustion experiments
-(PSI repository) into one place: normalized, comparable tables with the provenance of every number,
-a fact sheet per experiment (fuels, samples, conditions, what varied, what was measured), rule-based
-comparisons between studies, and an AI assistant that only speaks from the data on screen. It
-addresses the challenge directly — making decades of flame-in-microgravity results findable,
-comparable and understandable for Moon and Mars fire safety — while making sure the screen never
-invites a wrong conclusion: measurement and simulation are never mixed, each experiment carries its
-"what not to conclude" cautions, and every AI output is a proposal validated by code and approved by
-a person.
+Zorbital is being developed as a research platform that starts with the user's own experiments.
+Scientists and engineers bring their data, documents and questions; the intended workflow connects
+that research to relevant NASA evidence and helps explore what could happen under changed
+conditions. A planned simulation agent will propose suitable scientific models, prepare parameters
+from identified sources, ask for essential missing inputs and conduct calculations through
+scientific tools. Results will be explored through comparisons, charts and 3D visualization, while
+the researcher develops the scientific conclusion.
 
-## Link to Final Project
+The current prototype establishes part of that foundation with six NASA PSI investigations,
+reviewed data imports, provenance, study fact sheets, rule-based comparisons, a page-scoped AI
+assistant and 3D reconstructions. Independent research projects, live NASA discovery, the simulation
+agent and predictive calculations for changed gravity or pressure remain planned capabilities.
+
+## Link to Project
 
 https://github.com/Arliindoo/zorbital
 
 ## Project Demo
 
-<!-- link público do vídeo (≤ 30 s) ou dos slides (≤ 7), em inglês ou com legendas em inglês -->
+Demo link: to be added. The demonstration should identify implemented capabilities and clearly
+label any proposed workflow shown alongside them.
 
 ## Detailed Project Description
 
-The form asks six questions; each answer below is ready to paste under its heading.
-
 ### What does it do or how does it work?
 
-Zorbital brings NASA's public microgravity combustion experiments (the PSI repository) into one
-place and makes them comparable without letting the screen invite a wrong conclusion. It loads six
-investigations — FLEX (PSI-69), CFI (PSI-39), PSI-117, BASS-II (PSI-25), PSI-142 and BASS (PSI-26)
-— through a deterministic data pipeline that recognizes duplicate files, preserves data types,
-extracts categories from free-text fields while keeping the original text, keeps measurement,
-model and uncertainty as separate records, and registers every value it cannot read as an alert
-with the original content instead of guessing. The result is a local database whose tables are
-versioned with the code, so anyone who clones the repository opens the dashboard with all the data
-and no downloads.
+The intended journey begins with a research question: “Here are my experiments. Is there related
+NASA research, and what might change if I reduce the pressure?” Zorbital should help organize the
+uploaded data, clarify units and experimental conditions, discover relevant external work and
+explain the basis and limits of comparisons. The researcher selects evidence and decides which
+hypotheses to investigate.
 
-On top of it: one page per investigation with its own filters and charts, the question the data
-answers, the source and its completeness, and the "what not to conclude" cautions taken from the
-reports; a fact sheet per study computed from the data (fuels, sample shape and size, conditions in
-common units, what was measured, what varied between tests and what stayed fixed, and which
-conditions varied together and therefore cannot be separated); a 3D simulation that descends from
-the Space Station or the laboratory to the experiment and replays the chosen test from the recorded
-values, marking on screen what is data and what is illustration; two comparison pages with explicit
-rules (PSI-117 against CFI with a point-by-point match, and side-by-side fact sheets with a verdict
-per pair); and an AI assistant on every page.
+For virtual experiments, a specialized simulation agent is planned to identify appropriate models,
+prepare a reviewable configuration and invoke scientific computation. It should distinguish values
+measured by the researcher, values obtained from references, estimates and assumptions. The user
+should be able to begin with a question and review important choices without manually entering
+every internal model parameter. Computed results will feed the same charts and 3D views used to
+compare scenarios. Model selection and scientific evaluation are still required before presenting
+new gravity or pressure scenarios as supported predictions.
 
-The AI is used in three contained ways, all under one principle: the AI proposes, the software
-checks, a person approves. The assistant can only consult the data through a fixed set of queries
-enabled per page, so it cannot cross investigations outside the comparison pages, and every number
-it cites comes from a query it shows; before answering, it reads the fact sheets and cautions of
-the studies involved. When a new study is submitted, the AI reads the spreadsheets' structure and
-the documents and proposes how to read each column, with the evidence for every interpretation;
-the software validates the proposal, a curator confirms every inference, and from then on the
-software applies that reading on every load. For a study's documents, the AI proposes objective,
-sensors and fixed conditions with page and verbatim quote; the software checks that the quote
-exists on that page; a reviewer decides what enters. The AI never writes to the database.
+Today, the repository implements a local data pipeline and dashboard for FLEX, CFI, PSI-117,
+BASS-II, PSI-142 and BASS. It preserves source information, normalizes supported formats, records
+quality findings and produces study fact sheets. Users can inspect comparisons, ask a page-scoped
+assistant and explore reconstructions for supported studies. Importing another study currently
+requires a PSI identifier, tables and documentation; code checks the AI's proposed reading and a
+person reviews it before adoption into the local catalog. This is the starting implementation for
+the broader research journey.
 
 ### What benefits does it offer?
 
-Researchers and fire-safety engineers get decades of PSI combustion results already normalized,
-with the provenance of every number and the cautions attached, and an answer to "can these two
-studies be compared?" based on their actual test conditions rather than on intuition. Readers get an
-assistant that cannot invent numbers and that states the basis of each one (filtered rows or whole
-table, sample or complete data). Curators get a way to add investigations without writing a parser
-for each: the AI proposes, the person reviews, the software applies. Students and the public get
-decades of space combustion science that can be explored without specialist tools. Anyone can run
-it offline on an ordinary computer, and the whole chain from source file to screen is reproducible.
+The intended benefit is to reduce the work between collecting experimental data and investigating
+it in the context of existing knowledge. Researchers should be able to locate related evidence,
+understand whether conditions are comparable, prepare virtual experiments and trace the basis of
+their conclusions. The simulation agent is intended to make technical setup more accessible while
+keeping model choices, assumptions and missing information available for inspection.
+
+The prototype already provides an inspectable reference collection, reviewed interpretation of
+uploaded data, common units in fact sheets, quality alerts and visual context for selected
+experiments. It also exposes shared provenance: the documented PSI-117 × CFI match shows why some
+comparisons cannot be treated as independent validation. These capabilities demonstrate the
+approach to evidence that the full research platform should preserve.
 
 ### What is the intended impact of the project?
 
-Fire is one of the risks that scale badly on long missions, and the knowledge needed to design for
-it exists but is scattered across incompatible files and reports. The intended impact is to make
-that knowledge usable with its limits intact: to shorten the path from "NASA has tested this" to
-"here is what the tests show, under which conditions, and what they do not show", for the people
-preparing Moon and Mars habitats. Beyond combustion, the project is a template for presenting
-experimental physical-science data with AI in the loop: evidence types kept apart, provenance kept,
-limits stated, and the model used as a proposer under human review rather than as an oracle.
+The initial application is combustion research relevant to understanding fire behavior in space.
+The intended impact is to help researchers connect their own experiments with NASA's accumulated
+evidence and investigate new conditions with explicit scientific models. The platform should
+support the user's reasoning, preserve uncertainty and make the path from evidence to conclusion
+inspectable.
+
+The longer-term direction is a research environment with persistent projects, selected evidence,
+model configurations, scenario results and researcher-authored conclusions. Extending beyond the
+initial combustion scope requires suitable models and evaluation for each supported phenomenon.
+The project does not claim that any uploaded dataset can automatically produce a valid simulator.
 
 ### What tools, coding languages, hardware, or software did you use to develop your project?
 
-The data pipeline and the server are written in Python, with Polars and DuckDB for analysis and
-storage, Parquet for the versioned data, and FastAPI for the web API. The interface is a web
-application in React and TypeScript; the charts are drawn in SVG and the 3D simulation in WebGL2,
-both written by the team without a charting or 3D library. The AI assistant uses Anthropic Claude
-models through an OpenAI-compatible gateway (Zyria), which also reports the cost of each call. The
-data comes exclusively from NASA's Physical Sciences Informatics repository, downloaded manually and
-loaded unchanged. No special hardware is needed: it runs on a laptop. Automated tests cover the
-pipeline, the server, the assistant and the interface, and run without data or AI credentials. An
-AI coding assistant was used in pair-programming to write code and documentation under the team's
-direction and review; this is disclosed in the repository.
+The current pipeline and API use Python, Polars, DuckDB, Parquet and FastAPI. The browser interface
+uses React and TypeScript, with SVG charts and WebGL2 reconstructions. AI functions use an
+OpenAI-compatible gateway through the OpenAI Python SDK. The bundled NASA data was downloaded
+manually, and the versioned seed allows the dashboard to start without downloading the original
+collection again.
+
+The local reference views and reconstructions can operate without new external data access;
+current AI calls require the configured gateway. The predictive engine, external NASA discovery
+integration and simulation-agent execution architecture have not yet been selected. Software
+checks and previously recorded results are documented separately from the scientific evaluation
+that future predictive models will require.
 
 ### How is your project creative?
 
-Most AI dashboards put the model between the user and the data and hope the prompt keeps it honest.
-Zorbital inverts that: the model never touches the data; it only proposes — a query to run, a way to
-read a column, a sentence from a report — and the software verifies the proposal before a person
-approves it. Three concrete ideas came out of this stance. First, a reviewable reading specification
-that lets a new study enter the dashboard through review rather than through code, with the
-evidence stored next to every column. Second, a quote check: the AI must cite page and verbatim
-text for anything it extracts from a report, and the software searches that text on that page, so a
-paraphrase or a wrong page is caught before anyone reads it. Third, "linked conditions": a rule that
-finds, in each experiment, the pairs of conditions that only ever varied together — the information
-a reader needs before attributing an effect to one of them. Working this carefully with the data
-also produced a finding we did not expect: all four droplets in PSI-117's one-atmosphere table are
-CFI flights, so the model-versus-measurement comparison that the archive invites is not an
-independent validation, and the dashboard says so point by point. Finally, the simulation turns rows
-into a scene a person can read, while underlining which parts are reconstructed and refusing to
-invent what is missing.
+The product connects three activities around the researcher's own question: understanding their
+experiment, finding external evidence and preparing virtual experiments. The planned simulation
+agent would manage model and parameter preparation, while the researcher retains visibility into
+the evidence and choices that affect interpretation. The 3D experience would make calculated
+scenarios explorable alongside observations and reconstructed references.
+
+The prototype demonstrates several foundations for this approach: reading specifications that can
+be reviewed and applied reproducibly, document extraction with page and quote checks, fact sheets
+that identify conditions that varied together, and comparisons that disclose shared source data.
+These mechanisms can support the broader workflow without treating generated text or an animation
+as proof of a scientific result.
 
 ### What factors did your team consider?
 
-We started from the question "how could this dashboard mislead someone?" and designed against each
-answer. Measured, simulated and uncertainty values never enter the same average. Investigations are
-only crossed on pages that say what their sources share. Every experiment's cautions travel with its
-data, and the assistant must read them before interpreting anything. What cannot be read becomes an
-alert, never a correction; when a document contradicts the data, both are shown and the data wins.
-We also considered reproducibility (no AI in the pipeline: the same files give the same result),
-transparency of cost (every AI call shows its estimated and real cost, with hard limits), security
-of uploaded files, the privacy of the researchers named in NASA's metadata (deliberately not
-loaded), and access (offline, in English by default, with fixed colors per category so filtering
-never recolors a chart). And we considered the rules of the challenge: NASA data at the core, no
-NASA branding, full citation of data and tools, and a plain disclosure of where and how AI was used.
+The product direction prioritizes the researcher's question, provenance, understandable scientific
+choices and the ability to revisit an analysis. Original observations, model predictions,
+reconstructions and assumptions must remain distinguishable. External references need identifiable
+sources and coverage; simulation configurations need model versions and parameter origins.
+
+In the current prototype, uploaded files are checked, reading and document interpretations are
+reviewed, and the assistant uses controlled tools. These measures do not guarantee that every
+AI-generated statement is correct. Future evaluation must assess model selection, evidence
+fidelity, missing-input handling and scientific predictions as well as software behavior.
+Research data must also remain separate from the distributable demonstration collection. The user
+remains responsible for the scientific conclusion, supported by inspectable evidence and results.
 
 ## NASA Data
 
@@ -176,16 +175,18 @@ No space-agency-partner data was used. Other references, code and tools:
 
 ## Use of Super Intelligence (SI)
 
-Yes, in two distinct ways.
+AI is used in the current prototype for the page assistant, reading-specification proposals and
+document fact-sheet proposals. Reading specifications and document interpretations go through code
+checks and human review before adoption. The assistant uses restricted tools and grounding
+instructions; its generated text has no final factual verifier. The model has no direct
+database-writing tool. The gateway reports usage and cost.
 
-Inside the product: the assistant, the study-submission analysis and the document fact sheet call a
-language model (Anthropic Claude through the Zyria gateway). Every output of the model is a
-proposal: it is validated by deterministic code and approved by a person before anything is stored,
-and the model never writes to the database. The dashboard shows each call and its cost.
+The specialized simulation agent is part of the product vision. It is intended to propose grounded
+model configurations, prepare parameters, invoke scientific tools and help evaluate results. It is
+not implemented in the current prototype, and no predictive scientific engine has been selected.
 
-Building the product: the idea, the choice of investigations, the download and inspection of the
-data, the scientific cautions, every design decision, the end-to-end tests with real data and the
-demo are the team's work. The source code was written in pair-programming with an AI coding
-assistant (Anthropic Claude), directed, reviewed and tested by the team. The README and the
-documentation were drafted the same way and revised by the team. This is disclosed in the
-repository's README. No images, video or audio were generated by AI.
+AI coding assistance has also been used to develop code and draft documentation under the team's
+direction. Earlier implementation work used Anthropic Claude; the current product documentation
+was organized with OpenAI Codex. Recorded tests, human review status and remaining evaluation work
+are documented in VALIDATION.md. This disclosure does not imply that every generated artifact or
+proposed scientific model has already been independently validated.
